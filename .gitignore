@@ -15,6 +15,9 @@
 
 # next.js
 /.next/
+# Batch 8: `next build` runs into its own directory so it does not fight the
+# dev server for `.next` (see next.config.ts).
+/.next-build/
 /out/
 
 # production

@@ -1,26 +1,642 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================================
+   CircuitPilot — Design Foundations (Batch 0)
+   Single source of truth for every visual token in the product.
+   Light-only by design: this is a technical workshop UI, not a dark console.
+   ========================================================================== */
+
+@theme {
+  /* --- F-01 · Color tokens ------------------------------------------------ */
+
+  /* Surfaces */
+  --color-app: #f5f7f8;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #eef1f4;
+  --color-surface-hover: #f7f9fa;
+  --color-surface-active: #eaeff3;
+  --color-surface-inverse: #111827;
+
+  /* Ink */
+  --color-ink: #111827;
+  --color-ink-secondary: #5b6576;
+  --color-ink-tertiary: #667085;
+  --color-ink-inverse: #ffffff;
+  /* Non-text only: disabled glyphs, decorative rules, empty-state art.
+     Below AA by design — never carries a word the user has to read. */
+  --color-ink-disabled: #94a2b1;
+
+  /* Lines */
+  --color-border: #e4e9ed;
+  --color-border-strong: #cfd8e0;
+  --color-grid: #dce3e8;
+
+  /* Primary accent — electric blue */
+  --color-accent: #1677ff;
+  --color-accent-hover: #0e63e0;
+  --color-accent-active: #0a53bd;
+  --color-accent-soft: #eaf3ff;
+  --color-accent-border: #b9d8ff;
+
+  /* Secondary accent — teal (targets, expected state) */
+  --color-teal: #14b8a6;
+  --color-teal-hover: #0f9e8e;
+  --color-teal-soft: #e6f7f5;
+  --color-teal-border: #9ee4dc;
+
+  /* Status */
+  --color-success: #16a36a;
+  --color-success-hover: #128a5a;
+  --color-success-soft: #e7f6ef;
+  --color-success-border: #a3ddc2;
+
+  --color-warning: #f59e0b;
+  --color-warning-hover: #d98806;
+  --color-warning-soft: #fef4e6;
+  --color-warning-border: #f7d79a;
+
+  --color-error: #e5484d;
+  --color-error-hover: #cd383d;
+  --color-error-soft: #fdecec;
+  --color-error-border: #f4b4b6;
+
+  /* --- F-02 · Semantic wire palette --------------------------------------- */
+  /* Never carried by colour alone: a role also owns an icon and a text label,
+     and the wire the agent is talking about is the only coloured one on the
+     board (see wireRoles in @/lib/design/tokens).
+
+     `-edge` is the same hue at 75% lightness, stroked a shade wider than the
+     cable so it shows as a dark rim down both sides. That is what makes a flat
+     stroke read as a round tube, and it replaces the blur that used to do the
+     job. The same colour run down the *centre* instead reads as a groove and
+     makes the cable look hollow — tried, rejected on the canvas. */
+  --color-wire-power: #e0393e;
+  --color-wire-power-edge: #a82b2f;
+  --color-wire-ground: #3a4450;
+  --color-wire-ground-edge: #2c333c;
+  --color-wire-signal: #d99114;
+  --color-wire-signal-edge: #a36d0f;
+  --color-wire-signal-alt: #2d7ff9;
+  --color-wire-signal-alt-edge: #225fbb;
+  --color-wire-error: #f0742a;
+  --color-wire-error-edge: #b45720;
+  --color-wire-target: #0fa98f;
+  --color-wire-target-edge: #0b7f6b;
+  --color-wire-idle: #a9b4c0;
+  --color-wire-idle-edge: #7f8790;
+
+  /* What every other cable turns into while one wire is the subject. Not the
+     coloured wire at low opacity — a different, genuinely neutral colour, so
+     the one wire that kept its hue is the only thing the eye lands on. */
+  --color-wire-neutral: #6b757e;
+  --color-wire-neutral-edge: #50585f;
+
+  /* The moulded housing on the end of a jumper. Its job is to say the wire is
+     seated in the hole rather than stopping in mid-air. */
+  --color-connector: #2f3742;
+  --color-connector-muted: #4d565f;
+
+  /* --- F-03 · Typography -------------------------------------------------- */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", monospace;
+
+  --text-display: 30px;
+  --text-display--line-height: 36px;
+  --text-display--letter-spacing: -0.021em;
+  --text-display--font-weight: 600;
+
+  --text-h1: 24px;
+  --text-h1--line-height: 30px;
+  --text-h1--letter-spacing: -0.017em;
+  --text-h1--font-weight: 600;
+
+  --text-h2: 19px;
+  --text-h2--line-height: 26px;
+  --text-h2--letter-spacing: -0.012em;
+  --text-h2--font-weight: 600;
+
+  --text-h3: 15px;
+  --text-h3--line-height: 22px;
+  --text-h3--letter-spacing: -0.006em;
+  --text-h3--font-weight: 600;
+
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
+  --text-body-lg--letter-spacing: -0.003em;
+
+  --text-body: 14px;
+  --text-body--line-height: 21px;
+
+  --text-body-sm: 13px;
+  --text-body-sm--line-height: 19px;
+
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-caption--font-weight: 500;
+
+  --text-overline: 11px;
+  --text-overline--line-height: 14px;
+  --text-overline--letter-spacing: 0.06em;
+  --text-overline--font-weight: 600;
+
+  --text-mono-lg: 15px;
+  --text-mono-lg--line-height: 22px;
+
+  --text-mono: 13px;
+  --text-mono--line-height: 18px;
+
+  --text-mono-sm: 11px;
+  --text-mono-sm--line-height: 15px;
+  --text-mono-sm--letter-spacing: 0.02em;
+
+  /* --- F-04 · Layout rhythm ----------------------------------------------- */
+  /* 4px base scale ships with Tailwind; these are the product's fixed frames. */
+  --spacing-topbar: 64px;
+  --spacing-rail: 252px;
+  --spacing-agent: 360px;
+  --spacing-dock: 44px;
+  --spacing-dock-open: 224px;
+  --spacing-shell: 1360px;
+  --spacing-prose: 68ch;
+
+  /* --- F-05 · Radius ------------------------------------------------------ */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+
+  /* --- F-05 · Elevation --------------------------------------------------- */
+  --shadow-e1: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-e2:
+    0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 10px -2px rgba(16, 24, 40, 0.06);
+  --shadow-e3:
+    0 2px 4px rgba(16, 24, 40, 0.05), 0 12px 28px -6px rgba(16, 24, 40, 0.1);
+  --shadow-raised:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(10, 54, 120, 0.24),
+    0 2px 6px -1px rgba(10, 54, 120, 0.2);
+  --shadow-sunken: inset 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-none: 0 0 #0000;
+
+  /* A-01 · The plate every button rests on.
+     A 6px white pad drawn as a shadow spread, plus the plate's own soft
+     shadow further out. Two levels of elevation: the plate floats above the
+     page, the button sits on the plate. On a white card the pad itself
+     disappears and only its shadow remains, which still separates the control
+     from the surface. Buttons therefore need at least 16px of gap between
+     them — the plate is painted, not laid out. */
+  --shadow-plate:
+    0 0 0 6px var(--color-surface), 0 3px 9px 2px rgba(16, 24, 40, 0.11);
+
+  /* Tinted to the fill so a filled button reads as raised without a gradient,
+     a bevel or a glow. */
+  --shadow-btn-accent:
+    var(--shadow-plate), 0 2px 6px -1px rgba(22, 119, 255, 0.42);
+  --shadow-btn-accent-lift:
+    var(--shadow-plate), 0 5px 12px -3px rgba(22, 119, 255, 0.5);
+  --shadow-btn-error:
+    var(--shadow-plate), 0 2px 6px -1px rgba(229, 72, 77, 0.4);
+  --shadow-btn-surface: var(--shadow-plate), 0 1px 3px rgba(16, 24, 40, 0.12);
+  --shadow-btn-surface-lift:
+    var(--shadow-plate), 0 3px 7px rgba(16, 24, 40, 0.14);
+  /* Pressed: the plate stays, the button's own lift goes. */
+  --shadow-btn-flat: var(--shadow-plate);
+
+  /* Badges keep the old flat lift — they are metadata, not controls, and a
+     plate around each one would turn a topbar row into a stack of pills. */
+  --shadow-badge: 0 1px 3px rgba(16, 24, 40, 0.1);
+  /* A-05 · Selected filter chip: the same lift plus an accent edge, so "on"
+     is carried by an outline as well as by the fill. */
+  --shadow-chip-selected:
+    0 0 0 1px var(--color-accent-border), 0 1px 3px rgba(22, 119, 255, 0.18);
+
+  /* --- F-07 · Motion ------------------------------------------------------ */
+  --ease-out-soft: cubic-bezier(0.16, 0.84, 0.44, 1);
+  --ease-in-out-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-overshoot: cubic-bezier(0.34, 1.26, 0.64, 1);
+
+  --duration-instant: 150ms;
+  --duration-quick: 220ms;
+  --duration-settle: 280ms;
+  --duration-deliberate: 350ms;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ============================================================================
+   Base layer
+   ========================================================================== */
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: light;
+
+    /* F-09 · Focus ring — one ring, everywhere. */
+    --focus-ring-width: 2px;
+    --focus-ring-offset: 2px;
+    --focus-ring-color: var(--color-accent);
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-app);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Technical values always render in the mono face with tabular figures. */
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+    border-radius: var(--radius-xs);
+  }
+
+  /* Mouse users never see the ring; keyboard users always do. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  ::selection {
+    background-color: var(--color-accent-soft);
+    color: var(--color-ink);
+  }
+
+  /* Scrollbars are part of the product, not the operating system's.
+     A capsule thumb on an invisible track, inset so it never touches the
+     panel's edge — the same shape language as everything else. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--color-border-strong);
+    border-radius: 999px;
+    border: 4px solid transparent;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-ink-disabled);
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ============================================================================
+   Utilities
+   ========================================================================== */
+
+/* F-07 · Named transition durations. Tailwind v4 ships `--ease-*` as a theme
+   namespace but has no equivalent for duration, so these bind the tokens. */
+@utility surface-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-surface-sunken) 30%,
+    var(--color-surface-active) 50%,
+    var(--color-surface-sunken) 70%
+  );
+  background-size: 220% 100%;
+  animation: cp-shimmer 2.2s linear infinite;
+}
+
+@utility text-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-ink-tertiary) 35%,
+    var(--color-ink) 50%,
+    var(--color-ink-tertiary) 65%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: cp-shimmer 2.2s linear infinite;
+}
+
+@utility motion-pop {
+  animation: cp-pop-in var(--duration-quick) var(--ease-out-soft) both;
+}
+@utility motion-rise {
+  animation: cp-rise-in var(--duration-settle) var(--ease-out-soft) both;
+}
+@utility motion-fade {
+  animation: cp-fade-in var(--duration-quick) var(--ease-out-soft) both;
+}
+@utility motion-slide-right {
+  animation: cp-slide-in-right var(--duration-settle) var(--ease-out-soft) both;
+}
+@utility motion-expand {
+  animation: cp-expand var(--duration-quick) var(--ease-out-soft) both;
+}
+
+@utility duration-instant {
+  transition-duration: var(--duration-instant);
+}
+@utility duration-quick {
+  transition-duration: var(--duration-quick);
+}
+@utility duration-settle {
+  transition-duration: var(--duration-settle);
+}
+@utility duration-deliberate {
+  transition-duration: var(--duration-deliberate);
+}
+
+@layer utilities {
+  /* Tabular numerals for every technical readout: D7, 5V, 18 cm, 94%. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Explicit ring for composite controls whose visual box differs from the
+     focusable element (segmented control items, canvas pins, tabs). */
+  .ring-focus {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  /* The "second inner layer" active states are built from (F-05). */
+  .layer-active {
+    box-shadow:
+      inset 0 0 0 1px var(--color-accent-border),
+      inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  }
+
+  .layer-sunken {
+    box-shadow: var(--shadow-sunken);
+  }
+
+  /* Fades the top and bottom 10px of a scrolling region. A row clipped by a
+     hard edge looks broken; a row fading out reads as "there is more". */
+  .scroll-fade {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      black 10px,
+      black calc(100% - 10px),
+      transparent 100%
+    );
+  }
+
+  /* Fine dotted technical grid used behind the circuit canvas. */
+  .grid-technical {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      var(--color-grid) 1px,
+      transparent 0
+    );
+    background-size: 16px 16px;
+  }
+
+  .grid-technical-fine {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      var(--color-grid) 1px,
+      transparent 0
+    );
+    background-size: 8px 8px;
+  }
+
+  /* Screen-reader-only, but focusable when it needs to be (skip links). */
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* ============================================================================
+   F-07 · Reduced motion
+   Motion is decoration here, never the only carrier of meaning — so it is safe
+   to collapse it entirely.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================================
+   Keyframes — the product's small, calm motion vocabulary
+   ========================================================================== */
+
+@keyframes cp-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes cp-pulse-ring {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.7);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+
+/* C-17 · One short highlight sliding along the wire the agent is talking
+   about. The dash period is the glint plus a long gap, so only ever a single
+   segment is on the cable — a repeating dash would say the wire is broken,
+   which is the opposite of what this is for. Pairs with
+   `stroke-dasharray: 12 120` in `wire.tsx`. */
+/* C-22 · One green pulse running the length of a wire when a step verifies.
+   Runs once and stops: a success that keeps looping stops being an event and
+   becomes decoration, which rule 12 has no time for. Pairs with
+   `stroke-dasharray: 40 400` in `wire.tsx`. */
+@keyframes cp-success-trace {
+  from {
+    stroke-dashoffset: 440;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: -40;
+    opacity: 0;
+  }
+}
+
+/* C-23 · A sonar ring leaving the sensor. Three of these on staggered delays
+   read as one pulse travelling outward rather than three separate blinks —
+   the same trick the agent's lattice uses. */
+@keyframes cp-ping {
+  from {
+    opacity: 0.6;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes cp-glint {
+  from {
+    stroke-dashoffset: 132;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes cp-attention {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Entry motion. Anything the agent opens has to be *seen* opening — a panel
+   that simply exists was, as far as the user knows, always there. */
+@keyframes cp-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cp-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cp-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cp-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes cp-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* A-16 · A trace travelling the perimeter of a 3×3 lattice. Eight dots share
+   one animation; staggered delays turn them into a single moving signal.
+   Idea borrowed from aicss.dev's "Orbs", redrawn in the product's own terms:
+   here the lattice reads as breadboard holes and the trace as the agent
+   walking the circuit. */
+@keyframes cp-orbit {
+  0%,
+  100% {
+    opacity: 0.16;
+    transform: scale(0.75);
+  }
+  10% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  35% {
+    opacity: 0.16;
+    transform: scale(0.75);
+  }
+}
+
+/* The one gradient the product allows: a highlight passing through the name of
+   the tool that is currently running. */
+@keyframes cp-shimmer {
+  from {
+    background-position: 180% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
+}
+
+@keyframes cp-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
