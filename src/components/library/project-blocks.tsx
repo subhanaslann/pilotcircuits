@@ -6,9 +6,11 @@ import { ComponentIcon } from "@/components/illustration/component-icons";
 import { ProjectScene } from "@/components/illustration/project-scenes";
 import { BuildProgress } from "@/components/ui/build-progress";
 import { CheckRow } from "@/components/ui/choice";
-import { Alert } from "@/components/ui/status";
+import { Alert, LiveRegion, ToastViewport } from "@/components/ui/status";
 import { Chip } from "@/components/ui/badge";
 import { MetadataLine } from "@/components/ui/text";
+import { WebMcpNotice } from "@/components/agent/panel";
+import { useBuildSession } from "@/components/build/build-provider";
 import { useCopy } from "@/content/copy-provider";
 import type { BuildStep } from "@/lib/agent/steps";
 import type { ComponentId, ProjectDef } from "@/lib/projects/catalog";
@@ -281,5 +283,46 @@ export function PreviewNotice({ className }: { className?: string }) {
     <Alert tone="info" title={copy.status.previewProject} className={className}>
       {copy.projectDetail.previewNotice}
     </Alert>
+  );
+}
+
+/**
+ * §9 · What the two library routes owe an agent, and a reader.
+ *
+ * `/projects` and `/projects/[slug]` are the only screens outside the bench
+ * that hand tools to the browser, and until now they were the only ones that
+ * said nothing about it in either direction:
+ *
+ *   *No unavailable sentence.* §9 asks for it unconditionally — *"WebMCP is
+ *   unavailable in this browser. Manual demo controls are still active."* — and
+ *   it existed in both dictionaries, rendered by `WebMcpNotice`, reachable only
+ *   through `AgentPanel`, which only the bench and the design lab mount. So a
+ *   reader on a browser with no host saw `AGENT OFFLINE` in the nav capsule and
+ *   nothing else, on a page whose `Ask agent to check my kit` button works
+ *   perfectly well without one.
+ *
+ *   *No toast, no live region.* Three of the four library tools can refuse. The
+ *   runner composes the sentence, pushes it as a toast and announces it, with a
+ *   comment saying in as many words that a refusal nobody sees did not happen —
+ *   and both hosts for that sentence were mounted inside the workbench. An
+ *   agent handed a bad project id got `status: error` over the protocol while
+ *   the screen did not move.
+ *
+ * One block, on both routes, so the two cannot drift. The notice draws only
+ * when there is no host; the viewport and the region are mounted always —
+ * a live region that arrives together with its first message is the one case
+ * screen readers do not reliably announce.
+ */
+export function LibraryAgentSurface({ className }: { className?: string }) {
+  const session = useBuildSession();
+
+  return (
+    <>
+      {!session.state.webMcpAvailable ? (
+        <WebMcpNotice className={className} />
+      ) : null}
+      <ToastViewport toasts={session.toasts} onDismiss={session.dismissToast} />
+      <LiveRegion message={session.announcement} />
+    </>
   );
 }

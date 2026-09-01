@@ -56,6 +56,7 @@ import { AgentMark } from "@/components/ui/brand-marks";
 import { BackHeader, Breadcrumb } from "@/components/ui/nav";
 import { brand } from "@/content/brand";
 import { useCopy } from "@/content/copy-provider";
+import { workbenchTools } from "@/lib/agent/model";
 import { icon } from "@/lib/design/tokens";
 
 const g = { size: icon.sm, strokeWidth: icon.strokeWidth } as const;
@@ -214,7 +215,12 @@ export function ContainerSpecimens() {
                   <p className="text-h3 text-ink">{brand.agentName}</p>
                   <p className="text-caption text-ink-tertiary">
                     {copy.status.connectedViaWebMcp} ·{" "}
-                    {copy.status.toolsAvailable(6)}
+                    {/* The live list, not a literal. This is a specimen of the
+                        agent panel's header, and it was printing `6 tools
+                        available` beside a real header that has said 7 since
+                        `attach_lead` — a specimen of a control that no longer
+                        matches the control it specimens. */}
+                    {copy.status.toolsAvailable(workbenchTools.length)}
                   </p>
                 </div>
                 <ActivityPulse

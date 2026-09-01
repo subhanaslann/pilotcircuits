@@ -58,7 +58,7 @@ const en = {
       ", not what is true. Move the wire and the row changes state in place rather than vanishing; forget the findings and the panel goes back to never having looked.",
     headerTitle: "Header, tools and the offline notice",
     headerNote:
-      "`6 tools available` opens: WebMCP is meant to be the structure of this product rather than a badge on it, and a count nobody can check is exactly a badge. When the API is missing the pulse goes to its hollow ring — absence drawn as absence — and the notice reassures rather than warns, because every manual control still works.",
+      "The tool count in the header below opens the case: WebMCP is meant to be the structure of this product rather than a badge on it, and a count nobody can check is exactly a badge. That count is read off the list this page hands the browser — the note quoted a literal `6` for a while, above a header that had said 7 since `attach_lead`, which is the failure it is arguing against. When the API is missing the pulse goes to its hollow ring — absence drawn as absence — and the notice reassures rather than warns, because every manual control still works.",
     toolInventory: "Tool inventory",
     webMcpUnavailable: "WebMCP unavailable",
   },
@@ -170,7 +170,7 @@ const tr: Section = {
       " şeydir, doğru olan şey değil. Kabloyu taşı, satır kaybolmaz, yerinde durum değiştirir; bulguları unut, panel hiç bakmamış hâline döner.",
     headerTitle: "Başlık, araçlar ve çevrimdışı notu",
     headerNote:
-      "`6 araç kullanılabilir` açılır: WebMCP bu ürünün üstüne takılmış bir rozet değil, yapısı olmalı; kimsenin kontrol edemediği bir sayı ise tam olarak rozettir. API yoksa nabız içi boş halkasına geçer — yokluk, yokluk olarak çizilir — ve not uyarmaz, içini rahatlatır, çünkü bütün manuel kontroller çalışmaya devam eder.",
+      "Aşağıdaki başlıkta duran araç sayısı meseleyi açar: WebMCP bu ürünün üstüne takılmış bir rozet değil, yapısı olmalı; kimsenin kontrol edemediği bir sayı ise tam olarak rozettir. O sayı, bu sayfanın tarayıcıya verdiği listeden okunuyor — bu not bir süre `6` sabitini yazdı, `attach_lead`'den beri 7 diyen bir başlığın hemen üstünde; yani tam da karşı çıktığı hatayı yaptı. API yoksa nabız içi boş halkasına geçer — yokluk, yokluk olarak çizilir — ve not uyarmaz, içini rahatlatır, çünkü bütün manuel kontroller çalışmaya devam eder.",
     toolInventory: "Araç envanteri",
     webMcpUnavailable: "WebMCP kullanılamıyor",
   },

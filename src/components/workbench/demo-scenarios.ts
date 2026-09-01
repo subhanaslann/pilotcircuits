@@ -2,7 +2,8 @@ import type { AgentSession } from "@/components/agent/use-agent-session";
 import type { Copy } from "@/content/i18n";
 import type { InspectionScope } from "@/lib/agent/model";
 import { stepTotalFor, stepsOwning, type StepId } from "@/lib/agent/steps";
-import { buildFor } from "@/lib/agent/builds";
+import { buildFor, schemaFactsFor } from "@/lib/agent/builds";
+import type { PlacementSpec } from "@/lib/circuit/placement";
 
 /**
  * W-10 · The nine scenarios, §10.
@@ -66,14 +67,102 @@ export function demoScenarios(
     }
   };
 
+  /**
+   * Where every lead is right now, asked rather than remembered.
+   *
+   * `session.state` is the state of the render this menu was built in, and a
+   * sequence that seats twenty leads is twenty commits past it before it ends.
+   * `get_build_context` is the tool an agent would use for exactly this, it
+   * lands in the timeline as the agent looking, and its `placement.leads` is
+   * the same map `attach_lead` is read against.
+   */
+  const seatedNow = async (): Promise<Record<string, string | null>> => {
+    const looked = await session.run("get_build_context", {});
+    const result = (
+      looked as {
+        result?: { placement?: { leads?: Record<string, string | null> } };
+      }
+    )?.result;
+    return result?.placement?.leads ?? {};
+  };
+
+  /**
+   * Build the whole thing, through the one tool that can.
+   *
+   * `complete()` used to open with `repair("wiring")` on every bench, and on
+   * the five chapters you assemble yourself that is a scope with nothing in
+   * it: an empty bench raises `placement` findings, not `wiring` ones. So no
+   * lead was ever seated, the verify loop broke on its second step, and the
+   * device panel stayed on `Failed` — the demo control that finishes the build
+   * could not finish five of the six builds. `repair("placement")` would not
+   * have closed it either: a `part-not-placed` probe has no repair arm, by
+   * design, because the finding is not something a repair *means*.
+   *
+   * What it means is putting the parts in, and there is exactly one call in
+   * this product that does that. Same tool, same arguments, same refusals, same
+   * undo entries as an agent driving the bench through WebMCP — which is the
+   * rule this whole file exists to keep.
+   *
+   * Two passes. The second seats every lead the sketch is still waiting for, in
+   * `terminals` order, which is the order that keeps a part on the bench long
+   * enough for the next one to be clipped onto it. The first takes back
+   * anything sitting in a hole it does not belong in, so a mistake made earlier
+   * cannot hold the hole a later lead needs and turn the run into a string of
+   * `holeTaken` refusals. On the bench the demo opens in — everything in the
+   * kit — the first pass makes no calls at all.
+   *
+   * It is not quick: the wait inside `attach_lead` is the mascot's carry, and
+   * chapter two has twenty leads. That is the cost of the control doing what it
+   * says through the same door as everything else, and it films as the agent
+   * building the circuit rather than as the circuit appearing.
+   */
+  const assemble = async (spec: PlacementSpec) => {
+    const seated = await seatedNow();
+
+    for (const lead of spec.terminals) {
+      if (seated[lead] && seated[lead] !== spec.complete[lead]) {
+        await session.run("attach_lead", { lead, target: null });
+      }
+    }
+
+    for (const lead of spec.terminals) {
+      const wanted = spec.complete[lead];
+      if (!wanted || seated[lead] === wanted) continue;
+      await session.run("attach_lead", { lead, target: wanted });
+    }
+  };
+
   /** The step this build finishes on — the one whose own suggestion is the run. */
   const testStepId = stepsOwning(session.state.activeStepId).find(
     (step) => step.suggestion === "runTest",
   )?.id;
 
+  /** Whether this build has anything mounted that can be out of true. */
+  const turns = Boolean(
+    schemaFactsFor(session.state.projectId)?.scopes.includes("mechanical"),
+  );
+
   const complete = async () => {
-    await repair("wiring");
-    await repair("mechanical");
+    /**
+     * Put the build right, in whichever way this build can be put right.
+     *
+     * The capstone is laid out by its author: there is nothing to place, and
+     * what stands between it and a finished bench is the wiring fault the demo
+     * injects. The five you assemble start empty, and what stands between them
+     * and a finished bench is every part. Two different jobs, and the old code
+     * did the first one on both.
+     */
+    const spec = buildFor(session.state.projectId)?.placement;
+    if (spec) await assemble(spec);
+    else await repair("wiring");
+
+    /* Only where something turns. `repair("mechanical")` was unconditional, so
+       chapters one to four — which have no servo, no horn and no mounted
+       anything — each got an activity row reading *"Agent checked step 1's
+       mechanical alignment"*, about a step that checks no such thing. The
+       build's own facts say which scopes it can answer; two of the six offer
+       this one. */
+    if (turns) await repair("mechanical");
 
     /* One verify per remaining step, reading each call's own answer. The guard
        is the step count: a build cannot need more verifications than it has
@@ -190,7 +279,18 @@ export function demoScenarios(
    * gets the ones that are actually about it.
    */
   if (session.state.projectId !== "smartParkingBarrier") {
-    return [reset, agentPlaces, wiringFix, runTest, finish];
+    /**
+     * No `Mark wiring as fixed` here, and that is the honest list.
+     *
+     * It is `repair("wiring")`, and it exists to clear the fault the menu
+     * injects two rows above it on the capstone. On a bench you assemble
+     * yourself there is no injected fault and nothing in the `wiring` scope
+     * until the parts are in, so the control produced one "nothing found" row
+     * and stopped — a demo control that cannot do the thing on its own label,
+     * on the state the demo opens in. `Agent seats the next lead` is this
+     * bench's real equivalent and it is already here.
+     */
+    return [reset, agentPlaces, runTest, finish];
   }
 
   return [

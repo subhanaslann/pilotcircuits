@@ -8,12 +8,13 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   useAgentSession,
   type AgentSession,
 } from "@/components/agent/use-agent-session";
 import type { CanvasHandle } from "@/components/canvas/canvas-viewport";
+import { buildBySlug, type BuildDef } from "@/lib/agent/builds";
 import { noFilters, type ProjectFilters } from "@/lib/projects/filter";
 import type { ProjectId } from "@/lib/projects/catalog";
 
@@ -46,12 +47,58 @@ import type { ProjectId } from "@/lib/projects/catalog";
  * drops it, and `focus`/`fitView` become no-ops on the routes where there is
  * nothing to focus.
  *
- * A no-op is only acceptable because it cannot be reached by accident: the six
- * tools that emit those effects are registered with the browser **only while
- * the workbench is mounted** (see `use-webmcp.ts`), so nothing can ask for a
- * camera move on the dashboard. If that ever stops being true, this is the
- * place that goes quiet first, and rule 6 is the rule it breaks.
+ * A no-op is only acceptable because it cannot be reached by accident: the
+ * tools that emit those effects are registered with the browser **only on a
+ * screen that can honour them** (see `use-webmcp.ts` — the wide workbench, and
+ * the two the entry screen's bench answers), so nothing can ask for a camera
+ * move on the dashboard. If that ever stops being true, this is the place that
+ * goes quiet first, and rule 6 is the rule it breaks.
+ *
+ * ## The build is on the bench before the first paint
+ *
+ * `initialSession()` falls back to `defaultBuild`, which is the capstone. That
+ * used to be the state every route served: `openBuild` ran in an effect inside
+ * `WorkbenchRoute`, and effects do not run on the server — so the whole
+ * document of `/workbench/traffic-light` was the parking barrier. The topbar's
+ * name, the seven-stop rail with two steps already ticked, the instruction, the
+ * progress bar's label and the canvas region's accessible name
+ * (`Akıllı Otopark Bariyeri devresi`) all named a chapter the reader had not
+ * opened. It corrected itself one frame after hydration, which is exactly the
+ * frame a screen reader has already announced and a slow connection is still
+ * showing.
+ *
+ * So the bench is chosen from the URL, here, during render — the documented
+ * React shape for "adjust state when the thing it is derived from changes",
+ * and the only place it can happen early enough, because a layout is above
+ * every page and cannot be handed a page's params. `openBuild` is idempotent
+ * for the build already on the bench, so this settles in one extra render pass
+ * and then never fires again while the reader stays on that chapter.
+ *
+ * Two consequences worth naming:
+ *
+ *   *Walking between chapters is covered too.* `usePathname` re-renders this
+ *   provider on the navigation itself, before the new page's children render,
+ *   so the schemas `use-webmcp.ts` hands the browser are the arriving
+ *   chapter's from the first commit rather than the one you left's.
+ *
+ *   *Only `/workbench/…` counts.* `/complete/traffic-light` carries the same
+ *   slug and must NOT re-open the build — that would throw away the finished
+ *   state the summary is about.
  */
+
+/**
+ * The build this URL is a bench for, or `undefined` everywhere else.
+ *
+ * Exact shape rather than a prefix test: two segments, the first `workbench`,
+ * and a slug the registry knows. A slug it does not know is a 404 on that
+ * route, and answering `undefined` here leaves whatever build the session was
+ * already carrying rather than inventing one.
+ */
+export function benchOnPath(pathname: string | null): BuildDef | undefined {
+  const segments = (pathname ?? "").split("/").filter(Boolean);
+  if (segments.length !== 2 || segments[0] !== "workbench") return undefined;
+  return buildBySlug(segments[1]!);
+}
 
 export interface BuildValue {
   session: AgentSession;
@@ -93,6 +140,7 @@ const BuildContext = createContext<BuildValue | null>(null);
 
 export function BuildProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const canvasRef = useRef<CanvasHandle | null>(null);
   const cameraRef = useRef<CanvasHandle | null>(null);
   const [filters, setFilters] = useState<ProjectFilters>(noFilters);
@@ -104,6 +152,14 @@ export function BuildProvider({ children }: { children: ReactNode }) {
     navigate: (href) => router.push(href),
     onFilters: setFilters,
   });
+
+  /* The first paint, on the right bench. See the block above — this is a
+     render-phase adjustment on this component's own reducer, not an effect,
+     because the server render is the half that never got one. */
+  const opening = benchOnPath(pathname);
+  if (opening && session.state.projectId !== opening.projectId) {
+    session.openBuild(opening);
+  }
 
   return (
     <BuildContext.Provider

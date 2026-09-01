@@ -9,7 +9,30 @@ import { Workbench } from "@/components/workbench/live-workbench";
 import { useWideEnough } from "@/components/workbench/frame";
 import { briefingFor } from "@/lib/agent/briefings";
 import { buildFor } from "@/lib/agent/builds";
+import type { AgentTool } from "@/lib/agent/model";
 import type { ProjectId } from "@/lib/projects/catalog";
+
+/**
+ * The subset a narrow bench can honour.
+ *
+ * Not a taste call: each of these four still moves something the reader can
+ * see when the workspace region is unmounted. `get_build_context` reads and
+ * moves nothing by design; `navigate_build_step` and `verify_current_step`
+ * both redraw the step rail, which is rendered on narrow; `run_functional_test`
+ * plays into the device dock, which is too.
+ *
+ * The three left out are the three that need the canvas or the panel:
+ * `inspect_build` fills a Findings tab inside a closed drawer, `show_correction`
+ * points a camera that is not mounted, and `attach_lead` writes a build nobody
+ * can look at. Rule 6 — a change nobody sees did not happen — is the whole
+ * reason they are absent rather than merely quiet.
+ */
+const narrowTools: readonly AgentTool[] = [
+  "get_build_context",
+  "verify_current_step",
+  "navigate_build_step",
+  "run_functional_test",
+];
 
 /**
  * S-04 · The workbench, mounted against the build the product is carrying.
@@ -27,9 +50,16 @@ import type { ProjectId } from "@/lib/projects/catalog";
  * just as much as one who pressed `Start build` on the project page. The action
  * is idempotent, so arriving from either direction is one start.
  *
- * **It hands the browser the six tools that can act here.** §9 keeps a tool on
- * the page that can honour it, and every one of these moves something on this
- * screen.
+ * **It hands the browser the tools that can act here.** §9 keeps a tool on the
+ * page that can honour it — and *this* page is two pages. All seven move
+ * something on the wide bench. Below `WIDE` there is no workspace region at
+ * all: `WorkbenchFrame` renders the topbar, the notice, the rail and the dock,
+ * and puts the panel inside a drawer that is `null` while it is closed. So the
+ * canvas ref is empty, every `focus` / `fitView` / `trace` effect lands on the
+ * floor, a correction card opens inside something that is not mounted, and the
+ * panel's live region is not there to announce any of it. The four that still
+ * have a surface to move — the read, the two that move the rail, and the run
+ * the dock prints — are the four that get registered there. See `narrowTools`.
  *
  * **It hands over the canvas handles.** They belong to the provider, so the
  * agent's focus outlives this mount — and when the person walks to the summary,
@@ -52,10 +82,11 @@ export function WorkbenchRoute({
    * Whether this arrival opens with the briefing.
    *
    * Decided **once, at mount**, and off the *route's* `projectId` rather than
-   * the session's: `openBuild` runs in an effect, so on the first render after
-   * walking in from another chapter the session still names the one you left.
-   * Deciding once is also what stops widening the window past 1120px
-   * mid-session from opening a briefing over a bench somebody is using.
+   * the session's — which is now the same answer, since the provider puts the
+   * URL's build on the bench during render, but this is the one that is true
+   * by construction rather than by another file's arithmetic. Deciding once is
+   * also what stops widening the window past 1120px mid-session from opening a
+   * briefing over a bench somebody is using.
    *
    * Not constructed at all on a narrow screen. `WorkbenchFrame` does not render
    * the workspace region there, and `useWideEnough`'s server snapshot is
@@ -76,11 +107,19 @@ export function WorkbenchRoute({
       ? briefingFor(projectId)
       : undefined;
 
-  useWebMcpTools(workbenchTools);
+  useWebMcpTools(wide ? workbenchTools : narrowTools);
 
-  /* Which build this bench is for. Idempotent when it is the one already on
-     the bench, so arriving here twice is one build; walking into a different
-     chapter starts that chapter over. */
+  /**
+   * Which build this bench is for — the backstop, not the mechanism.
+   *
+   * `BuildProvider` now chooses the bench from the URL during render, so by
+   * the time this component exists the session is already carrying the right
+   * chapter, on the server as well as in the browser. This stays because it is
+   * free (the reducer returns the same object for the build already on the
+   * bench) and because it is the one path that does not depend on the shape of
+   * a pathname: a `basePath`, a rewrite or a locale prefix would blind the
+   * provider's match, and this route is handed its `projectId` by the server.
+   */
   const build = buildFor(projectId);
   useEffect(() => {
     if (build) session.openBuild(build);

@@ -18,10 +18,12 @@ import type { FindingId } from "@/lib/agent/findings";
  * them. So the badge in the panel and the line on the plate stop being claims
  * and start being facts, and a WebMCP client can drive the entry screen.
  *
- * The other four are not registered here. `verify_current_step`,
+ * The other five are not registered here. `verify_current_step`,
  * `navigate_build_step` and `run_functional_test` need a workbench with steps
- * to move through, and `get_build_context` would answer about a build nobody
- * has opened.
+ * to move through, `get_build_context` would answer about a build nobody has
+ * opened, and `attach_lead` would move a lead on a bench that is a film — this
+ * screen's is one hard-coded run over one frame, and a write into it would be
+ * a change nobody can see.
  *
  * ## One trigger, whoever pulled it
  *

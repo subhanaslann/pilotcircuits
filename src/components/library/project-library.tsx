@@ -1,6 +1,7 @@
 "use client";
 
 import { FilterToolbar } from "@/components/library/filter-toolbar";
+import { LibraryAgentSurface } from "@/components/library/project-blocks";
 import { ProjectCard } from "@/components/library/project-card";
 import { EmptyState } from "@/components/ui/status";
 import { useBuild } from "@/components/build/build-provider";
@@ -48,6 +49,10 @@ export function ProjectLibrary() {
         onFiltersChange={setFilters}
         resultCount={results.length}
       />
+
+      {/* §9's unavailable sentence, and the two hosts a refused tool call needs
+          to be seen at all. See `LibraryAgentSurface`. */}
+      <LibraryAgentSurface className="mt-6" />
 
       {results.length ? (
         <ul className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">

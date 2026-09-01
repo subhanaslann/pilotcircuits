@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { ComponentChecklist } from "@/components/library/project-blocks";
+import {
+  ComponentChecklist,
+  LibraryAgentSurface,
+} from "@/components/library/project-blocks";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/status";
 import { useBuildSession } from "@/components/build/build-provider";
@@ -102,6 +105,10 @@ export function ProjectPrep({ project }: { project: ProjectDef }) {
       <Alert tone="info" title={copy.projectDetail.demoModeNotice}>
         {copy.projectDetail.demoModeDetail}
       </Alert>
+
+      {/* §9's unavailable sentence, and the two hosts a refused tool call needs
+          to be seen at all. See `LibraryAgentSurface`. */}
+      <LibraryAgentSurface />
 
       {ready ? (
         <div className="flex flex-wrap items-center gap-4">
