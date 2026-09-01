@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { useBuildSession } from "@/components/build/build-provider";
 import type { AgentSession } from "@/components/agent/use-agent-session";
 import { useCopy, useLocale } from "@/content/copy-provider";
@@ -47,6 +47,14 @@ import type { ProjectId } from "@/lib/projects/catalog";
  * session — the design lab's included — knows what the browser can do; this
  * hook only registers, and does nothing at all when there is no host.
  */
+/* The store behind the gate below: three constants, at module scope so the
+   subscription is never torn down and re-made. Nothing ever changes it — the
+   only transition it has is the one React performs itself when it compares the
+   client's answer with the server's after hydration. */
+const noResubscribe = () => () => {};
+const onTheClient = () => true;
+const onTheServer = () => false;
+
 export function useWebMcpTools(
   tools: readonly AgentTool[],
   /**
@@ -93,9 +101,52 @@ export function useWebMcpTools(
   const projectId = session.state.projectId;
   const key = `${locale}:${projectId}:${tools.join(",")}`;
 
+  /**
+   * Nothing is registered from a commit the server decided, and the reason is
+   * the width.
+   *
+   * `workbench-route.tsx` picks its list with `wide ? workbenchTools :
+   * narrowTools`, and `useWideEnough`'s server snapshot is `true` — *"a narrow
+   * client corrects itself on hydration"* (`frame.tsx:52-58`). So a phone
+   * renders the wide tree for exactly one commit, and registering inside it
+   * hands the browser `show_correction`, `attach_lead` and `run_functional_test`
+   * for a canvas the narrow layout never mounts: the tools are real, the
+   * surface they act on is not, and the call lands on the floor where
+   * `BuildProvider`'s ref handover cannot see it.
+   *
+   * The gate is the same mechanism as the thing it is waiting for — a store
+   * whose server answer differs from its client one — so both corrections
+   * arrive in the same re-render and the effect never sees a half-corrected
+   * tree. Deliberately not a `matchMedia` read: the query belongs to the
+   * caller, and every caller whose list depends on one gets this for free.
+   */
+  const decided = useSyncExternalStore(noResubscribe, onTheClient, onTheServer);
+
   useEffect(() => {
+    if (!decided) return;
+
     const host = findMcpHost();
-    if (!host) return;
+    if (!host) {
+      /**
+       * No host: say so, in the one place that can.
+       *
+       * This branch used to return without touching the flag *and* without a
+       * cleanup, so it was silent in both directions. `useAgentSession`'s
+       * mount probe can only ever write `true` — it is guarded by
+       * `isWebMcpAvailable()` and its own comment says it only moves in the
+       * honest direction — and it runs once per session, while `BuildProvider`
+       * holds one session across `/`, `/projects`, `/workbench/…` and
+       * `/complete/…`. So an arrival that finds no host was the only path that
+       * measured presence, got a negative answer, and wrote nothing down: the
+       * capsule kept reading `AGENT ONLINE` from whatever had set it earlier.
+       *
+       * No cleanup, and that is not the same omission: nothing was registered,
+       * so there is nothing to take back, and the flag is already at the value
+       * the teardown would restore.
+       */
+      live.current.session.setWebMcpAvailable(false);
+      return;
+    }
 
     const [, build, list] = key.split(":");
     const names = list.split(",").filter(Boolean) as AgentTool[];
@@ -104,76 +155,97 @@ export function useWebMcpTools(
        decided to give them to it cannot disagree. */
     const schemas = workbenchSchemasFor(schemaFactsFor(build as ProjectId));
 
-    const registrations: McpRegistration[] = names.map((name) =>
-      registerTool(host, {
-        name,
-        description: live.current.copy.agentPanel.tools[name],
-        inputSchema: schemas[name] ?? librarySchemas[name] ?? {},
-        /**
-         * Nothing thrown crosses this line.
-         *
-         * The runner already turns a throwing handler into an error outcome,
-         * but the throw can happen before it — `navigate_build_step` with a
-         * step id that does not exist fails while the entry's own headline is
-         * being composed. A host that does not enforce the schema would get an
-         * exception where the protocol promises a result.
-         */
-        execute: async (args) => {
-          try {
-            const outcome = await live.current.session.run(
-              name as keyof AllToolInputs,
-              (args ?? {}) as never,
-            );
-            const failed = outcome.status === "error";
-            if (!failed) return asToolResult(outcome.result, false);
+    /**
+     * One controller per effect run, and the whole teardown.
+     *
+     * The IDL has no `unregisterTool` and `registerTool` hands back no handle:
+     * `ModelContextRegisterToolOptions.signal` is the only removal path it
+     * defines. Without one, §9's *"cleaned up when the page changes"* was a
+     * sentence about a no-op — the seven names stayed on the host, and every
+     * later arrival at a bench was refused as a duplicate, including the second
+     * half of StrictMode's own double-invoke.
+     *
+     * Per run rather than per registration, because that is exactly the unit
+     * being torn down: everything registered under this `key` leaves together.
+     */
+    const controller = new AbortController();
 
-            /**
-             * A refusal, with everything that makes it actionable.
-             *
-             * This used to be the key alone — `{"error":"unknownCheck"}` — and
-             * the key is the one part of a refusal that helps nobody.
-             * `unknownCheck` carries the list of checks this build runs;
-             * `holeTaken` carries the pin; the four validated arguments carry
-             * what arrived and what would have been accepted. All of it was
-             * composed, shown to the person in a toast, and then dropped on
-             * the way to the one caller that could act on it.
-             *
-             * Three fields, because they answer three different questions and
-             * no client reads all three: `error` is the stable key to branch
-             * on, `message` is the sentence the person is looking at (same
-             * dictionary, same words — the agent and the reader cannot be told
-             * different things), and `result` is the structured refusal where
-             * there is one. `result` is spread rather than nested so a caller
-             * reads `refused` / `argument` / `valid` at the top level — and it
-             * is genuinely absent on the refusals that have never carried one
-             * (`notFound`, `noPlacement`), which is why this reads it
-             * defensively instead of assuming it is there.
-             */
-            const detail = outcome.result;
-            return asToolResult(
-              {
-                /* Spread first, so a payload can never shadow the three
-                   fields this bridge is contractually responsible for. */
-                ...(detail && typeof detail === "object" ? detail : {}),
-                error: outcome.errorMessage?.k ?? "failed",
-                ...(outcome.errorMessage
-                  ? { message: say(live.current.copy, outcome.errorMessage) }
-                  : {}),
-                tool: name,
-              },
-              true,
-            );
-          } catch (error) {
-            return asToolResult(
-              {
-                error: error instanceof Error ? error.message : "failed",
-                tool: name,
-              },
-              true,
-            );
-          }
+    const registrations: McpRegistration[] = names.map((name) =>
+      registerTool(
+        host,
+        {
+          name,
+          description: live.current.copy.agentPanel.tools[name],
+          inputSchema: schemas[name] ?? librarySchemas[name] ?? {},
+          /**
+           * Nothing thrown crosses this line.
+           *
+           * The runner already turns a throwing handler into an error outcome,
+           * but the throw can happen before it — `navigate_build_step` with a
+           * step id that does not exist fails while the entry's own headline is
+           * being composed. A host that does not enforce the schema would get
+           * an exception where the protocol promises a result.
+           */
+          execute: async (args) => {
+            try {
+              const outcome = await live.current.session.run(
+                name as keyof AllToolInputs,
+                (args ?? {}) as never,
+              );
+              const failed = outcome.status === "error";
+              if (!failed) return asToolResult(outcome.result, false);
+
+              /**
+               * A refusal, with everything that makes it actionable.
+               *
+               * This used to be the key alone — `{"error":"unknownCheck"}` —
+               * and the key is the one part of a refusal that helps nobody.
+               * `unknownCheck` carries the list of checks this build runs;
+               * `holeTaken` carries the pin; the four validated arguments carry
+               * what arrived and what would have been accepted. All of it was
+               * composed, shown to the person in a toast, and then dropped on
+               * the way to the one caller that could act on it.
+               *
+               * Three fields, because they answer three different questions and
+               * no client reads all three: `error` is the stable key to branch
+               * on, `message` is the sentence the person is looking at (same
+               * dictionary, same words — the agent and the reader cannot be
+               * told different things), and `result` is the structured refusal
+               * where there is one. `result` is spread rather than nested so a
+               * caller reads `refused` / `argument` / `valid` at the top level
+               * — and it is genuinely absent on the refusals that have never
+               * carried one (`notFound`, `noPlacement`), which is why this
+               * reads it defensively instead of assuming it is there.
+               */
+              const detail = outcome.result;
+              return asToolResult(
+                {
+                  /* Spread first, so a payload can never shadow the three
+                     fields this bridge is contractually responsible for. */
+                  ...(detail && typeof detail === "object" ? detail : {}),
+                  error: outcome.errorMessage?.k ?? "failed",
+                  ...(outcome.errorMessage
+                    ? { message: say(live.current.copy, outcome.errorMessage) }
+                    : {}),
+                  tool: name,
+                },
+                true,
+              );
+            } catch (error) {
+              return asToolResult(
+                {
+                  error: error instanceof Error ? error.message : "failed",
+                  tool: name,
+                },
+                true,
+              );
+            }
+          },
         },
-      }),
+        /* The teardown, handed over at registration time. Everything this
+           effect registers is aborted together. */
+        { signal: controller.signal },
+      ),
     );
 
     /**
@@ -193,18 +265,45 @@ export function useWebMcpTools(
      * `useAgentSession`'s mount probe sets the same flag from presence alone,
      * so this has to be able to move it in both directions: a host that took
      * none of our tools is not a host, whatever `navigator.modelContext` says.
+     *
+     * The evidence now *arrives* rather than being read, because a conforming
+     * host answers with a promise, so the flag is lowered first and raised only
+     * by the settled answer. That is the deliberate choice: for as long as the
+     * handshake is in flight the badge says nothing, rather than repeating the
+     * mount probe's `true` — which is a claim about presence sitting under
+     * words that promise a handshake. On a host that resolves in a microtask
+     * the two writes batch into one render and nothing flickers; on a host that
+     * takes long enough to be seen, the reader sees `AGENT OFFLINE` while it is
+     * genuinely unknown, which is the honest frame.
      */
-    const shookHands = registrations.length
-      ? registrations.some((r) => r.ok)
-      : /* Asked for nothing, so nothing was refused. A caller with an empty
-           list has learned nothing about the host beyond finding it. */
-        isWebMcpAvailable();
-    live.current.session.setWebMcpAvailable(shookHands);
+    if (registrations.length) {
+      live.current.session.setWebMcpAvailable(false);
+      void Promise.all(registrations.map((r) => r.ok)).then((taken) => {
+        /* The route this belongs to is gone; the teardown has already had the
+           last word on the flag, and this answer is about a host that no
+           longer holds these tools. */
+        if (controller.signal.aborted) return;
+        live.current.session.setWebMcpAvailable(taken.some((ok) => ok));
+      });
+    } else {
+      /* Asked for nothing, so nothing was refused. A caller with an empty
+         list has learned nothing about the host beyond finding it. */
+      live.current.session.setWebMcpAvailable(isWebMcpAvailable());
+    }
 
     return () => {
+      /**
+       * The removal itself — one abort for everything registered above.
+       *
+       * `unregister` runs after it for the shim hosts that hand back a
+       * disposer; on a conforming host it is a no-op and the abort is the
+       * whole teardown. Aborting first means a host that honours the signal
+       * has already dropped the tools before anything else is tried.
+       */
+      controller.abort();
       registrations.forEach((r) => r.unregister());
       /**
-       * And taken back when the tools are.
+       * And the badge taken back when the tools are.
        *
        * The flag only ever moved one way — once true, true for the rest of the
        * session — so a bench that had registered left `AGENT ONLINE` lit on
@@ -215,5 +314,5 @@ export function useWebMcpTools(
        */
       live.current.session.setWebMcpAvailable(isWebMcpAvailable());
     };
-  }, [key]);
+  }, [key, decided]);
 }
