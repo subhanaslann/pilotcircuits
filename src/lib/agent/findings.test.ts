@@ -403,3 +403,67 @@ describe("a part still in the kit is filed against the step that needs it", () =
     expect(new Set(kits.map((f) => f.stepId)).size).toBeGreaterThan(1);
   });
 });
+
+describe("two different parts never share a lead label", () => {
+  /**
+   * The assertion that would have caught the half of A2·6 a test could not see.
+   *
+   * `partNameOf` was given a name per cable and the shelf came right; the
+   * `leads` table was left alone, and the `leads` table is what the step list,
+   * the completion checklist and the finding chips actually render. So the
+   * shelf offered `Güç kablosu` / `Toprak kablosu` / `Sinyal kablosu` /
+   * `Lamba kablosu` while the panel under it listed four rows carrying two
+   * labels between them — `Jumper kablonun kart ucu` twice, `Jumper kablonun
+   * ray ucu` twice. Every test was green: nothing anywhere compared one lead's
+   * words with another's.
+   *
+   * Per build, because two chapters may legitimately reuse a name — chapter
+   * two's `wire.gnd` and chapter three's `wire.ground` are both the ground
+   * jumper, and no screen ever shows them together. Within one bench, two names
+   * that read the same are two rows a person cannot tell apart.
+   */
+  const partOfLead = (id: string) => id.slice(0, id.lastIndexOf("."));
+
+  /** What the sketch names and a person picks up: every end that is not a hole. */
+  function leadsOf(scene: CircuitScene): string[] {
+    return [...new Set(scene.expected.flatMap((c) => [c.from, c.to]))].filter(
+      (id) => !id.startsWith("board.") && !id.startsWith("bb."),
+    );
+  }
+
+  const TABLES = ["leads", "leadObject", "leadTarget"] as const;
+
+  it.each(rows)("%s, all three tables, both locales", (id, build) => {
+    for (const [locale, copy] of LOCALES) {
+      for (const table of TABLES) {
+        const named = new Map<string, string[]>();
+        for (const lead of leadsOf(build.reference)) {
+          const label = copy.build[table][lead];
+          /* A lead with no entry falls through to its own id downstream, which
+             is the graph address this campaign spent its time removing. */
+          expect(label, `${id} ${locale} ${table} ${lead} is unnamed`).toBeTruthy();
+          named.set(label, [...(named.get(label) ?? []), lead]);
+        }
+        for (const [label, leads] of named) {
+          const parts = [...new Set(leads.map(partOfLead))];
+          expect(
+            parts,
+            `${id} ${locale} ${table}: ${JSON.stringify(label)} names ${parts.join(" and ")}`,
+          ).toHaveLength(1);
+        }
+      }
+    }
+  });
+
+  it("chapter three's step two lists four cable ends, and no two read alike", () => {
+    /* The screen the defect was found on: `/workbench/motion-night-light`,
+       step two, the panel headed `Components in this step`. */
+    const build = builds.motionNightLight!;
+    const ends = leadsOf(build.reference).filter((id) => id.startsWith("wire."));
+    expect(ends.length).toBeGreaterThanOrEqual(8);
+    for (const [, copy] of LOCALES) {
+      const labels = ends.map((id) => copy.build.leads[id]);
+      expect(new Set(labels).size).toBe(ends.length);
+    }
+  });
+});

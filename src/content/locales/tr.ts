@@ -354,11 +354,13 @@ export const tr: Copy = {
        * konusunda modelin bir fikri yok — yeşil diye aldığı kabloyla kırmızı
        * lambayı kablolayan biri doğru devreyi kurmuş oluyor ve ona öyle
        * deniyor. Bu adlar o yüzden plastiğin bir özelliği değil, programın o
-       * kablodan beklediği İŞ; aşağıdaki UÇ adları da tam bu yüzden ortak
-       * kalıyor ve yalnızca ucun hangi karta gittiğini söylüyor. Modelin ısrar
-       * ettiği tek şey, bir kablonun iki ucunun birlikte kalması — ve role göre
-       * verilen bir ad, o kuralı tahmin edilir olmaktan çıkarıp izlenir hâle
-       * getiriyor.
+       * kablodan beklediği İŞ. Modelin ısrar ettiği tek şey, bir kablonun iki
+       * ucunun birlikte kalması — ve role göre verilen bir ad, o kuralı tahmin
+       * edilir olmaktan çıkarıp izlenir hâle getiriyor.
+       *
+       * Bunlar rafın kelimeleri. Aşağıdaki `leads` tablosundaki UÇ adları da
+       * aynı öbekle başlıyor: aynı kablo hakkında raf satırıyla adım satırının
+       * farklı konuşması, bu kusurun bir kat aşağıdaki hâli olurdu.
        */
       jumperGround: "Toprak kablosu",
       jumperPower: "Güç kablosu",
@@ -391,54 +393,59 @@ export const tr: Copy = {
          `parts.resistorRed` de aynı şeyi aynı şekilde söylüyor. Zincir uzun
          ama Türkçe onu taşıyor: lamba-nın direnc-i-nin uc-u.
 
-         Dört jumperın UÇLARI ise bilerek aynı adı taşıyor. Hangi kabloyu
-         eline aldığın konusunda modelin bir fikri yok — yeşil diye aldığı
-         kabloyla kırmızı lambayı kablolayan biri doğru devre kurmuş oluyor.
-         Bir UCU ayıran şey hangi lambaya değil, hangi karta gittiği, ve tablo
-         da onu söylüyor. Kablonun KENDİSİ artık ayrı ayrı adlanıyor
-         (`parts.jumperGround` ve kardeşleri): rafta ve adım listesinde dört
-         özdeş satır, seçilemeyen bir satırdı. O ad programın kablodan
-         beklediği işi söylüyor; bu tablo ucun nereye gittiğini. */
-      "wire.gnd.rail": "Jumper kablonun ray ucu",
-      "wire.gnd.pin": "Jumper kablonun kart ucu",
+         Jumper uçları da aynı zinciri taşıyor, ve bir süre taşımıyordu: her
+         uç yalnızca hangi karta gittiğiyle anılıyordu, yani adım listesi dört
+         satır çiziyor ve aralarında iki etiket paylaştırıyordu — `Jumper
+         kablonun kart ucu` iki kez, `Jumper kablonun ray ucu` iki kez. Kit
+         rafı düzeltilmiş, burası düzeltilmemişti; `partNameOf` `parts`'ı
+         okuyor, adım listesi ve kontrol listesi ise bu tabloyu.
+
+         Artık uç önce kablosunu, sonra kendini söylüyor. Kablo başta duruyor,
+         çünkü satır ~180 pikselde kesiliyor: önde ne varsa o kalıyor, ve
+         eskiden önde duran şey dört satırın ORTAK yarısıydı. */
+      "wire.gnd.rail": "Toprak kablosunun ray ucu",
+      "wire.gnd.pin": "Toprak kablosunun kart ucu",
       "led.red.cathode": "Kırmızı LED'in kısa bacağı",
       "led.red.anode": "Kırmızı LED'in uzun bacağı",
       "res.red.in": "Kırmızı lambanın direncinin LED tarafındaki ucu",
       "res.red.out": "Kırmızı lambanın direncinin ray tarafındaki ucu",
-      "wire.red.row": "Jumper kablonun breadboard ucu",
-      "wire.red.pin": "Jumper kablonun kart ucu",
+      "wire.red.row": "Kırmızı lambanın kablosunun breadboard ucu",
+      "wire.red.pin": "Kırmızı lambanın kablosunun kart ucu",
       "led.yellow.cathode": "Sarı LED'in kısa bacağı",
       "led.yellow.anode": "Sarı LED'in uzun bacağı",
       "res.yellow.in": "Sarı lambanın direncinin LED tarafındaki ucu",
       "res.yellow.out": "Sarı lambanın direncinin ray tarafındaki ucu",
-      "wire.yellow.row": "Jumper kablonun breadboard ucu",
-      "wire.yellow.pin": "Jumper kablonun kart ucu",
+      "wire.yellow.row": "Sarı lambanın kablosunun breadboard ucu",
+      "wire.yellow.pin": "Sarı lambanın kablosunun kart ucu",
       "led.green.cathode": "Yeşil LED'in kısa bacağı",
       "led.green.anode": "Yeşil LED'in uzun bacağı",
       "res.green.in": "Yeşil lambanın direncinin LED tarafındaki ucu",
       "res.green.out": "Yeşil lambanın direncinin ray tarafındaki ucu",
-      "wire.green.row": "Jumper kablonun breadboard ucu",
-      "wire.green.pin": "Jumper kablonun kart ucu",
+      "wire.green.row": "Yeşil lambanın kablosunun breadboard ucu",
+      "wire.green.pin": "Yeşil lambanın kablosunun kart ucu",
 
       /* 3. bölüm. Tek lamba, o yüzden taşınacak bir renk yok; tek sensör, ama
          onun üç ucu ayırt EDİLİYOR — parça uçlarının yanına `+`, `D` ve `−`
          basıyor, yani kişi hangisinin hangisi olduğunu görebiliyor. Dört kablo
-         2. bölümün kuralını sürdürüyor: bir uç hangi karta gittiğiyle anılıyor. */
-      "wire.power.rail": "Jumper kablonun ray ucu",
-      "wire.power.pin": "Jumper kablonun kart ucu",
-      "wire.ground.rail": "Jumper kablonun ray ucu",
-      "wire.ground.pin": "Jumper kablonun kart ucu",
+         2. bölümün kuralını sürdürüyor: önce programın o kabloya verdiği iş,
+         sonra ucun ulaştığı kart. 2. adım bunlardan ikisini birden veriyor, ve
+         eski ortak adla o adımın rayı dört satır çizip aralarında iki etiket
+         paylaştırıyordu. */
+      "wire.power.rail": "Güç kablosunun ray ucu",
+      "wire.power.pin": "Güç kablosunun kart ucu",
+      "wire.ground.rail": "Toprak kablosunun ray ucu",
+      "wire.ground.pin": "Toprak kablosunun kart ucu",
       "pir.vcc": "Sensörün güç ucu",
       "pir.out": "Sensörün sinyal ucu",
       "pir.gnd": "Sensörün toprak ucu",
-      "wire.signal.row": "Jumper kablonun breadboard ucu",
-      "wire.signal.pin": "Jumper kablonun kart ucu",
+      "wire.signal.row": "Sinyal kablosunun breadboard ucu",
+      "wire.signal.pin": "Sinyal kablosunun kart ucu",
       "led.night.cathode": "LED'in kısa bacağı",
       "led.night.anode": "LED'in uzun bacağı",
       "res.night.in": "Direncin LED tarafındaki ucu",
       "res.night.out": "Direncin ray tarafındaki ucu",
-      "wire.lamp.row": "Jumper kablonun breadboard ucu",
-      "wire.lamp.pin": "Jumper kablonun kart ucu",
+      "wire.lamp.row": "Lamba kablosunun breadboard ucu",
+      "wire.lamp.pin": "Lamba kablosunun kart ucu",
 
       /* 4. bölüm. Probun üçüncü ucu, yanına basılmış dört harfle değil,
          taşıdığı şeyle anılıyor: `AOUT` kartın kelimesi ve zaten kartın
@@ -487,42 +494,42 @@ export const tr: Copy = {
       "res.in": "Direncin LED tarafındaki ucunu",
       "res.out": "Direncin kart tarafındaki ucunu",
 
-      "wire.gnd.rail": "Jumper kablonun ray ucunu",
-      "wire.gnd.pin": "Jumper kablonun kart ucunu",
+      "wire.gnd.rail": "Toprak kablosunun ray ucunu",
+      "wire.gnd.pin": "Toprak kablosunun kart ucunu",
       "led.red.cathode": "Kırmızı LED'in kısa bacağını",
       "led.red.anode": "Kırmızı LED'in uzun bacağını",
       "res.red.in": "Kırmızı lambanın direncinin LED tarafındaki ucunu",
       "res.red.out": "Kırmızı lambanın direncinin ray tarafındaki ucunu",
-      "wire.red.row": "Jumper kablonun breadboard ucunu",
-      "wire.red.pin": "Jumper kablonun kart ucunu",
+      "wire.red.row": "Kırmızı lambanın kablosunun breadboard ucunu",
+      "wire.red.pin": "Kırmızı lambanın kablosunun kart ucunu",
       "led.yellow.cathode": "Sarı LED'in kısa bacağını",
       "led.yellow.anode": "Sarı LED'in uzun bacağını",
       "res.yellow.in": "Sarı lambanın direncinin LED tarafındaki ucunu",
       "res.yellow.out": "Sarı lambanın direncinin ray tarafındaki ucunu",
-      "wire.yellow.row": "Jumper kablonun breadboard ucunu",
-      "wire.yellow.pin": "Jumper kablonun kart ucunu",
+      "wire.yellow.row": "Sarı lambanın kablosunun breadboard ucunu",
+      "wire.yellow.pin": "Sarı lambanın kablosunun kart ucunu",
       "led.green.cathode": "Yeşil LED'in kısa bacağını",
       "led.green.anode": "Yeşil LED'in uzun bacağını",
       "res.green.in": "Yeşil lambanın direncinin LED tarafındaki ucunu",
       "res.green.out": "Yeşil lambanın direncinin ray tarafındaki ucunu",
-      "wire.green.row": "Jumper kablonun breadboard ucunu",
-      "wire.green.pin": "Jumper kablonun kart ucunu",
+      "wire.green.row": "Yeşil lambanın kablosunun breadboard ucunu",
+      "wire.green.pin": "Yeşil lambanın kablosunun kart ucunu",
 
-      "wire.power.rail": "Jumper kablonun ray ucunu",
-      "wire.power.pin": "Jumper kablonun kart ucunu",
-      "wire.ground.rail": "Jumper kablonun ray ucunu",
-      "wire.ground.pin": "Jumper kablonun kart ucunu",
+      "wire.power.rail": "Güç kablosunun ray ucunu",
+      "wire.power.pin": "Güç kablosunun kart ucunu",
+      "wire.ground.rail": "Toprak kablosunun ray ucunu",
+      "wire.ground.pin": "Toprak kablosunun kart ucunu",
       "pir.vcc": "Sensörün güç ucunu",
       "pir.out": "Sensörün sinyal ucunu",
       "pir.gnd": "Sensörün toprak ucunu",
-      "wire.signal.row": "Jumper kablonun breadboard ucunu",
-      "wire.signal.pin": "Jumper kablonun kart ucunu",
+      "wire.signal.row": "Sinyal kablosunun breadboard ucunu",
+      "wire.signal.pin": "Sinyal kablosunun kart ucunu",
       "led.night.cathode": "LED'in kısa bacağını",
       "led.night.anode": "LED'in uzun bacağını",
       "res.night.in": "Direncin LED tarafındaki ucunu",
       "res.night.out": "Direncin ray tarafındaki ucunu",
-      "wire.lamp.row": "Jumper kablonun breadboard ucunu",
-      "wire.lamp.pin": "Jumper kablonun kart ucunu",
+      "wire.lamp.row": "Lamba kablosunun breadboard ucunu",
+      "wire.lamp.pin": "Lamba kablosunun kart ucunu",
 
       "soil.vcc": "Probun güç ucunu",
       "soil.gnd": "Probun toprak ucunu",
@@ -555,42 +562,42 @@ export const tr: Copy = {
          çünkü orada ilk kelime bir kısaltma ve kısaltmalar cümlenin ortasında
          da büyük yazılır; aynı ayrım yukarıdaki `res.in`/`res.out` satırlarında
          da var. */
-      "wire.gnd.rail": "jumper kablonun ray ucuna",
-      "wire.gnd.pin": "jumper kablonun kart ucuna",
+      "wire.gnd.rail": "toprak kablosunun ray ucuna",
+      "wire.gnd.pin": "toprak kablosunun kart ucuna",
       "led.red.cathode": "kırmızı LED'in kısa bacağına",
       "led.red.anode": "kırmızı LED'in uzun bacağına",
       "res.red.in": "kırmızı lambanın direncinin LED tarafındaki ucuna",
       "res.red.out": "kırmızı lambanın direncinin ray tarafındaki ucuna",
-      "wire.red.row": "jumper kablonun breadboard ucuna",
-      "wire.red.pin": "jumper kablonun kart ucuna",
+      "wire.red.row": "kırmızı lambanın kablosunun breadboard ucuna",
+      "wire.red.pin": "kırmızı lambanın kablosunun kart ucuna",
       "led.yellow.cathode": "sarı LED'in kısa bacağına",
       "led.yellow.anode": "sarı LED'in uzun bacağına",
       "res.yellow.in": "sarı lambanın direncinin LED tarafındaki ucuna",
       "res.yellow.out": "sarı lambanın direncinin ray tarafındaki ucuna",
-      "wire.yellow.row": "jumper kablonun breadboard ucuna",
-      "wire.yellow.pin": "jumper kablonun kart ucuna",
+      "wire.yellow.row": "sarı lambanın kablosunun breadboard ucuna",
+      "wire.yellow.pin": "sarı lambanın kablosunun kart ucuna",
       "led.green.cathode": "yeşil LED'in kısa bacağına",
       "led.green.anode": "yeşil LED'in uzun bacağına",
       "res.green.in": "yeşil lambanın direncinin LED tarafındaki ucuna",
       "res.green.out": "yeşil lambanın direncinin ray tarafındaki ucuna",
-      "wire.green.row": "jumper kablonun breadboard ucuna",
-      "wire.green.pin": "jumper kablonun kart ucuna",
+      "wire.green.row": "yeşil lambanın kablosunun breadboard ucuna",
+      "wire.green.pin": "yeşil lambanın kablosunun kart ucuna",
 
-      "wire.power.rail": "jumper kablonun ray ucuna",
-      "wire.power.pin": "jumper kablonun kart ucuna",
-      "wire.ground.rail": "jumper kablonun ray ucuna",
-      "wire.ground.pin": "jumper kablonun kart ucuna",
+      "wire.power.rail": "güç kablosunun ray ucuna",
+      "wire.power.pin": "güç kablosunun kart ucuna",
+      "wire.ground.rail": "toprak kablosunun ray ucuna",
+      "wire.ground.pin": "toprak kablosunun kart ucuna",
       "pir.vcc": "sensörün güç ucuna",
       "pir.out": "sensörün sinyal ucuna",
       "pir.gnd": "sensörün toprak ucuna",
-      "wire.signal.row": "jumper kablonun breadboard ucuna",
-      "wire.signal.pin": "jumper kablonun kart ucuna",
+      "wire.signal.row": "sinyal kablosunun breadboard ucuna",
+      "wire.signal.pin": "sinyal kablosunun kart ucuna",
       "led.night.cathode": "LED'in kısa bacağına",
       "led.night.anode": "LED'in uzun bacağına",
       "res.night.in": "direncin LED tarafındaki ucuna",
       "res.night.out": "direncin ray tarafındaki ucuna",
-      "wire.lamp.row": "jumper kablonun breadboard ucuna",
-      "wire.lamp.pin": "jumper kablonun kart ucuna",
+      "wire.lamp.row": "lamba kablosunun breadboard ucuna",
+      "wire.lamp.pin": "lamba kablosunun kart ucuna",
 
       "soil.vcc": "probun güç ucuna",
       "soil.gnd": "probun toprak ucuna",

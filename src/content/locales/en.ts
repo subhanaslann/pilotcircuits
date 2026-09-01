@@ -27,14 +27,26 @@ import { decisions } from "@/content/locales/lab/decisions";
  * chapter two's twenty have to say which of three lamps they belong to, and a
  * finding that named none of them would read the same on all three.
  *
- * The four jumpers are the exception, and deliberately: which of the four
- * cables a person picks up is not something the model has an opinion about, so
+ * The four jumpers took the longest to get right, and the wrong answer was on
+ * screen for a while: every end was named by which board it reaches and by
+ * nothing else, so the step list drew four rows reading `Jumper's board end`,
+ * `Jumper's board end`, `Jumper's breadboard end`, `Jumper's board end` — four
+ * different cables under two labels, in the one list whose whole job is to say
+ * which lead is still outstanding. The kit shelf had already been fixed and
+ * this had not, which is how it survived: `partNameOf` reads `parts` and every
+ * one of these readers reads this table.
+ *
+ * So an end names its cable first and itself second. Which of the four cables
+ * a person picks up is still not something the model has an opinion about —
  * somebody who wires the red lamp with the cable this file calls green has
- * built a correct circuit and is told so. What the model does now insist on is
- * that a cable's two ends stay together — it pairs them by the connection the
- * lead makes, the way chapters three to five always did. So a cable's END is
- * named by which board it reaches and never by which lamp it drives; the CABLE
- * has a name of its own in `parts` for the job the sketch has for it.
+ * built a correct circuit and is told so — and that is exactly why the name is
+ * the JOB the sketch has for a cable rather than a property of the plastic.
+ * What the model does insist on is that a cable's two ends stay together, and
+ * a name per role is what makes that rule something a person can follow.
+ *
+ * The cable comes first in the phrase for a second reason: the row truncates at
+ * about 180px, so whatever is at the front is what survives. It used to be the
+ * half the four rows had in common.
  */
 type LeadKey =
   /* Chapter one. */
@@ -558,10 +570,13 @@ export const en = {
        * opinion about, so somebody who wires the red lamp with the cable this
        * file calls green has built the right circuit and is told so. These names
        * are therefore the sketch's INTENTION for a cable, not a property of the
-       * plastic — which is why the LEAD names below stay shared and say only
-       * which board an end reaches. What the model does insist on is that a
-       * cable's two ends stay together, and a name per role is what makes that
-       * rule something a person can follow rather than guess at.
+       * plastic. What the model does insist on is that a cable's two ends stay
+       * together, and a name per role is what makes that rule something a
+       * person can follow rather than guess at.
+       *
+       * These are the shelf's words. The LEAD names in `leads` below open with
+       * the same phrase, because a shelf row and a step-list row about the same
+       * cable that disagreed would be this defect again one level down.
        */
       jumperGround: "Ground jumper",
       jumperPower: "Power jumper",
@@ -606,47 +621,55 @@ export const en = {
          a colour it does not have — the three are the same beige 220Ω part,
          and `parts.resistorRed` says it the same way. `of` rather than a
          second possessive: `the red lamp's resistor's LED-side lead` is two
-         apostrophes in one phrase and nobody reads it twice. */
-      "wire.gnd.rail": "Jumper's rail end",
-      "wire.gnd.pin": "Jumper's board end",
+         apostrophes in one phrase and nobody reads it twice.
+
+         The cables follow both rules. The four job-named ones take the
+         possessive (`Ground jumper's board end`); the three named after a lamp
+         take `of`, because `the red lamp's jumper's board end` is the two
+         apostrophes again. */
+      "wire.gnd.rail": "Ground jumper's rail end",
+      "wire.gnd.pin": "Ground jumper's board end",
       "led.red.cathode": "Red LED's short leg",
       "led.red.anode": "Red LED's long leg",
       "res.red.in": "LED-side lead of the red lamp's resistor",
       "res.red.out": "Rail-side lead of the red lamp's resistor",
-      "wire.red.row": "Jumper's breadboard end",
-      "wire.red.pin": "Jumper's board end",
+      "wire.red.row": "Breadboard end of the red lamp's jumper",
+      "wire.red.pin": "Board end of the red lamp's jumper",
       "led.yellow.cathode": "Amber LED's short leg",
       "led.yellow.anode": "Amber LED's long leg",
       "res.yellow.in": "LED-side lead of the amber lamp's resistor",
       "res.yellow.out": "Rail-side lead of the amber lamp's resistor",
-      "wire.yellow.row": "Jumper's breadboard end",
-      "wire.yellow.pin": "Jumper's board end",
+      "wire.yellow.row": "Breadboard end of the amber lamp's jumper",
+      "wire.yellow.pin": "Board end of the amber lamp's jumper",
       "led.green.cathode": "Green LED's short leg",
       "led.green.anode": "Green LED's long leg",
       "res.green.in": "LED-side lead of the green lamp's resistor",
       "res.green.out": "Rail-side lead of the green lamp's resistor",
-      "wire.green.row": "Jumper's breadboard end",
-      "wire.green.pin": "Jumper's board end",
+      "wire.green.row": "Breadboard end of the green lamp's jumper",
+      "wire.green.pin": "Board end of the green lamp's jumper",
 
       /* Chapter three. One lamp, so no colour to carry; one sensor, whose
          three leads ARE told apart, because the part prints `+`, `D` and `−`
          beside them and a person can see which is which. The four cables keep
-         chapter two's rule and are named by the board they reach. */
-      "wire.power.rail": "Jumper's rail end",
-      "wire.power.pin": "Jumper's board end",
-      "wire.ground.rail": "Jumper's rail end",
-      "wire.ground.pin": "Jumper's board end",
+         chapter two's rule: each names the job the sketch has for it, then the
+         board its end reaches. Step two hands over two of them at once, and
+         with the old shared name that step's rail listed four rows carrying two
+         labels between them. */
+      "wire.power.rail": "Power jumper's rail end",
+      "wire.power.pin": "Power jumper's board end",
+      "wire.ground.rail": "Ground jumper's rail end",
+      "wire.ground.pin": "Ground jumper's board end",
       "pir.vcc": "Sensor's power lead",
       "pir.out": "Sensor's signal lead",
       "pir.gnd": "Sensor's ground lead",
-      "wire.signal.row": "Jumper's breadboard end",
-      "wire.signal.pin": "Jumper's board end",
+      "wire.signal.row": "Signal jumper's breadboard end",
+      "wire.signal.pin": "Signal jumper's board end",
       "led.night.cathode": "LED's short leg",
       "led.night.anode": "LED's long leg",
       "res.night.in": "Resistor's LED-side lead",
       "res.night.out": "Resistor's rail-side lead",
-      "wire.lamp.row": "Jumper's breadboard end",
-      "wire.lamp.pin": "Jumper's board end",
+      "wire.lamp.row": "Lamp jumper's breadboard end",
+      "wire.lamp.pin": "Lamp jumper's board end",
 
       /* Chapter four. The probe's third lead is named by what it carries
          rather than by the four characters printed beside it: `AOUT` is the
@@ -684,42 +707,42 @@ export const en = {
       "res.in": "the resistor's LED-side lead",
       "res.out": "the resistor's board-side lead",
 
-      "wire.gnd.rail": "the jumper's rail end",
-      "wire.gnd.pin": "the jumper's board end",
+      "wire.gnd.rail": "the ground jumper's rail end",
+      "wire.gnd.pin": "the ground jumper's board end",
       "led.red.cathode": "the red LED's short leg",
       "led.red.anode": "the red LED's long leg",
       "res.red.in": "the LED-side lead of the red lamp's resistor",
       "res.red.out": "the rail-side lead of the red lamp's resistor",
-      "wire.red.row": "the jumper's breadboard end",
-      "wire.red.pin": "the jumper's board end",
+      "wire.red.row": "the breadboard end of the red lamp's jumper",
+      "wire.red.pin": "the board end of the red lamp's jumper",
       "led.yellow.cathode": "the amber LED's short leg",
       "led.yellow.anode": "the amber LED's long leg",
       "res.yellow.in": "the LED-side lead of the amber lamp's resistor",
       "res.yellow.out": "the rail-side lead of the amber lamp's resistor",
-      "wire.yellow.row": "the jumper's breadboard end",
-      "wire.yellow.pin": "the jumper's board end",
+      "wire.yellow.row": "the breadboard end of the amber lamp's jumper",
+      "wire.yellow.pin": "the board end of the amber lamp's jumper",
       "led.green.cathode": "the green LED's short leg",
       "led.green.anode": "the green LED's long leg",
       "res.green.in": "the LED-side lead of the green lamp's resistor",
       "res.green.out": "the rail-side lead of the green lamp's resistor",
-      "wire.green.row": "the jumper's breadboard end",
-      "wire.green.pin": "the jumper's board end",
+      "wire.green.row": "the breadboard end of the green lamp's jumper",
+      "wire.green.pin": "the board end of the green lamp's jumper",
 
-      "wire.power.rail": "the jumper's rail end",
-      "wire.power.pin": "the jumper's board end",
-      "wire.ground.rail": "the jumper's rail end",
-      "wire.ground.pin": "the jumper's board end",
+      "wire.power.rail": "the power jumper's rail end",
+      "wire.power.pin": "the power jumper's board end",
+      "wire.ground.rail": "the ground jumper's rail end",
+      "wire.ground.pin": "the ground jumper's board end",
       "pir.vcc": "the sensor's power lead",
       "pir.out": "the sensor's signal lead",
       "pir.gnd": "the sensor's ground lead",
-      "wire.signal.row": "the jumper's breadboard end",
-      "wire.signal.pin": "the jumper's board end",
+      "wire.signal.row": "the signal jumper's breadboard end",
+      "wire.signal.pin": "the signal jumper's board end",
       "led.night.cathode": "the LED's short leg",
       "led.night.anode": "the LED's long leg",
       "res.night.in": "the resistor's LED-side lead",
       "res.night.out": "the resistor's rail-side lead",
-      "wire.lamp.row": "the jumper's breadboard end",
-      "wire.lamp.pin": "the jumper's board end",
+      "wire.lamp.row": "the lamp jumper's breadboard end",
+      "wire.lamp.pin": "the lamp jumper's board end",
 
       "soil.vcc": "the probe's power lead",
       "soil.gnd": "the probe's ground lead",
@@ -758,42 +781,42 @@ export const en = {
          template already owns, so the noun phrase itself does not move.
          Turkish spells two different suffixes, which is why the tables are
          two tables. */
-      "wire.gnd.rail": "the jumper's rail end",
-      "wire.gnd.pin": "the jumper's board end",
+      "wire.gnd.rail": "the ground jumper's rail end",
+      "wire.gnd.pin": "the ground jumper's board end",
       "led.red.cathode": "the red LED's short leg",
       "led.red.anode": "the red LED's long leg",
       "res.red.in": "the LED-side lead of the red lamp's resistor",
       "res.red.out": "the rail-side lead of the red lamp's resistor",
-      "wire.red.row": "the jumper's breadboard end",
-      "wire.red.pin": "the jumper's board end",
+      "wire.red.row": "the breadboard end of the red lamp's jumper",
+      "wire.red.pin": "the board end of the red lamp's jumper",
       "led.yellow.cathode": "the amber LED's short leg",
       "led.yellow.anode": "the amber LED's long leg",
       "res.yellow.in": "the LED-side lead of the amber lamp's resistor",
       "res.yellow.out": "the rail-side lead of the amber lamp's resistor",
-      "wire.yellow.row": "the jumper's breadboard end",
-      "wire.yellow.pin": "the jumper's board end",
+      "wire.yellow.row": "the breadboard end of the amber lamp's jumper",
+      "wire.yellow.pin": "the board end of the amber lamp's jumper",
       "led.green.cathode": "the green LED's short leg",
       "led.green.anode": "the green LED's long leg",
       "res.green.in": "the LED-side lead of the green lamp's resistor",
       "res.green.out": "the rail-side lead of the green lamp's resistor",
-      "wire.green.row": "the jumper's breadboard end",
-      "wire.green.pin": "the jumper's board end",
+      "wire.green.row": "the breadboard end of the green lamp's jumper",
+      "wire.green.pin": "the board end of the green lamp's jumper",
 
-      "wire.power.rail": "the jumper's rail end",
-      "wire.power.pin": "the jumper's board end",
-      "wire.ground.rail": "the jumper's rail end",
-      "wire.ground.pin": "the jumper's board end",
+      "wire.power.rail": "the power jumper's rail end",
+      "wire.power.pin": "the power jumper's board end",
+      "wire.ground.rail": "the ground jumper's rail end",
+      "wire.ground.pin": "the ground jumper's board end",
       "pir.vcc": "the sensor's power lead",
       "pir.out": "the sensor's signal lead",
       "pir.gnd": "the sensor's ground lead",
-      "wire.signal.row": "the jumper's breadboard end",
-      "wire.signal.pin": "the jumper's board end",
+      "wire.signal.row": "the signal jumper's breadboard end",
+      "wire.signal.pin": "the signal jumper's board end",
       "led.night.cathode": "the LED's short leg",
       "led.night.anode": "the LED's long leg",
       "res.night.in": "the resistor's LED-side lead",
       "res.night.out": "the resistor's rail-side lead",
-      "wire.lamp.row": "the jumper's breadboard end",
-      "wire.lamp.pin": "the jumper's board end",
+      "wire.lamp.row": "the lamp jumper's breadboard end",
+      "wire.lamp.pin": "the lamp jumper's board end",
 
       "soil.vcc": "the probe's power lead",
       "soil.gnd": "the probe's ground lead",
