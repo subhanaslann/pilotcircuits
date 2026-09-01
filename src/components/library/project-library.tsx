@@ -9,7 +9,11 @@ import { useWebMcpTools } from "@/components/agent/use-webmcp";
 import { useCopy, useLocale } from "@/content/copy-provider";
 import { filterProjects } from "@/lib/projects/filter";
 
-const LIBRARY_TOOLS = ["find_projects", "open_project"] as const;
+const LIBRARY_TOOLS = [
+  "find_projects",
+  "open_project",
+  "get_project_requirements",
+] as const;
 
 /**
  * S-02 · `/projects` — the library, filtering for real.
@@ -35,9 +39,18 @@ export function ProjectLibrary() {
   const { locale } = useLocale();
   const { filters, setFilters } = useBuild();
 
-  /* §9 · the two tools this screen can honour. `find_projects` narrows the
+  /* §9 · the three tools this screen can honour. `find_projects` narrows the
      toolbar below; `open_project` opens one of the cards. Neither would mean
-     anything on the workbench, and neither is registered there. */
+     anything on the workbench, and neither is registered there.
+
+     `get_project_requirements` is here because the rule that keeps a tool off a
+     route is *"an effect landing on an unmounted surface"*, and this one has
+     nothing to land: measured on all six projects it returns `effects: []`,
+     `patch: null`, `note: null`. Registered only on the detail page, the sole
+     way to read a project's parts list from the grid was `open_project` — a
+     navigation away from the grid, to be handed a byte-identical payload. It is
+     also registered on `/projects/[slug]` (`project-prep.tsx`), which is not a
+     conflict: one name, one registration, one route at a time. */
   useWebMcpTools(LIBRARY_TOOLS);
 
   const results = filterProjects(filters, copy, locale);

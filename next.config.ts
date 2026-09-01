@@ -39,6 +39,37 @@ const nextConfig: NextConfig = {
    * files in the direction the authors deliberately chose against.
    */
   reactCompiler: true,
+
+  /**
+   * Origin-keying, asked for rather than assumed.
+   *
+   * **This is hardening, not a fix for anything observed.** The finding it comes
+   * from claimed `navigator.modelContext` would be behind a `SecurityError`
+   * gate on an origin that is not origin-keyed; measured in the browser on this
+   * dev server, with no header sent at all, `window.originAgentCluster` is
+   * already `true`, so nothing in the product reaches that gate today and
+   * nothing about registration changes when this ships.
+   *
+   * What survives is narrower and worth a line of config: origin-keying is the
+   * *default* a user agent chose for us, and a deployed origin may be grouped
+   * with same-site siblings instead. `?1` asks for the keying explicitly rather
+   * than inheriting whichever answer the host happens to give. It is a
+   * structured-field boolean — `?1`, not `true` — and it is per-origin and
+   * sticky for the browsing-context group's lifetime, so it goes on every
+   * response rather than on a route.
+   *
+   * No `Permissions-Policy` beside it: WebMCP defines no policy-controlled
+   * feature, so a header naming one would be a guess written down as a
+   * decision.
+   */
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "Origin-Agent-Cluster", value: "?1" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

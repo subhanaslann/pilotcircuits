@@ -35,7 +35,7 @@ const en = {
   live: {
     title: "Drive the agent",
     description:
-      "Every material in its real place, with the agent actually working. The same run(tool, input) a WebMCP callback calls — same payload, same commit, same canvas move.",
+      "Every material in its real place, with the agent actually working. The same run(tool, input) a WebMCP callback calls on the workbench — same payload, same commit, same canvas move.",
     /* The closing sentence used to read `…and that is the one thing the agent
        cannot do`. It is true of the bench above — chapter six is laid out by
        its author, and `attach_lead` refuses all eleven calls there — and it
@@ -65,7 +65,7 @@ const en = {
       ", not what is true. Move the wire and the row changes state in place rather than vanishing; forget the findings and the panel goes back to never having looked.",
     headerTitle: "Header, tools and the offline notice",
     headerNote:
-      "The tool count in the header below opens the case: WebMCP is meant to be the structure of this product rather than a badge on it, and a count nobody can check is exactly a badge. That count is read off the list this page hands the browser — the note quoted a literal `6` for a while, above a header that had said 7 since `attach_lead`, which is the failure it is arguing against. When the API is missing the pulse goes to its hollow ring — absence drawn as absence — and the notice reassures rather than warns, because every manual control still works.",
+      "The tool count in the header below opens the case: WebMCP is meant to be the structure of this product rather than a badge on it, and a count nobody can check is exactly a badge. So the number is never written down anywhere — it is the length of whatever list the panel is handed, and the specimen below is handed the bench's own seven. The note quoted a literal `6` for a while, above a header that had said 7 since `attach_lead`, which is the failure it is arguing against. When the API is missing the pulse goes to its hollow ring — absence drawn as absence — and the notice reassures rather than warns, because every manual control still works.",
     toolInventory: "Tool inventory",
     webMcpUnavailable: "WebMCP unavailable",
   },
@@ -159,7 +159,7 @@ const tr: Section = {
   live: {
     title: "Ajanı çalıştır",
     description:
-      "Her materyal gerçek yerinde, ajan da gerçekten çalışıyor. Bir WebMCP geri çağrısının çağırdığı run(tool, input) ile aynı — aynı payload, aynı commit, aynı kanvas hareketi.",
+      "Her materyal gerçek yerinde, ajan da gerçekten çalışıyor. Atölyede bir WebMCP geri çağrısının çağırdığı run(tool, input) ile aynı — aynı payload, aynı commit, aynı kanvas hareketi.",
     /* Kapanış cümlesi eskiden `…ve ajanın yapamadığı tek şey bu` diyordu.
        Yukarıdaki tezgah için doğru — altıncı bölümü yazarı yerleştirdi ve
        `attach_lead` orada on bir çağrının on birini de geri çeviriyor — ama
@@ -190,7 +190,7 @@ const tr: Section = {
       " şeydir, doğru olan şey değil. Kabloyu taşı, satır kaybolmaz, yerinde durum değiştirir; bulguları unut, panel hiç bakmamış hâline döner.",
     headerTitle: "Başlık, araçlar ve çevrimdışı notu",
     headerNote:
-      "Aşağıdaki başlıkta duran araç sayısı meseleyi açar: WebMCP bu ürünün üstüne takılmış bir rozet değil, yapısı olmalı; kimsenin kontrol edemediği bir sayı ise tam olarak rozettir. O sayı, bu sayfanın tarayıcıya verdiği listeden okunuyor — bu not bir süre `6` sabitini yazdı, `attach_lead`'den beri 7 diyen bir başlığın hemen üstünde; yani tam da karşı çıktığı hatayı yaptı. API yoksa nabız içi boş halkasına geçer — yokluk, yokluk olarak çizilir — ve not uyarmaz, içini rahatlatır, çünkü bütün manuel kontroller çalışmaya devam eder.",
+      "Aşağıdaki başlıkta duran araç sayısı meseleyi açar: WebMCP bu ürünün üstüne takılmış bir rozet değil, yapısı olmalı; kimsenin kontrol edemediği bir sayı ise tam olarak rozettir. O yüzden sayı hiçbir yere yazılmıyor — panele hangi liste veriliyorsa sayı onun uzunluğu, ve aşağıdaki örnek tezgahın kendi yedisini alıyor. Bu not bir süre `6` sabitini yazdı, `attach_lead`'den beri 7 diyen bir başlığın hemen üstünde; yani tam da karşı çıktığı hatayı yaptı. API yoksa nabız içi boş halkasına geçer — yokluk, yokluk olarak çizilir — ve not uyarmaz, içini rahatlatır, çünkü bütün manuel kontroller çalışmaya devam eder.",
     toolInventory: "Araç envanteri",
     webMcpUnavailable: "WebMCP kullanılamıyor",
   },

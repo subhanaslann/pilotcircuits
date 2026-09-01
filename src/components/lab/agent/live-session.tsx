@@ -5,6 +5,7 @@ import { Eye, Play, RotateCcw, WifiOff } from "lucide-react";
 import { LabBlock, LabStage } from "@/components/lab/lab-primitives";
 import { AgentWorkspace } from "@/components/agent/workspace";
 import { useAgentSession } from "@/components/agent/use-agent-session";
+import { useWebMcpTools } from "@/components/agent/use-webmcp";
 import {
   CanvasViewport,
   type CanvasHandle,
@@ -13,6 +14,7 @@ import { CircuitSceneView } from "@/components/canvas/circuit-scene";
 import { Button } from "@/components/ui/button";
 import { ToastViewport } from "@/components/ui/status";
 import { useCopy } from "@/content/copy-provider";
+import { workbenchTools } from "@/lib/agent/model";
 import { zoom as zoomLimits } from "@/lib/circuit/geometry";
 import { icon } from "@/lib/design/tokens";
 
@@ -22,9 +24,28 @@ const g = { size: icon.sm, strokeWidth: icon.strokeWidth } as const;
  * The batch's reason for existing, assembled: the canvas on the left, the real
  * agent panel on the right, and the agent actually working between them.
  *
- * Every button here calls the same `run(tool, input)` a WebMCP callback will
- * call in Batch 7 — same payload, same commit, same activity entry, same canvas
- * move. Nothing on this page is a separate demo path.
+ * Every button here calls the same `run(tool, input)` a WebMCP callback calls
+ * on the workbench — same payload, same commit, same activity entry, same
+ * canvas move. Nothing on this page is a separate demo path.
+ *
+ * ## What it does not do, and why the count below is zero
+ *
+ * It does not hand any of those seven names to the browser. `AgentPanel`
+ * defaults its inventory to the bench's own list, and the number beside the
+ * pulse is a claim about *the screen it is standing on* — so with no `tools`
+ * prop this page printed `7 tools on this page` over a page that registers
+ * none, directly contradicting `workspace.tsx`'s own note on that prop.
+ *
+ * The obstacle was never this file. `useWebMcpTools` read the carried build
+ * session unconditionally, and the design lab is the one place deliberately
+ * outside `BuildProvider` (`app/(product)/layout.tsx`,
+ * `build-provider.tsx:181-195`), so calling the hook here threw
+ * `useBuild must be used inside <BuildProvider>` before a single pixel
+ * rendered. That read is optional now — `useBuildSessionIfAny` — and the page
+ * hands in the session it already had, which is the argument the hook always
+ * took. So the seven are registered here for real, against a mounted canvas
+ * and a mounted panel, and the number beside the pulse is the length of the
+ * list this page actually gave the browser.
  */
 export function LiveSession() {
   const copy = useCopy();
@@ -32,6 +53,10 @@ export function LiveSession() {
   const canvas = useRef<CanvasHandle>(null);
   const [scale, setScale] = useState(1);
   const session = useAgentSession({ canvas });
+  /* Its own session, not the carried one — the lab must never move the build
+     waiting at `/workbench`. Passing it is what lets the hook run outside
+     `BuildProvider` at all; without it the hook throws by design. */
+  useWebMcpTools(workbenchTools, session);
 
   const { state, highlighted } = session;
   const inspected = state.findings.length > 0;
@@ -92,10 +117,13 @@ export function LiveSession() {
           </div>
 
           {/* The panel is assembled once, in `agent/workspace.tsx`, and
-              this page and the workbench both hand it the same session. */}
+              this page and the workbench both hand it the same session. The
+              list passed here is the one registered above, so the count the
+              header prints is a fact about this page rather than a constant. */}
           <AgentWorkspace
             session={session}
             action={{ ...action, loading: session.busy }}
+            tools={workbenchTools}
             className="w-agent rounded-r-lg border-y-0 border-r-0"
           />
         </div>
@@ -121,6 +149,13 @@ export function LiveSession() {
           >
             {copy.workbench.runFullTest}
           </Button>
+          {/* The only thing on this page that moves `webMcpAvailable`, and it
+              has to be: `useAgentSession`'s mount probe can only ever raise the
+              flag and finds no host in any browser shipping today, and
+              `useWebMcpTools` — whose two writes are `false` on arrival at a
+              hostless page and the handshake's answer after — is not called
+              here at all. Without this button the lab could show the offline
+              panel and nothing else. */}
           <Button
             variant="tertiary"
             size="sm"

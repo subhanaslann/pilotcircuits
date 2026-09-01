@@ -1754,6 +1754,19 @@ export const en = {
       leadSeated: (lead: string, pin: string) => `Put ${lead} in ${pin}.`,
       leadJoined: (a: string, b: string) => `Joined ${a} to ${b}.`,
       leadLoosened: (lead: string) => `Left ${lead} loose.`,
+      /* The fourth way a lead move can end, and the only one where the bench
+         did not move: a host called the tool off mid-carry. `attach_lead`
+         waits 1160 ms of animation before it commits, so a cancel at 900 ms
+         returns without a patch and the lead stays in the hole it started in.
+
+         It needs a line of its own because neither neighbour fits. Silence
+         leaves a failed pad with nothing under it; the error lines all say the
+         *call* failed, and this one did not — it was called off by the only
+         party that was listening. And the bench is the half that has to be
+         said out loud, because the headline above already reads `Agent moved
+         …`: headlines are composed before the call finishes, so this sub-line
+         is the only place the row can report that nothing came of it. */
+      agentStopped: "Agent stopped half way — the lead stayed where it was.",
       correctionHighlighted: "Correction highlighted on the workbench",
       correctionAlreadyShown: "Correction was already on screen",
       verifying: (step: number) => `Agent verified Step ${step}`,
@@ -1890,7 +1903,6 @@ export const en = {
          understandable error result, not an exception crossing the bridge. */
       toolFailed: "That call could not be completed.",
       stepNotReady: "This step has nothing to verify yet.",
-      barrierDirection: "Barrier moved the wrong way at the OPEN position.",
       /* Batch 8 · the library tools answer for projects that do not exist, and
          refuse to start one that has no workbench — honestly, rather than by
          opening a route that would 404. */
@@ -2541,10 +2553,20 @@ export const en = {
     distance: "Reading the distance",
     sweep: "Can the pump be told an angle",
 
-    /* `barrierDirection` used to sit here. `copy.test` is one entry per check
-       id (`run-spec.ts`) and it was no build's — the only live one of that name
-       is `agentPanel.errors.barrierDirection`, which a lab specimen reads. It
-       was the one row in this table a translator could not place. */
+    /* `barrierDirection` used to sit here, and it is gone from the dictionary
+       entirely now. `copy.test` is one entry per check id (`run-spec.ts`) and
+       it was no build's, so it was the one row in this table a translator
+       could not place. The twin under `agentPanel.errors` outlived it for a
+       while, read by a single lab specimen that hand-wrote a `run_functional_
+       test` failure as `status:"error"`. A failing run is `status:"ok"` with
+       `results[].passed:false` — the specimen was rebuilt from a real handler
+       run, and the key went with it.
+
+       Recorded rather than simply deleted because the shape is worth
+       recognising: it was a sentence about the DEVICE — a barrier turning the
+       wrong way — filed among sentences about ARGUMENTS the model cannot
+       honour. Kept, it would have stayed available to emit as a refusal for
+       something that is not one. */
     /* A-17 · the word a test row shows when it has no measurement to show. */
     states: {
       idle: "Not started",

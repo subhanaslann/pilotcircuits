@@ -1360,6 +1360,19 @@ export const tr: Copy = {
         `${lead} ${pin} deliğine taktı.`,
       leadJoined: (a: string, b: string) => `${a} ${b} tutturdu.`,
       leadLoosened: (lead: string) => `${lead} boşa çıkardı.`,
+      /* Bir uç taşımasının dördüncü bitiş biçimi, ve tezgahın kımıldamadığı
+         tek biçim: host çağrıyı taşıma sırasında geri aldı. `attach_lead`
+         commit etmeden önce 1160 ms animasyon bekliyor, yani 900. ms'deki bir
+         iptal patch'siz dönüyor ve uç başladığı delikte kalıyor.
+
+         Kendi satırına ihtiyacı var, çünkü iki komşusu da olmuyor. Sessizlik,
+         altında hiçbir cümle olmayan başarısız bir ped bırakıyor; hata
+         cümlelerinin hepsi ÇAĞRININ başarısız olduğunu söylüyor, oysa bu çağrı
+         başarısız olmadı — onu dinleyen tek taraf geri aldı. Sesli söylenmesi
+         gereken yarı da tezgah: üstteki başlık zaten `Ajan … taşıdı` diyor,
+         çünkü başlıklar çağrı bitmeden yazılıyor. Satırın hiçbir şey olmadığını
+         bildirebileceği tek yer burası. */
+      agentStopped: "Ajan yarı yolda durdu — uç olduğu yerde kaldı.",
       correctionHighlighted: "Düzeltme atölyede vurgulandı",
       correctionAlreadyShown: "Düzeltme zaten ekrandaydı",
       verifying: (step: number) => `Ajan ${step}. adımı doğruladı`,
@@ -1452,7 +1465,6 @@ export const tr: Copy = {
         `Bu, ${filter} filtresinin kabul ettiği bir değer değil.`,
       toolFailed: "Bu çağrı tamamlanamadı.",
       stepNotReady: "Bu adımda henüz doğrulanacak bir şey yok.",
-      barrierDirection: "Bariyer AÇIK konumunda ters yöne hareket etti.",
       /* İki tutamağın ikisi de geçerli: `open_project` ve kardeşleri hem
          katalog id'sini hem URL slug'ını kabul ediyor, yani yalnızca birini
          anmak çağıranı yapmadığı bir hatayı aramaya yolluyordu. İkisi de şema

@@ -106,7 +106,39 @@ export function ToolInventory({
       )}
     >
       <MenuLabel>{copy.agentPanel.tools.title}</MenuLabel>
-      <ul className="px-1 pb-1">
+      {/**
+       * The list scrolls, and it is the list rather than the popover.
+       *
+       * `Popover` is `absolute` with no height of its own, and its nearest
+       * clipping ancestor is the workbench frame (`bg-app … overflow-hidden`),
+       * whose bottom edge is the viewport's. Seven rows of a badge and a
+       * sentence in a 288px column measured 648px tall and needed 778px of
+       * viewport; a 1366×768 laptop has about 660px, and Turkish runs longer
+       * than English. Below that the bottom rows were *clipped*, not merely
+       * below the fold — scrolling the page does not reveal something an
+       * ancestor has cut off, and the popover had no scrollbar of its own.
+       *
+       * Capped here rather than on `Popover`'s panel for two reasons. The panel
+       * carries `MenuLabel` above this and the note below it, and the note is
+       * the sentence that says what the list *is*; scrolling the whole panel
+       * takes both away and leaves seven rows with nothing naming them. And
+       * `Popover` is shared with the library's filter popovers and the
+       * workbench's two menus, none of which comes near overflowing — a cap
+       * there would be a change to every popover in the product to fix the one
+       * that grew.
+       *
+       * `min()` so the ceiling follows a short viewport instead of only a tall
+       * one: half the window, never more than 22rem.
+       *
+       * `tabIndex={0}` because a scroll container with nothing focusable in it
+       * is reachable by wheel and trackpad and by nothing else. Nothing in this
+       * popover is a control, so without it the rows below the cap would have
+       * traded one unreachable state for another.
+       */}
+      <ul
+        tabIndex={0}
+        className="max-h-[min(22rem,50vh)] overflow-y-auto px-1 pb-1"
+      >
         {tools.map((tool) => (
           <li key={tool} className="px-2 py-1.5">
             <ToolBadge tool={tool} />
