@@ -1,4 +1,4 @@
-import { PITCH, mm, part } from "@/lib/circuit/geometry";
+import { PITCH, framing, mm, part } from "@/lib/circuit/geometry";
 import {
   PX,
   boxOf,
@@ -699,25 +699,20 @@ const NODE_GROUPS: readonly (readonly NodeId[])[] = [
 ];
 
 /**
- * What this scene says is the same piece of metal, given what is on the bench.
+ * What this scene says is the same piece of metal: a resistor's two ends, and
+ * the board's own nets. Both static, and deliberately.
  *
- * Two static halves — a resistor's two ends, and the board's own nets — plus
- * one that depends on the placement: **which cable is standing in for which**.
- * That last part cannot be static, and the whole of the supply-short hole is
- * what happens when it is: written down once for all eight ends, it says any
- * cable end may satisfy any cable seat, which checks the seats as a set.
- *
- * Emitted only where the assignment is not the identity, so a bench built the
- * obvious way publishes exactly the two static halves.
+ * **Which cable is standing in for which is NOT here**, and that is the fix
+ * rather than an omission. It is a fact about the placement, so it was once
+ * published here as a per-scene alias pair; an alias is symmetric and
+ * unconditional, and four of them compose into cycles that verify builds nobody
+ * made — 288 of them, measured. The assignment is recorded by id instead, on
+ * the connection the standing-in lead emits, which is directed and minted once.
+ * See `cable-joins.ts` and `sameJoin`'s third clause.
  */
-const interchangeableFor = (
-  cables: Map<string, Connection>,
-): readonly (readonly NodeId[])[] => [
+const INTERCHANGEABLE: readonly (readonly NodeId[])[] = [
   ...SYMMETRIC,
   ...NODE_GROUPS,
-  ...[...cables]
-    .filter(([terminal, want]) => terminal !== want.from)
-    .map(([terminal, want]) => [want.from, terminal]),
 ];
 
 /** Every OTHER end that is the same piece of metal as this one. */
@@ -982,7 +977,7 @@ export function nightSceneFrom(
     expected,
     observed,
     mechanical,
-    interchangeable: interchangeableFor(cables),
+    interchangeable: INTERCHANGEABLE,
   };
 }
 
@@ -1089,6 +1084,7 @@ export const nightPlacement: PlacementSpec = {
   complete: nightComplete,
   sceneFrom: nightSceneFrom,
   grabPoint: nightGrabPoint,
+  sameNet,
 
   satisfying: (placement, connectionId) => {
     const want = expected.find((c) => c.id === connectionId);
@@ -1386,20 +1382,16 @@ const fitBoxes = [
   ...probes.flatMap((set) => Object.values(set)),
   ...edgeProbes.flatMap((set) => Object.values(set)),
 ];
-const PAD = PITCH * 4;
+const framed = framing(fitBoxes, PITCH * 4);
 
-export const nightFitBox = {
-  x: Math.min(...fitBoxes.map((b) => b.x)) - PAD,
-  y: Math.min(...fitBoxes.map((b) => b.y)) - PAD,
-  width:
-    Math.max(...fitBoxes.map((b) => b.x + b.width)) -
-    Math.min(...fitBoxes.map((b) => b.x)) +
-    PAD * 2,
-  height:
-    Math.max(...fitBoxes.map((b) => b.y + b.height)) -
-    Math.min(...fitBoxes.map((b) => b.y)) +
-    PAD * 2,
-} as const;
+/** What `fitView` opens on — the padded extent. See `framing`. */
+export const nightFitBox = framed.fit;
+
+/**
+ * What the briefing film frames — the same box with its padding clipped to the
+ * mat, so the film never shows a strip of bare oak past the bench's edge.
+ */
+export const nightStageBox = framed.stage;
 
 /**
  * Which board pin each of the sketch's two lines actually reaches.

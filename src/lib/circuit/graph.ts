@@ -136,6 +136,32 @@ export function sameEndpoints(a: Connection, b: Connection): boolean {
  *
  * Every comparison in this file goes through it, so a build made with a
  * symmetrical part the other way round is one build and not two.
+ *
+ * ## Three ways to be the same join, and why the third one exists
+ *
+ * The first two are endpoint tests: the literal one, and the one that reads
+ * both endpoints through `interchangeable`.
+ *
+ * The third is the id. A build whose parts a person cannot tell apart has to
+ * decide **which lead is standing in for which**, and only the build can decide
+ * it: chapter three's four jumpers are one object, so the cable that reaches the
+ * `+` rail is the supply cable whatever the file calls it. `sceneFrom` makes
+ * that decision once per scene (`cable-joins.ts`) and records it by handing the
+ * expected connection's id to the lead that is making it — so an id on an
+ * observed connection is not a label, it is the scene's answer to "who is
+ * playing this part".
+ *
+ * Saying the same thing through `interchangeable` instead does not work, and
+ * the difference is the whole of the supply-short hole. A group `[X, Y]` is
+ * SYMMETRIC and unconditional: publish "the signal cable's row end is standing
+ * in for the power cable's rail end" and you have also said the reverse, and
+ * four such groups let four cables satisfy each other's seats in a cycle that
+ * is not any of the builds the assignment named. The id is directed, one per
+ * join, and cannot compose.
+ *
+ * The far ends still have to meet — `same(a.to, b.to)` — so a lead carrying an
+ * expected id and sitting in the wrong net is a mismatch that names the hole it
+ * is in, which is the one-finding property `cable-joins.ts` was written for.
  */
 export function sameJoin(
   scene: CircuitScene,
@@ -144,13 +170,18 @@ export function sameJoin(
 ): boolean {
   if (sameEndpoints(a, b)) return true;
   const klass = scene.interchangeable;
-  if (!klass) return false;
   const same = (x: NodeId, y: NodeId) =>
-    x === y || klass.some((group) => group.includes(x) && group.includes(y));
-  return (
+    x === y ||
+    (klass?.some((group) => group.includes(x) && group.includes(y)) ?? false);
+  if (
     (same(a.from, b.from) && same(a.to, b.to)) ||
     (same(a.from, b.to) && same(a.to, b.from))
-  );
+  ) {
+    return true;
+  }
+  /* Only `to` against `to`: both sides are written lead-first, and a group
+     holding a lead and a hole at once does not exist in any build. */
+  return a.id === b.id && same(a.to, b.to);
 }
 
 export interface Mismatch {

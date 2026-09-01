@@ -35,14 +35,16 @@ import {
  *
  *   1. the five holes down a column are one piece of metal, so a lead in the
  *      wrong ROW is right and a lead one COLUMN over is wrong;
- *   2. four M–M jumper cables are one object with eight ends, so the person who
- *      takes the cable this file calls green and wires the red lamp with it has
- *      built the right circuit.
+ *   2. four M–M jumper cables are one object, so the person who takes the cable
+ *      this file calls green and wires the red lamp with it has built the right
+ *      circuit — and a cable making a join the sketch does not ask for has not.
  *
  * Neither draws differently when it is wrong. The board looks like a board full
  * of legs either way, and the only symptom is a panel confidently saying
- * something false about a build that is correct — which is the exact failure
- * chapter one shipped once already, with the resistor turned round.
+ * something false about a build — which is the exact failure chapter one
+ * shipped once already, with the resistor turned round, and which claim 2 then
+ * shipped in the other direction: every one of the 40 320 ways of seating eight
+ * cable ends verified, including a jumper shorting `D13` to ground.
  */
 const spec = lightPlacement;
 
@@ -558,10 +560,70 @@ describe("the resistor, turned round", () => {
  * working on per-end connections; but a person cannot tell them apart, so
  * somebody who wires the red lamp with the cable this file calls green has
  * built the right circuit and the panel must not report faults on it. That is
- * the reversed resistor one level up, and it is why all EIGHT cable ends are
- * one interchangeable class.
+ * the reversed resistor one level up.
+ *
+ * The chapter shipped saying that with a single `interchangeable` class holding
+ * all EIGHT ends, and that is the wrong sentence for the right claim: `sameJoin`
+ * compares one endpoint against one endpoint, so the eight expected SEATS were
+ * checked as a set and the four PAIRS were never checked at all. Every one of
+ * the 8! = 40 320 seatings verified as a finished build; only 384 of them are
+ * this circuit. Which cable is standing in for which is decided per placement
+ * now (`cable-joins.ts`), and the tests below are the two halves of the claim: a
+ * substituted cable is accepted, and a wrong PAIRING is not.
  */
 describe("the cables are the same object", () => {
+  it("puts no cable end in a static group with another lead", () => {
+    const ends: string[] = lightTerminals.filter((t) => t.startsWith("wire."));
+    for (const group of trafficLight.interchangeable ?? []) {
+      const cables = group.filter((n) => ends.includes(n));
+      expect(cables.length, JSON.stringify(group)).toBeLessThan(2);
+    }
+  });
+
+  /**
+   * The hole itself, as a test: the red jumper running `D13` straight to
+   * `board.GND`.
+   *
+   * Three ordinary gestures from the finished bench reached it, and the product
+   * said every check had passed — a digital output shorted to ground, under the
+   * one sentence this whole product rests on.
+   */
+  it("reports a jumper shorting a drive pin to ground", () => {
+    const scene = lightSceneFrom(
+      { ...lightComplete, "wire.red.row": "board.GND", "wire.gnd.pin": "bb.h8" },
+      lightAtRest,
+    );
+    expect(diff(scene).mismatches).toHaveLength(2);
+  });
+
+  /* The same shape one step milder: one end of each of two cables exchanged, so
+     one jumper ties two breadboard columns together and the other ties two
+     header pins to each other. */
+  it("reports two cables' ends exchanged", () => {
+    const scene = lightSceneFrom(
+      {
+        ...lightComplete,
+        "wire.red.pin": "bb.h19",
+        "wire.yellow.row": "board.D13",
+      },
+      lightAtRest,
+    );
+    expect(diff(scene).mismatches).toHaveLength(2);
+    expect(extras(scene)).toHaveLength(0);
+  });
+
+  /* And the other direction, which the `sequence` check used to fail: one cable
+     turned end for end is the same circuit, and nobody can see which way round
+     a jumper went in. */
+  it("accepts a drive cable plugged in the other way round", () => {
+    const scene = lightSceneFrom(
+      { ...lightComplete, "wire.red.row": "board.D13", "wire.red.pin": "bb.h8" },
+      lightAtRest,
+    );
+    expect(diff(scene).mismatches).toHaveLength(0);
+    expect(extras(scene)).toHaveLength(0);
+  });
+
   it("two drive cables swapped is still a finished build", () => {
     const swapped = {
       ...lightComplete,

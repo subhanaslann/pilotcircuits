@@ -25,6 +25,69 @@ export const scene = {
   height: 820,
 } as const;
 
+/**
+ * The dark cutting mat, inset from the scene.
+ *
+ * Drawn by `desk-surface.tsx` and, until this moved here, declared only there —
+ * which was fine while the mat was scenery. It is not scenery: it is the edge
+ * of the bench, and a frame that reaches past it shows a strip of bare oak. The
+ * briefing film's frame is the caller that needs the number, so the number
+ * belongs where both of them can read it rather than in the drawing.
+ */
+export const mat = {
+  x: 70,
+  y: 46,
+  width: scene.width - 140,
+  height: scene.height - 92,
+} as const;
+
+interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * What a chapter frames, in two boxes that differ only in their padding.
+ *
+ * `fit` is the extent of everything the build can draw, padded on all four
+ * sides — the box `fitView` opens on, which wants that air.
+ *
+ * `stage` is the same box with the padding **clipped to the mat**, which is
+ * what the briefing film needs: the film's viewBox is this box exactly, so four
+ * pitches of unconditional padding put bare oak in the frame on three chapters
+ * — 21 units to the left of the mat on chapters three, four and five, 36 above
+ * chapter three and 56 above chapter five, 39 below chapter four. The clip
+ * never crops: where the content itself is already past the mat's edge the
+ * stage follows the content, because a frame that cut a part in half to avoid
+ * showing oak would be the worse of the two mistakes.
+ */
+export function framing(
+  boxes: readonly Rect[],
+  pad: number,
+): { fit: Rect; stage: Rect } {
+  const left = Math.min(...boxes.map((b) => b.x));
+  const top = Math.min(...boxes.map((b) => b.y));
+  const right = Math.max(...boxes.map((b) => b.x + b.width));
+  const bottom = Math.max(...boxes.map((b) => b.y + b.height));
+
+  const x = Math.min(left, Math.max(mat.x, left - pad));
+  const y = Math.min(top, Math.max(mat.y, top - pad));
+  const x2 = Math.max(right, Math.min(mat.x + mat.width, right + pad));
+  const y2 = Math.max(bottom, Math.min(mat.y + mat.height, bottom + pad));
+
+  return {
+    fit: {
+      x: left - pad,
+      y: top - pad,
+      width: right - left + pad * 2,
+      height: bottom - top + pad * 2,
+    },
+    stage: { x, y, width: x2 - x, height: y2 - y },
+  };
+}
+
 /** Real part dimensions, in scene units. */
 export const part = {
   /** Includes the USB shell and the barrel jack overhanging the PCB's left. */

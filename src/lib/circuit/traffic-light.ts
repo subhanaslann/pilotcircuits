@@ -1,4 +1,4 @@
-import { PITCH, mm, part } from "@/lib/circuit/geometry";
+import { PITCH, framing, mm, part } from "@/lib/circuit/geometry";
 import {
   PX,
   boxOf,
@@ -28,6 +28,11 @@ import {
   attachmentOf,
   isFlexible,
 } from "@/lib/circuit/placement";
+import {
+  assignCables,
+  cablePairs,
+  type CablePair,
+} from "@/lib/circuit/cable-joins";
 import type { KitId } from "@/lib/projects/catalog";
 
 /**
@@ -745,9 +750,7 @@ function labelFor(target: CircuitNode): string {
 }
 
 /**
- * Leads that are the same thing twice.
- *
- * Two kinds, and the second is the one chapter two adds.
+ * Leads that are the same thing twice, **and stay attached to a body**.
  *
  * A 220Ω resistor has no polarity: its ends are one piece of wire and the model
  * named them `in` and `out` only because a record has to call them something.
@@ -755,30 +758,27 @@ function labelFor(target: CircuitNode): string {
  * a fact — a lamp built with the resistor turned round, an electrically correct
  * circuit that lights up, was reported as four faults.
  *
- * The four M–M jumper cables are the same mistake waiting one level up. They
- * are physically identical objects, so somebody who takes the cable this file
- * calls "green" and wires the red lamp with it has built the right circuit, and
- * without this group the panel would call it faults. All EIGHT ends are one
- * class: `sameJoin` then reads "the red drive line is made" off whichever cable
- * actually made it, and `diff` stops caring which of four identical things came
- * out of the bag first.
+ * The four M–M jumper cables are the same claim about four identical objects,
+ * and they are deliberately NOT here. This chapter shipped with all eight ends
+ * in one class, and it was the right claim said the wrong way: `sameJoin`
+ * compares one endpoint against one endpoint, so with every end equivalent to
+ * every other the eight expected SEATS were checked as a set and the four PAIRS
+ * were never checked at all. Measured over the 8! = 40 320 ways of seating eight
+ * ends in eight seats, every one of them verified as a finished build — 39 936
+ * of them a different circuit, 118 of those passing every functional check, and
+ * among them a red jumper running `board.D13` straight to `board.GND`: a digital
+ * output shorted to ground, under the words "every check passed".
  *
- * The residual, written down rather than hidden: because the class is ends and
- * not whole cables, `sameJoin` will also accept one cable's end where another
- * cable's end belongs. Naming cables was the price of keeping every downstream
- * mechanism — `touchesStep`, `partOf`, the step rail's pressable kit rows —
- * working on per-end connections, and this is the part of that price that shows.
+ * Which cable is standing in for which is decided per placement instead
+ * (`cable-joins.ts`), and the scene records that decision by handing each
+ * expected connection's id to the lead making it. A moved cable is still
+ * correct — nobody can tell four jumpers apart — and a wrong PAIRING is now a
+ * finding.
  */
 const SYMMETRIC: readonly (readonly TrafficTerminal[])[] = [
   ["res.red.in", "res.red.out"],
   ["res.yellow.in", "res.yellow.out"],
   ["res.green.in", "res.green.out"],
-  [
-    "wire.gnd.pin", "wire.gnd.rail",
-    "wire.red.pin", "wire.red.row",
-    "wire.yellow.pin", "wire.yellow.row",
-    "wire.green.pin", "wire.green.row",
-  ],
 ];
 
 /**
@@ -804,6 +804,38 @@ const INTERCHANGEABLE: readonly (readonly NodeId[])[] = [
   ...SYMMETRIC,
   ...NODE_GROUPS,
 ];
+
+/**
+ * Whether two holes are the same piece of metal — a column of the lower bank,
+ * or the whole `−` rail.
+ *
+ * Read by the cable assignment and by `lightLines`, so "the same seat" has one
+ * definition in this file rather than three.
+ */
+const sameNet = (a: NodeId, b: NodeId) =>
+  a === b || NODE_GROUPS.some((g) => g.includes(a) && g.includes(b));
+
+/**
+ * The four cables, as the four PAIRS of connections they are meant to make.
+ *
+ * Derived from `WIRES` and `expected`, so it cannot come to disagree with
+ * either. See `cable-joins.ts` for why a cable's join is decided from both of
+ * its seats at once and not from the end's own name.
+ */
+const CABLE_PAIRS: readonly CablePair[] = cablePairs(WIRES, expected);
+
+/**
+ * Which expected join each cable end is making, decided for all four cables at
+ * once — see `cable-joins.ts`. An end absent from the map is a stray.
+ */
+function cableJoins(placement: Placement): Map<string, Connection> {
+  return assignCables(
+    WIRES,
+    CABLE_PAIRS,
+    (terminal) => attachmentOf(lightTopology, placement, terminal),
+    sameNet,
+  );
+}
 
 /** Every OTHER end that is the same piece of metal as this one. */
 const matesOf = (terminal: TerminalId): TrafficTerminal[] =>
@@ -856,35 +888,62 @@ function connectionFor(
   target: NodeId,
   nodes: Record<NodeId, CircuitNode>,
   placement: Placement,
+  /** What the cables were assigned, computed once for the whole scene. */
+  cables: Map<string, Connection>,
+  /**
+   * Ids already taken by an earlier lead in this same scene.
+   *
+   * `connectionFor` is decidable only if every id is minted once: `diff`'s
+   * same-origin fallback takes the first, `applyExpected` rewrites all of them,
+   * `sameJoin` reads the id as the scene's answer to "who is making this join",
+   * and `comparedTo`, `isResolved` and `stepParts` all match by id. Without it
+   * two loose ends of one class both fell back to the same expected connection
+   * — reachable from the finished bench in five ordinary gestures, and
+   * `extras()` went blind on both of them.
+   */
+  claimed: Set<string>,
 ): Connection {
-  /* Each of the twenty terminals appears in exactly one expected connection,
-     which is what makes this decidable at all. */
-  const own = expected.find((c) => c.from === terminal || c.to === terminal);
-  let want = own && fits(own, terminal, target) ? own : undefined;
+  const isCableEnd = WIRES.some((w) => w.a === terminal || w.b === terminal);
+  let want: Connection | undefined;
 
-  /* The symmetrical part, used the other way round — the resistor turned round,
-     or the red lamp wired with the cable this file happens to call green.
+  if (isCableEnd) {
+    /* A cable's join is a fact about its two seats together, and about what the
+       other three cables are doing — see `cable-joins.ts`. `fits` and the mate
+       loop below are for parts whose ends stay attached to a body. */
+    want = cables.get(terminal);
+  } else {
+    /* Each of the remaining terminals appears in exactly one expected
+       connection, which is what makes this decidable at all. */
+    const own = expected.find((c) => c.from === terminal || c.to === terminal);
+    want = own && fits(own, terminal, target) ? own : undefined;
 
-     Its own entry is tried first, so a cable that landed on the wrong header
-     pin keeps ITS OWN id and reports one finding rather than borrowing a
-     neighbour's. Only when the terminal's own entry does not fit at all does it
-     look at the ends that are the same piece of metal, and it may take one of
-     theirs only if that end cannot currently make the join itself. That guard
-     is the whole difference between "the resistor is in backwards, here are two
-     correct joins" and "here is one id emitted twice". */
-  if (!want) {
-    for (const mate of matesOf(terminal)) {
-      const theirs = expected.find((c) => c.from === mate || c.to === mate);
-      if (!theirs || !fits(theirs, mate, target)) continue;
-      const mateTarget = attachmentOf(lightTopology, placement, mate);
-      if (!mateTarget || !fits(theirs, mate, mateTarget)) {
-        want = theirs;
-        break;
+    /* The symmetrical part, used the other way round — the resistor turned
+       round.
+
+       Its own entry is tried first, so a lead that landed one hole over keeps
+       ITS OWN id and reports one finding rather than borrowing a neighbour's.
+       Only when the terminal's own entry does not fit at all does it look at
+       the ends that are the same piece of metal, and it may take one of theirs
+       only if that end cannot currently make the join itself. That guard is the
+       whole difference between "the resistor is in backwards, here are two
+       correct joins" and "here is one id emitted twice". */
+    if (!want) {
+      for (const mate of matesOf(terminal)) {
+        const theirs = expected.find((c) => c.from === mate || c.to === mate);
+        if (!theirs || !fits(theirs, mate, target)) continue;
+        const mateTarget = attachmentOf(lightTopology, placement, mate);
+        if (!mateTarget || !fits(theirs, mate, mateTarget)) {
+          want = theirs;
+          break;
+        }
       }
     }
   }
 
+  if (want && claimed.has(want.id)) want = undefined;
+
   if (want) {
+    claimed.add(want.id);
     return {
       id: want.id,
       from: terminal,
@@ -1014,6 +1073,8 @@ export function lightSceneFrom(
         is manufactured: a join exists because a person made it, and for no
         other reason. */
   const observed: Connection[] = [];
+  const claimed = new Set<string>();
+  const cables = cableJoins(placement);
   for (const terminal of lightTerminals) {
     const target = placement[terminal];
     if (!target) continue;
@@ -1022,7 +1083,9 @@ export function lightSceneFrom(
        stays because `lightSceneFrom` is also called with hand-written literals
        from the briefing film and the lab. */
     if (!nodes[terminal] || !nodes[target]) continue;
-    observed.push(connectionFor(terminal, target, nodes, placement));
+    observed.push(
+      connectionFor(terminal, target, nodes, placement, cables, claimed),
+    );
   }
 
   return {
@@ -1201,6 +1264,7 @@ export const lightPlacement: PlacementSpec = {
   complete: lightComplete,
   sceneFrom: lightSceneFrom,
   grabPoint: lightGrabPoint,
+  sameNet,
 
   satisfying: (placement, connectionId) => {
     const want = expected.find((c) => c.id === connectionId);
@@ -1471,20 +1535,64 @@ const fitBoxes = [
   ...Object.values(lightPartBox),
   ...probes.flatMap((set) => Object.values(set)),
 ];
-const PAD = PITCH * 4;
+const framed = framing(fitBoxes, PITCH * 4);
 
-export const lightFitBox = {
-  x: Math.min(...fitBoxes.map((b) => b.x)) - PAD,
-  y: Math.min(...fitBoxes.map((b) => b.y)) - PAD,
-  width:
-    Math.max(...fitBoxes.map((b) => b.x + b.width)) -
-    Math.min(...fitBoxes.map((b) => b.x)) +
-    PAD * 2,
-  height:
-    Math.max(...fitBoxes.map((b) => b.y + b.height)) -
-    Math.min(...fitBoxes.map((b) => b.y)) +
-    PAD * 2,
-} as const;
+/** What `fitView` opens on — the padded extent. See `framing`. */
+export const lightFitBox = framed.fit;
+
+/**
+ * What the briefing film frames — the same box with its padding clipped to the
+ * mat, so the film never shows a strip of bare oak past the bench's edge.
+ */
+export const lightStageBox = framed.stage;
+
+/**
+ * Which board pin each lamp's drive line actually reaches.
+ *
+ * **Asked of the metal, not of the cable's name.** The obvious way to write
+ * this is to look up `wire.red.pin` and read where it went, and it is wrong for
+ * the reason this chapter's own cable rule states: the four jumpers are one
+ * object, so somebody who drives the red lamp with the cable this file calls
+ * "green" has built the right circuit. Read by name, that build fails a check
+ * it passes — measured, 382 of the 384 correct layouts — and the person is told
+ * a correct bench is wrong, with nothing in the panel to point at, which is the
+ * one thing this product must never do.
+ *
+ * So it asks the physical question instead: *of the cable that reaches this
+ * lamp's anode column, where does the other end land?* The column is named by
+ * the finished build rather than typed out, and the net test is `NODE_GROUPS`,
+ * so a cable one row up the same column answers the same way — which is true of
+ * the board and is the whole of what this chapter teaches.
+ *
+ * `undefined` for a lamp no cable reaches yet. Chapter three's `nightLines` is
+ * the same function; this is the one it was written from.
+ */
+export function lightLines(scene: CircuitScene): {
+  red?: NodeId;
+  yellow?: NodeId;
+  green?: NodeId;
+} {
+  const landed = (terminal: TrafficTerminal) =>
+    scene.observed.find((c) => c.from === terminal)?.to;
+  const reaches = (a: NodeId | undefined, b: NodeId) =>
+    a !== undefined && sameNet(a, b);
+  const across = (hole: NodeId | null) => {
+    if (!hole) return undefined;
+    for (const w of WIRES) {
+      const a = landed(w.a);
+      const b = landed(w.b);
+      if (!a || !b) continue;
+      if (reaches(a, hole)) return b;
+      if (reaches(b, hole)) return a;
+    }
+    return undefined;
+  };
+  return {
+    red: across(lightComplete["led.red.anode"]),
+    yellow: across(lightComplete["led.yellow.anode"]),
+    green: across(lightComplete["led.green.anode"]),
+  };
+}
 
 /** Part numbers, printed on the parts and the same in every language. */
 export const lightPartNumbers = {

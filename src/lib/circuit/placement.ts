@@ -187,6 +187,20 @@ export interface PlacementSpec extends PlacementTopology {
   ) => Placement | null;
   /** Where a FREE lead offers itself to the pointer and to the keyboard. */
   grabPoint: (node: CircuitNode) => { x: number; y: number };
+  /**
+   * Whether two holes are one piece of metal — a breadboard column, a rail, or
+   * the board's several `GND`s.
+   *
+   * Every build with a breadboard already knows this and used it privately, to
+   * decide a cable's join and to read the sketch's lines off the metal. It is
+   * on the spec because two questions outside those files need the same answer:
+   * `shortedParts` below, and the boot assertion that checks an author's own
+   * `complete`.
+   *
+   * Absent on a build where every hole is its own net — chapter one, whose
+   * fifteen header holes are fifteen nodes.
+   */
+  sameNet?: (a: NodeId, b: NodeId) => boolean;
 }
 
 /* --- Reading the record --------------------------------------------------- */
@@ -242,6 +256,62 @@ export function attachmentOf(
   terminal: TerminalId,
 ): NodeId | undefined {
   return p[terminal] ?? inbound(t, p, terminal)[0];
+}
+
+/** A part whose own two ends have ended up on one piece of metal. */
+export interface PartShort {
+  part: PartId;
+  /** The two leads, in the order `terminalsOf` names them. */
+  terminals: [TerminalId, TerminalId];
+  /** What each of them is in. The same net, not necessarily the same hole. */
+  at: [NodeId, NodeId];
+}
+
+/**
+ * Parts with both ends in one net — the rule `bench-parts.md` §12 asks for.
+ *
+ * ## Why this is not `extras()`' job
+ *
+ * Put both ends of a resistor on the `−` rail and `extras()` says nothing, and
+ * it is right not to: the rail is one node, so the end that is not in the bank
+ * genuinely IS making the join the sketch asks for. There is no unexpected
+ * connection to report. What is wrong is a step further back — the component is
+ * shorted out, current goes round it rather than through it, and the lamp it
+ * was protecting is on bare supply.
+ *
+ * `diff` cannot see it either, for the same reason, so a `complete` that shorts
+ * a part gives `0` mismatches and `0` extras and every assertion in the repo
+ * passes on it. That is why this is a rule of its own rather than a widening of
+ * either: neither of those two questions has this answer in it.
+ *
+ * Reads attachments rather than the scene, because a short is a fact about
+ * where the leads are and holds whether or not the part is drawn. A lead
+ * clipped to its own part's other lead counts too — `tryAttach` refuses that
+ * gesture as `sameCircuitPart`, but an author's literal does not go through
+ * `tryAttach`, and this is one of the two callers that exists to check one.
+ */
+export function shortedParts(
+  /* A `PlacementSpec`, or any topology that can answer the net question. */
+  t: PlacementTopology & Pick<PlacementSpec, "sameNet">,
+  placement: Placement,
+): PartShort[] {
+  const sameNet = t.sameNet ?? ((a: NodeId, b: NodeId) => a === b);
+  const shorts: PartShort[] = [];
+  for (const part of t.parts) {
+    const leads = t.terminalsOf[part] ?? [];
+    for (let i = 0; i < leads.length; i += 1) {
+      for (let j = i + 1; j < leads.length; j += 1) {
+        const [a, b] = [leads[i]!, leads[j]!];
+        const at = attachmentOf(t, placement, a);
+        const to = attachmentOf(t, placement, b);
+        if (at === undefined || to === undefined) continue;
+        if (at === b || to === a || sameNet(at, to)) {
+          shorts.push({ part, terminals: [a, b], at: [at, to] });
+        }
+      }
+    }
+  }
+  return shorts;
 }
 
 /* --- Writing the record --------------------------------------------------- */

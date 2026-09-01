@@ -10,10 +10,17 @@ import {
   onBench,
   partsInKit,
   prune,
+  shortedParts,
   tryAttach,
   type Placement,
   type PlacementTopology,
 } from "@/lib/circuit/placement";
+import { diff, extras } from "@/lib/circuit/graph";
+import { lampPlacement } from "@/lib/circuit/breathing-lamp";
+import { lightPlacement } from "@/lib/circuit/traffic-light";
+import { nightPlacement } from "@/lib/circuit/motion-night-light";
+import { plantPlacement } from "@/lib/circuit/plant-guardian";
+import { soapPlacement } from "@/lib/circuit/touchless-soap";
 
 /**
  * The model, asserted.
@@ -315,5 +322,91 @@ describe("effectsOf", () => {
       leftBench: [],
       enteredBench: [],
     });
+  });
+});
+
+/**
+ * `docs/bench-parts.md` §12's open item, written as a rule.
+ *
+ * Put both ends of a resistor on the `−` rail and every question the model
+ * already asks answers "fine": `diff` finds no mismatch, because the rail is one
+ * node and the loose end really is making the join the sketch asks for, and
+ * `extras` finds nothing unexpected for the same reason. The component is
+ * nevertheless shorted out. §12 says out loud that this is not `extras`' job but
+ * a rule of its own, and this is that rule.
+ */
+describe("shortedParts", () => {
+  /* The toy topology with two of its four holes declared one piece of metal —
+     a rail, in the smallest form that can be one. */
+  const railed = {
+    ...t,
+    sameNet: (a: string, b: string) =>
+      a === b || (["h.3", "h.4"].includes(a) && ["h.3", "h.4"].includes(b)),
+  };
+
+  it("says nothing about a part with its ends in two different nets", () => {
+    expect(shortedParts(railed, of(["a.1", "h.1"], ["a.2", "h.3"]))).toEqual([]);
+  });
+
+  it("says nothing about a part with only one end down", () => {
+    expect(shortedParts(railed, of(["a.1", "h.1"]))).toEqual([]);
+  });
+
+  /* The §12 case itself: two different holes, one piece of metal. */
+  it("reports both ends of one part on the same rail", () => {
+    expect(shortedParts(railed, of(["a.1", "h.3"], ["a.2", "h.4"]))).toEqual([
+      { part: "a", terminals: ["a.1", "a.2"], at: ["h.3", "h.4"] },
+    ]);
+  });
+
+  /* And a part clipped to itself, which `tryAttach` refuses but an author's
+     literal does not go through `tryAttach` at all. */
+  it("reports a part clipped to its own other lead", () => {
+    expect(shortedParts(railed, of(["a.1", "h.1"], ["a.2", "a.1"]))).toEqual([
+      /* `a.1` reads back its own hole — the edge is stored on `a.2`, which is
+         the side that made it, and that is what makes this pair a short. */
+      { part: "a", terminals: ["a.1", "a.2"], at: ["h.1", "a.1"] },
+    ]);
+  });
+
+  it("needs no net table to catch two ends in one hole", () => {
+    /* `h.1` twice is not reachable by gesture — `tryAttach` refuses it as
+       `holeTaken` — but it is exactly what a mistyped `complete` looks like. */
+    const p: Placement = { ...empty, "a.1": "h.1", "a.2": "h.1" };
+    expect(shortedParts(t, p)).toHaveLength(1);
+  });
+});
+
+/**
+ * The same rule against every chapter's own finished build.
+ *
+ * This is the assertion the boot block in `builds.ts` could not make: `diff`
+ * and `extras` are both blind to a shorted part, so an author's `complete` with
+ * a lead one rail along passed every check in the repo.
+ */
+describe("no chapter's finished build shorts a part", () => {
+  it.each([
+    ["chapter one · breathing lamp", lampPlacement],
+    ["chapter two · traffic light", lightPlacement],
+    ["chapter three · motion night light", nightPlacement],
+    ["chapter four · plant guardian", plantPlacement],
+    ["chapter five · touchless soap", soapPlacement],
+  ])("%s", (_name, spec) => {
+    expect(shortedParts(spec, spec.complete)).toEqual([]);
+  });
+
+  /* And it is not vacuous: move one resistor lead onto the rail its other lead
+     is already in, and the rule is the only thing in the repo that says so. */
+  it("catches chapter two's resistor with both ends on the − rail", () => {
+    const shorted: Placement = { ...lightPlacement.complete, "res.red.in": "bb.neg2" };
+    const scene = lightPlacement.sceneFrom(shorted, {
+      servoAngle: 0,
+      expectedAngle: 0,
+    });
+    expect(diff(scene).mismatches).toHaveLength(1);
+    expect(extras(scene)).toHaveLength(0);
+    expect(shortedParts(lightPlacement, shorted)).toEqual([
+      { part: "resRed", terminals: ["res.red.in", "res.red.out"], at: ["bb.neg2", "bb.neg1"] },
+    ]);
   });
 });

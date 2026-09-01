@@ -1,6 +1,6 @@
 import { diff, extras, isServoAligned, type CircuitScene } from "@/lib/circuit/graph";
 import { pwmPins } from "@/lib/circuit/breathing-lamp";
-import { lightDrivePins } from "@/lib/circuit/traffic-light";
+import { lightDrivePins, lightLines } from "@/lib/circuit/traffic-light";
 import { nightLines, nightPins } from "@/lib/circuit/motion-night-light";
 import {
   analogPins,
@@ -231,14 +231,6 @@ export const lampRun: RunSpec = {
 type TrafficColour = keyof typeof lightDrivePins;
 
 /**
- * Which hole a colour's drive cable actually reaches — not which one it was
- * meant to. Read off `observed`, so a cable that landed a pin over answers
- * with where it landed.
- */
-const drivenBy = (scene: CircuitScene, colour: TrafficColour) =>
-  scene.observed.find((c) => c.from === `wire.${colour}.pin`)?.to;
-
-/**
  * The chapter's lesson as a check, the way `breathes` is chapter one's.
  *
  * Chapter one taught that a lamp on `D8` is wired correctly in every sense a
@@ -248,11 +240,22 @@ const drivenBy = (scene: CircuitScene, colour: TrafficColour) =>
  * order. `wiring` passes either way, so the sequence gets a row of its own —
  * and it reads the pins from `lightDrivePins`, which is the sketch's own
  * constants, rather than from a second copy of them here.
+ *
+ * **Which pin each lamp is on is asked of the metal**, through `lightLines`.
+ * This row used to read `observed.find(c => c.from === "wire.red.pin")`, which
+ * asks which CABLE rather than which line — and the same chapter declares its
+ * four jumpers indistinguishable, so that reading failed 382 of the 384 correct
+ * layouts: `inspect_build` found nothing, `wiring` passed 20 / 20, this row went
+ * red, and there was nothing in the panel to point at. Chapter three's
+ * `nightLines` was written against this function; chapter two now uses the same
+ * shape.
  */
-const sequences = (scene: CircuitScene) =>
-  (["red", "yellow", "green"] as const).every(
-    (colour) => drivenBy(scene, colour) === lightDrivePins[colour],
+const sequences = (scene: CircuitScene) => {
+  const lines = lightLines(scene);
+  return (["red", "yellow", "green"] as const).every(
+    (colour) => lines[colour] === lightDrivePins[colour],
   );
+};
 
 /**
  * Which lamps are alight at a beat, given how the bench is actually wired.
@@ -267,11 +270,14 @@ const sequences = (scene: CircuitScene) =>
  * the run opens and closes on, and it is this function's answer rather than a
  * literal written twice.
  */
-const lampsFor = (scene: CircuitScene, on: TrafficColour | null) => ({
-  red: on === "red" && drivenBy(scene, "red") === lightDrivePins.red,
-  yellow: on === "yellow" && drivenBy(scene, "yellow") === lightDrivePins.yellow,
-  green: on === "green" && drivenBy(scene, "green") === lightDrivePins.green,
-});
+const lampsFor = (scene: CircuitScene, on: TrafficColour | null) => {
+  const lines = lightLines(scene);
+  return {
+    red: on === "red" && lines.red === lightDrivePins.red,
+    yellow: on === "yellow" && lines.yellow === lightDrivePins.yellow,
+    green: on === "green" && lines.green === lightDrivePins.green,
+  };
+};
 
 export const trafficRun: RunSpec = {
   checks: [

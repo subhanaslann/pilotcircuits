@@ -8,27 +8,37 @@ import type { TerminalId } from "@/lib/circuit/placement";
  * ## The hole this closes
  *
  * Four M–M jumpers out of one bag are one object as far as a person is
- * concerned, and chapter two says so in the model: all eight ends go into a
- * single `interchangeable` class, so somebody who wires the red lamp with the
- * cable the file happens to call "green" has built the right circuit and the
- * panel agrees. That is right, and it has a cost chapter two records as a
- * "residual": `sameJoin` compares one endpoint against one endpoint, so with
- * every end equivalent to every other, the eight expected SEATS are checked as
- * a set and the four PAIRS are never checked at all.
+ * concerned, and every chapter with cables says so in the model. The obvious
+ * way to say it is a single `interchangeable` class holding all eight ends: a
+ * person who wires the red lamp with the cable the file happens to call "green"
+ * has built the right circuit and the panel agrees. That much is right, and it
+ * came at a cost that was written down as a "residual" and measured, later, as
+ * the whole of the thing: `sameJoin` compares one endpoint against one
+ * endpoint, so with every end equivalent to every other, the eight expected
+ * SEATS are checked as a set and the four PAIRS are never checked at all — all
+ * 8! = 40 320 seatings verify as a finished build.
  *
- * On chapter two that could only cross-drive three lamps. From chapter three on
- * the class spans two power rails and the `5V` pin, and the same hole becomes a
- * short: swap the two supply cables' rail ends and 5 V is on the `−` rail with
- * the LED's return at 5 V — fifteen joins made, nothing to correct, and the run
- * lights the lamp to prove it. Measured exhaustively over the 8! ways of
- * putting eight ends in eight seats, every one of them verified.
+ * On chapter two that meant a jumper could short two header pins to each other.
+ * From chapter three on the class spans two power rails and the `5V` pin, and
+ * the same hole becomes a short across the supply: swap the two supply cables'
+ * rail ends and 5 V is on the `−` rail with the LED's return at 5 V — fifteen
+ * joins made, nothing to correct, and the run lights the lamp to prove it.
  *
  * ## What this does instead
  *
- * A cable's two ends are read together, and the four cables are matched to the
- * four expected pairs **as an assignment** rather than one end at a time.
- * Greedy by score, which is exact here: with four cables and four pairs the
- * only thing a smarter algorithm buys is a different tie-break.
+ * A cable's two ends are read together, and the cables are matched to the
+ * expected pairs **as an assignment** rather than one end at a time. Greedy by
+ * score, which is exact here: with four cables and four pairs the only thing a
+ * smarter algorithm buys is a different tie-break.
+ *
+ * The scene then records the assignment the only way that cannot be composed
+ * back into the hole: by **handing each expected connection's id to the lead
+ * the assignment says is making it**. `sameJoin`'s third clause reads that id
+ * (see `graph.ts`), and because an id is directed and minted once, four cables
+ * standing in for one another cannot form a cycle that satisfies seats nobody
+ * filled. An alias class published per pair — the shape this file shipped with
+ * — could and did: it says "these two ends are the same object" in both
+ * directions at once, and four of those still verified 288 wrong builds.
  *
  * Doing it globally is not tidiness. A cable with one end in the wrong rail
  * scores 1 against its own pair and 1 against the other one; deciding per end,

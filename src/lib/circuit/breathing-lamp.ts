@@ -1,4 +1,4 @@
-import { PITCH, mm } from "@/lib/circuit/geometry";
+import { PITCH, framing, mm } from "@/lib/circuit/geometry";
 import {
   PX,
   boxOf,
@@ -774,20 +774,16 @@ const boxes = [
   ...Object.values(lampPartBox),
   ...Object.values(hungFromLead),
 ];
-const PAD = PITCH * 4;
+const framed = framing(boxes, PITCH * 4);
 
-export const lampFitBox = {
-  x: Math.min(...boxes.map((b) => b.x)) - PAD,
-  y: Math.min(...boxes.map((b) => b.y)) - PAD,
-  width:
-    Math.max(...boxes.map((b) => b.x + b.width)) -
-    Math.min(...boxes.map((b) => b.x)) +
-    PAD * 2,
-  height:
-    Math.max(...boxes.map((b) => b.y + b.height)) -
-    Math.min(...boxes.map((b) => b.y)) +
-    PAD * 2,
-} as const;
+/** What `fitView` opens on — the padded extent. See `framing`. */
+export const lampFitBox = framed.fit;
+
+/**
+ * What the briefing film frames — the same box with its padding clipped to the
+ * mat, so the film never shows a strip of bare oak past the bench's edge.
+ */
+export const lampStageBox = framed.stage;
 
 /** Part numbers, printed on the parts and the same in every language. */
 export const lampPartNumbers = {
