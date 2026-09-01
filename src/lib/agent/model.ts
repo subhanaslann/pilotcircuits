@@ -11,6 +11,26 @@ export const workbenchTools = [
   "get_build_context",
   "inspect_build",
   "show_correction",
+  /**
+   * Batch 9 · the one tool with hands.
+   *
+   * Every other tool on this list reads the build or moves a view. This one
+   * moves the build, and it is the first thing in the product that lets an
+   * agent do what the person does — which is a decision, not an oversight, and
+   * it is worth saying what it cost. `check` replaced `resolve` in Batch 8
+   * precisely so the agent could not fix things for people; a learner who can
+   * have the whole lamp built for them has not learned the chapter.
+   *
+   * What makes it worth having anyway: an agent driving this page through the
+   * browser could, until now, only ever talk about the bench. A protocol demo
+   * whose tools cannot touch the thing they describe is a demo of a
+   * conversation. So the write exists, it is the one the ring is drawn for,
+   * and the three things that keep the chapter honest are that it lands as a
+   * commit `Ctrl+Z` can take back, that it is announced in the timeline as the
+   * agent's own act rather than the person's, and that the panel's own buttons
+   * still cannot call it.
+   */
+  "attach_lead",
   "verify_current_step",
   "navigate_build_step",
   "run_functional_test",
@@ -56,6 +76,7 @@ export const toolKind: Record<AgentTool, ToolKind> = {
   get_build_context: "read",
   inspect_build: "read",
   show_correction: "change",
+  attach_lead: "change",
   verify_current_step: "change",
   navigate_build_step: "change",
   run_functional_test: "change",
@@ -68,8 +89,25 @@ export const toolKind: Record<AgentTool, ToolKind> = {
   start_project: "change",
 };
 
-/** `inspect_build`'s argument. Also decides which connections `diff()` sees. */
-export type InspectionScope = "current_step" | "wiring" | "mechanical" | "all";
+/**
+ * `inspect_build`'s argument — which connections `diff()` sees, **and which
+ * kinds of finding come back**.
+ *
+ * The second half was missing and it made the scopes useless to an agent:
+ * asking for `wiring` on a bench with nothing on it returned "the LED is still
+ * in the kit", which is not a wiring finding by any reading. A scope that does
+ * not partition is a filter that does not filter.
+ *
+ * `placement` is the scope that was missing. It is the one question a build the
+ * person assembles can be asked that the others cannot answer: what is still in
+ * the box.
+ */
+export type InspectionScope =
+  | "current_step"
+  | "wiring"
+  | "placement"
+  | "mechanical"
+  | "all";
 
 /**
  * How much help the user has asked for — and, unchanged, the `detail_level`

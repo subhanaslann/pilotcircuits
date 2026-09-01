@@ -21,12 +21,23 @@ import { cn } from "@/lib/utils/cn";
  *
  * The log scrolls itself. A monitor that made you chase the newest line would
  * be showing you the past while the board is talking about the present.
+ *
+ * **Batch 8 · two grounds, one monitor.** The entry screen shows the same log
+ * on a dark panel, the way a serial monitor has looked since serial monitors
+ * existed. It is a `tone`, not a second component: the day a line changes shape
+ * there must be one place that draws it. On dark, a distance reading takes the
+ * teal that already means *measured* everywhere else in this product, so the
+ * colour is doing its own job rather than borrowing a terminal green.
  */
+export type SerialTone = "dock" | "panel";
+
 export function SerialMonitor({
   lines,
+  tone = "dock",
   className,
 }: {
   lines: string[];
+  tone?: SerialTone;
   className?: string;
 }) {
   const copy = useCopy();
@@ -64,7 +75,19 @@ export function SerialMonitor({
       {lines.map((line, index) => (
         <p
           key={`${index}-${line}`}
-          className="text-mono-sm tnum text-ink-secondary font-mono leading-5"
+          className={cn(
+            "text-mono-sm tnum font-mono",
+            /* The panel packs its lines the way a real monitor does; the dock
+               has room to breathe and keeps the looser rhythm. */
+            tone === "dock" ? "leading-5" : "leading-[17px]",
+            tone === "dock"
+              ? "text-ink-secondary"
+              : /* A reading is teal; what the gate reports about itself is not
+                   a measurement, so it stays in the panel's plain ink. */
+                line.startsWith("Distance")
+                ? "text-teal"
+                : "text-ink-inverse/80",
+          )}
         >
           {line}
         </p>

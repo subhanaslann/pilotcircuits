@@ -143,7 +143,7 @@ function Row({
       fill: "#EEF1F4",
       deep: "#C8D1DA",
       text: "text-ink-secondary",
-      content: <>{copy.workbench.iFixedIt}</>,
+      content: <>{copy.workbench.checkThis}</>,
     },
     {
       role: "danger",

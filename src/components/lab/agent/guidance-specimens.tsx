@@ -15,7 +15,7 @@ import { MonoValue } from "@/components/ui/text";
 import { useCopy } from "@/content/copy-provider";
 import { deriveFindings, findingWords } from "@/lib/agent/findings";
 import type { CoachingLevel } from "@/lib/agent/model";
-import { stepAside, stepById, stepCount, stepWords } from "@/lib/agent/steps";
+import { stepAside, stepById, stepTotalFor, stepWords } from "@/lib/agent/steps";
 import { smartParkingBarrier } from "@/lib/circuit/smart-parking-barrier";
 
 const step = stepById("sensor");
@@ -38,7 +38,7 @@ export function GuidanceSpecimens() {
             <PanelColumn title={t.blocked}>
               <GuidanceSummary
                 stepIndex={step.index}
-                stepTotal={stepCount}
+                stepTotal={stepTotalFor(step.id)}
                 stepName={words.name}
                 context={copy.agentPanel.context.someMatch(5, 6)}
                 connections={{ matched: 5, expected: 6 }}
@@ -49,7 +49,7 @@ export function GuidanceSpecimens() {
             <PanelColumn title={t.clear}>
               <GuidanceSummary
                 stepIndex={step.index}
-                stepTotal={stepCount}
+                stepTotal={stepTotalFor(step.id)}
                 stepName={words.name}
                 context={copy.agentPanel.context.allMatch}
                 connections={{ matched: 6, expected: 6 }}
@@ -115,7 +115,7 @@ export function GuidanceSpecimens() {
       <LabBlock title={t.knowledgeTitle} note={t.knowledgeNote}>
         <LabStage>
           <PanelColumn title={t.knowledgeColumn}>
-            <KnowledgeCheck />
+            <KnowledgeCheck projectId="smartParkingBarrier" />
           </PanelColumn>
         </LabStage>
       </LabBlock>

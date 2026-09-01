@@ -1,7 +1,8 @@
 import type { AgentSession } from "@/components/agent/use-agent-session";
 import type { Copy } from "@/content/i18n";
 import type { InspectionScope } from "@/lib/agent/model";
-import { buildSteps, type StepId } from "@/lib/agent/steps";
+import { stepTotalFor, stepsOwning, type StepId } from "@/lib/agent/steps";
+import { buildFor } from "@/lib/agent/builds";
 
 /**
  * W-10 · The nine scenarios, §10.
@@ -61,9 +62,14 @@ export function demoScenarios(
   /** Look, then do the half the agent cannot: put the part back. */
   const repair = async (scope: InspectionScope) => {
     for (const id of foundIds(await session.run("inspect_build", { scope }))) {
-      session.act({ kind: "resolve", findingId: id });
+      session.act({ kind: "repair", findingId: id });
     }
   };
+
+  /** The step this build finishes on — the one whose own suggestion is the run. */
+  const testStepId = stepsOwning(session.state.activeStepId).find(
+    (step) => step.suggestion === "runTest",
+  )?.id;
 
   const complete = async () => {
     await repair("wiring");
@@ -74,7 +80,11 @@ export function demoScenarios(
        steps, and a loop driven by tool results should not be able to spin.
        Stops one short: the last step is the test, and verifying it without
        running it is not what finishing this build means. */
-    for (let remaining = buildSteps.length; remaining > 0; remaining--) {
+    for (
+      let remaining = stepTotalFor(session.state.activeStepId);
+      remaining > 0;
+      remaining--
+    ) {
       const outcome = await session.run("verify_current_step", {});
       const result = (
         outcome as {
@@ -82,7 +92,7 @@ export function demoScenarios(
         }
       )?.result;
       if (!result?.verified || !result.nextStepId) break;
-      if (result.nextStepId === "test") break;
+      if (result.nextStepId === testStepId) break;
     }
 
     /**
@@ -101,13 +111,90 @@ export function demoScenarios(
     await session.run("verify_current_step", {});
   };
 
-  return [
-    {
-      id: "reset",
-      group: "reset",
-      label: copy.demo.reset,
-      run: () => session.reset(),
+  const reset: DemoScenario = {
+    id: "reset",
+    group: "reset",
+    label: copy.demo.reset,
+    run: () => session.reset(),
+  };
+
+  /**
+   * W-10 · The agent's own hands, on a bench that has some.
+   *
+   * `attach_lead` is registered with the browser and **no button in the product
+   * calls it** — deliberately, because the learner places their own parts. This
+   * is the development-only way to watch one happen without an MCP client
+   * attached, and it is not a second path: it is the same call with the same
+   * arguments an agent would send, picked off the sketch rather than typed.
+   *
+   * The next lead the sketch is still waiting for, in the order the steps ask
+   * for them — which is also the order that keeps each part on the bench long
+   * enough for the next one to be clipped to it.
+   */
+  const agentPlaces: DemoScenario = {
+    id: "agent-attach",
+    group: "wiring",
+    label: copy.demo.agentAttach,
+    run: async () => {
+      const spec = buildFor(session.state.projectId)?.placement;
+      if (!spec) return;
+      const next = spec.terminals.find((lead) => {
+        const wanted = spec.complete[lead];
+        return wanted && session.state.placement[lead] !== wanted;
+      });
+      if (!next) return;
+      await session.run("attach_lead", {
+        lead: next,
+        target: spec.complete[next],
+      });
     },
+  };
+
+  const wiringFix: DemoScenario = {
+    id: "fix-wiring",
+    group: "wiring",
+    label: copy.demo.markWiringFixed,
+    run: () => repair("wiring"),
+  };
+
+  const runTest: DemoScenario = {
+    id: "jump-test",
+    group: "system",
+    label: copy.demo.jumpTest,
+    run: async () => {
+      if (testStepId) {
+        await session.run("navigate_build_step", { step_id: testStepId });
+      }
+      await session.run("run_functional_test", { test: "full_system" });
+    },
+  };
+
+  const finish: DemoScenario = {
+    id: "complete",
+    group: "system",
+    label: copy.demo.complete,
+    run: complete,
+  };
+
+  /**
+   * The menu belongs to the build on the bench.
+   *
+   * Six of the nine name the capstone's steps and the capstone's two faults,
+   * and the menu was rendered on every bench regardless — so on chapter one
+   * `Jump to wiring issue` navigated to `sensor`, a step of the *other* build,
+   * and the rail obligingly redrew itself as the barrier's seven. The two
+   * `inject` rows were already guarded to the barrier inside `act`, which made
+   * them controls that did nothing at all.
+   *
+   * The capstone's nine are unchanged, in the same order. Every other build
+   * gets the ones that are actually about it.
+   */
+  if (session.state.projectId !== "smartParkingBarrier") {
+    return [reset, agentPlaces, wiringFix, runTest, finish];
+  }
+
+  return [
+    reset,
     {
       id: "jump-wiring",
       group: "wiring",
@@ -120,12 +207,7 @@ export function demoScenarios(
       label: copy.demo.injectEcho,
       run: () => session.act({ kind: "inject", fault: "echo" }),
     },
-    {
-      id: "fix-wiring",
-      group: "wiring",
-      label: copy.demo.markWiringFixed,
-      run: () => repair("wiring"),
-    },
+    wiringFix,
     {
       id: "jump-servo",
       group: "servo",
@@ -144,20 +226,7 @@ export function demoScenarios(
       label: copy.demo.markServoRemounted,
       run: () => repair("mechanical"),
     },
-    {
-      id: "jump-test",
-      group: "system",
-      label: copy.demo.jumpTest,
-      run: async () => {
-        await session.run("navigate_build_step", { step_id: "test" });
-        await session.run("run_functional_test", { test: "full_system" });
-      },
-    },
-    {
-      id: "complete",
-      group: "system",
-      label: copy.demo.complete,
-      run: complete,
-    },
+    runTest,
+    finish,
   ];
 }

@@ -35,6 +35,7 @@ const toolPurposes = (copy: Copy): Record<AgentTool, string> => ({
   get_build_context: copy.agentPanel.tools.get_build_context,
   inspect_build: copy.agentPanel.tools.inspect_build,
   show_correction: copy.agentPanel.tools.show_correction,
+  attach_lead: copy.agentPanel.tools.attach_lead,
   verify_current_step: copy.agentPanel.tools.verify_current_step,
   navigate_build_step: copy.agentPanel.tools.navigate_build_step,
   run_functional_test: copy.agentPanel.tools.run_functional_test,
@@ -55,7 +56,29 @@ const toolPurposes = (copy: Copy): Record<AgentTool, string> => ({
  * structure of this product rather than a badge on it, and a count nobody can
  * open is exactly a badge.
  */
-export function ToolInventory({ className }: { className?: string }) {
+export function ToolInventory({
+  tools = workbenchTools,
+  offline = false,
+  className,
+}: {
+  /**
+   * Which tools this panel is standing next to. Defaults to the bench's six
+   * because that is where this header was born, but the count is a claim about
+   * the *current* screen — left hardcoded it told the workspace screen that six
+   * tools were available there when none were registered at all.
+   */
+  tools?: readonly AgentTool[];
+  /**
+   * Whether anything is actually holding this list.
+   *
+   * `7 tools available` printed beside `Agent not connected` is the panel
+   * contradicting itself in one line: with no host, nothing is registered and
+   * nothing can call them. The list is still worth showing — it is what this
+   * page *offers* — so the count stays and the sentence changes.
+   */
+  offline?: boolean;
+  className?: string;
+}) {
   const copy = useCopy();
   const toolPurpose = toolPurposes(copy);
 
@@ -71,13 +94,15 @@ export function ToolInventory({ className }: { className?: string }) {
           onClick={toggle}
           className="text-caption text-ink-tertiary hover:text-ink-secondary decoration-border-strong underline decoration-dotted underline-offset-2 transition-colors"
         >
-          {copy.status.toolsAvailable(workbenchTools.length)}
+          {offline
+            ? copy.status.toolsOnThisPage(tools.length)
+            : copy.status.toolsAvailable(tools.length)}
         </button>
       )}
     >
       <MenuLabel>{copy.agentPanel.tools.title}</MenuLabel>
       <ul className="px-1 pb-1">
-        {workbenchTools.map((tool) => (
+        {tools.map((tool) => (
           <li key={tool} className="px-2 py-1.5">
             <ToolBadge tool={tool} />
             <p className="text-caption text-ink-tertiary mt-0.5">
@@ -96,11 +121,14 @@ export function ToolInventory({ className }: { className?: string }) {
 export function AgentPanelHeader({
   pulse,
   tool,
+  tools,
   className,
 }: {
   pulse: PulseState;
   /** Shown, shimmering, while a call is in flight. */
   tool?: AgentTool;
+  /** The tools this screen actually registers. */
+  tools?: readonly AgentTool[];
   className?: string;
 }) {
   const copy = useCopy();
@@ -133,7 +161,7 @@ export function AgentPanelHeader({
             </span>
           </>
         )}
-        <ToolInventory />
+        <ToolInventory tools={tools} offline={pulse === "offline"} />
       </div>
     </div>
   );
@@ -206,6 +234,7 @@ export function SuggestedAction({
 export function AgentPanel({
   pulse,
   tool,
+  tools,
   webMcpAvailable = true,
   tab,
   onTabChange,
@@ -217,6 +246,8 @@ export function AgentPanel({
 }: {
   pulse: PulseState;
   tool?: AgentTool;
+  /** What this screen registers. Defaults to the bench's list. */
+  tools?: readonly AgentTool[];
   webMcpAvailable?: boolean;
   tab: AgentTab;
   onTabChange: (next: AgentTab) => void;
@@ -244,7 +275,11 @@ export function AgentPanel({
       bodyClassName="px-4 py-2.5"
       header={
         <div>
-          <AgentPanelHeader pulse={pulse} tool={tool} />
+          {/* The list this screen actually hands the browser, not the bench's
+              by default — the count is a claim about the current page, and it
+              told the entry screen that six tools were available there when
+              none were registered at all. */}
+          <AgentPanelHeader pulse={pulse} tool={tool} tools={tools} />
 
           {!webMcpAvailable ? (
             <WebMcpNotice className="border-border -mx-4 mt-2 border-t px-4" />

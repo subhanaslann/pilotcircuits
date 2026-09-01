@@ -231,12 +231,21 @@ export function StepPreview({
  * Three steps on the dashboard. Numbered discs and a sentence each — no cards,
  * because these are the product talking about itself (rule 4).
  */
-export function HowItWorks({ className }: { className?: string }) {
+export function HowItWorks({
+  className,
+  /** S-01 · lets the entry screen set this heading in the same condensed
+   *  face as the three sections around it, without the block growing a
+   *  second style of its own. */
+  headingClassName = "text-h3 text-ink",
+}: {
+  className?: string;
+  headingClassName?: string;
+}) {
   const copy = useCopy();
 
   return (
     <div className={className}>
-      <h3 className="text-h3 text-ink mb-4">{copy.dashboard.howItWorks}</h3>
+      <h3 className={cn("mb-4", headingClassName)}>{copy.dashboard.howItWorks}</h3>
       <ol className="grid gap-5 sm:grid-cols-3">
         {copy.dashboard.steps.map((step, index) => (
           <li key={step} className="flex gap-3">

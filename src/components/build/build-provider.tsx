@@ -15,6 +15,7 @@ import {
 } from "@/components/agent/use-agent-session";
 import type { CanvasHandle } from "@/components/canvas/canvas-viewport";
 import { noFilters, type ProjectFilters } from "@/lib/projects/filter";
+import type { ProjectId } from "@/lib/projects/catalog";
 
 /**
  * Batch 8 · §14 · One build, several screens.
@@ -64,6 +65,28 @@ export interface BuildValue {
    */
   filters: ProjectFilters;
   setFilters: (next: ProjectFilters) => void;
+  /**
+   * Whether this chapter's briefing has already played.
+   *
+   * A project id rather than a boolean, and here rather than in the session
+   * reducer, for three reasons that all point the same way:
+   *
+   *   *Reset must not re-open it.* `sessionReducer`'s `reset` rebuilds from
+   *   `initialSession()` and preserves exactly one field, with a written
+   *   justification; a briefing flag would have to become the second, because
+   *   somebody standing at the bench pressing `Reset demo` must not have the
+   *   canvas covered again. Keyed by chapter here, that falls out for free.
+   *
+   *   *Changing chapter must re-open it.* Also free: a different id simply
+   *   does not match.
+   *
+   *   *No tool may read it.* `get_build_context` answers from the session, and
+   *   a fact about a *view* has no business in the answer — there is
+   *   deliberately no `show_briefing`, because an agent that could re-open this
+   *   would be an agent hiding the bench it is pointing at.
+   */
+  briefedProjectId: ProjectId | null;
+  markBriefed: (id: ProjectId) => void;
 }
 
 const BuildContext = createContext<BuildValue | null>(null);
@@ -73,6 +96,7 @@ export function BuildProvider({ children }: { children: ReactNode }) {
   const canvasRef = useRef<CanvasHandle | null>(null);
   const cameraRef = useRef<CanvasHandle | null>(null);
   const [filters, setFilters] = useState<ProjectFilters>(noFilters);
+  const [briefedProjectId, setBriefed] = useState<ProjectId | null>(null);
 
   const session = useAgentSession({
     canvas: canvasRef,
@@ -83,7 +107,15 @@ export function BuildProvider({ children }: { children: ReactNode }) {
 
   return (
     <BuildContext.Provider
-      value={{ session, canvasRef, cameraRef, filters, setFilters }}
+      value={{
+        session,
+        canvasRef,
+        cameraRef,
+        filters,
+        setFilters,
+        briefedProjectId,
+        markBriefed: setBriefed,
+      }}
     >
       {children}
     </BuildContext.Provider>

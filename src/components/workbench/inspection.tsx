@@ -5,18 +5,22 @@ import {
   CanvasViewport,
   type CanvasHandle,
 } from "@/components/canvas/canvas-viewport";
-import { CircuitSceneView } from "@/components/canvas/circuit-scene";
+import { AgentMascot } from "@/components/canvas/agent-mascot";
+import { BuildSceneView } from "@/components/canvas/build-scene";
 import { matBox } from "@/components/canvas/desk-surface";
 import { FindingRow } from "@/components/agent/finding";
+import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/overlay";
 import { AlertStack, EmptyState } from "@/components/ui/status";
 import { Divider } from "@/components/ui/text";
 import { useCopy } from "@/content/copy-provider";
 import { isResolved, type Finding, type FindingId } from "@/lib/agent/findings";
-import { scene as sceneBox } from "@/lib/circuit/geometry";
+import { partBox, scene as sceneBox } from "@/lib/circuit/geometry";
 import type { CircuitScene, Highlight } from "@/lib/circuit/graph";
 import { boundsOf } from "@/lib/circuit/routing";
-import { node } from "@/lib/circuit/graph";
+import { maybeNode } from "@/lib/circuit/graph";
+import { buildFor } from "@/lib/agent/builds";
+import type { ProjectId } from "@/lib/projects/catalog";
 import { CameraFrame, VisionOverlay, type CameraVariant } from "./camera";
 import { HornAngleCompare } from "./horn-angle";
 
@@ -57,17 +61,24 @@ const OVERLAY_MAX_SCALE = 1.5;
 
 /** The correct build, framed on whatever the finding is about. */
 function ReferenceView({
+  projectId,
   reference,
   finding,
   label,
 }: {
+  projectId: ProjectId;
   reference: CircuitScene;
   finding?: Finding;
   label: string;
 }) {
+  /* A finding can name a terminal the reference has not got — a part still in
+     the kit has no pins on the bench. Framing falls back to the whole scene
+     rather than throwing inside a render. */
   const box = finding
     ? boundsOf(
-        finding.focus.nodes.map((id) => node(reference, id)),
+        finding.focus.nodes
+          .map((id) => maybeNode(reference, id))
+          .filter((n) => n !== undefined),
         finding.focus.padding,
       )
     : null;
@@ -86,7 +97,7 @@ function ReferenceView({
         viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
         className="block h-full w-full"
       >
-        <CircuitSceneView scene={reference} showLabels />
+        <BuildSceneView projectId={projectId} scene={reference} showLabels />
       </svg>
     </div>
   );
@@ -95,6 +106,8 @@ function ReferenceView({
 export function InspectionModal({
   open,
   onClose,
+  projectId,
+  projectName,
   scene,
   reference,
   findings,
@@ -104,11 +117,17 @@ export function InspectionModal({
   cameraVariant,
   capturedAt,
   onShow,
-  onResolve,
+  onCheck,
+  onSimulate,
+  continueAction,
   busy = false,
 }: {
   open: boolean;
   onClose: () => void;
+  /** Which build is on the bench — decides which view draws it. */
+  projectId: ProjectId;
+  /** The build being inspected — named in the modal's own subtitle. */
+  projectName: string;
   /** What is on the bench. */
   scene: CircuitScene;
   /** What the sketch defines, both faults corrected. */
@@ -122,7 +141,25 @@ export function InspectionModal({
   cameraVariant: CameraVariant;
   capturedAt: string;
   onShow: (id: FindingId) => void;
-  onResolve: (id: FindingId) => void;
+  /** `Check this`. A read — the modal cannot write a fix either. */
+  onCheck: (id: FindingId) => void;
+  /** `Move it for me`, on a bench the person cannot assemble. Absent otherwise. */
+  onSimulate?: (id: FindingId) => void;
+  /**
+   * The way on, which the close button in the corner is not.
+   *
+   * A window that has just told somebody what the agent found and offers only
+   * an X is a dead end: whatever comes next — verify the step, go back and
+   * place the part — is behind it, and the person has to work out for
+   * themselves that dismissing this is how they get there. It is the same one
+   * action the panel's pinned foot carries, handed in rather than worked out
+   * again here, so the two cannot end up proposing different next moves.
+   */
+  continueAction?: {
+    label: string;
+    onAction: () => void;
+    loading?: boolean;
+  };
   busy?: boolean;
 }) {
   const copy = useCopy();
@@ -141,7 +178,23 @@ export function InspectionModal({
       onClose={onClose}
       size="wide"
       title={copy.inspection.title}
-      description={copy.build.project}
+      description={projectName}
+      /* One control, for the same reason the agent panel's foot has one: the
+         action the agent is proposing stops meaning anything once there are
+         two of them. Dismissing without acting is still there, in the corner
+         and on Escape, where dismissal belongs. */
+      footer={
+        continueAction ? (
+          <Button
+            variant="primary"
+            size="md"
+            loading={continueAction.loading}
+            onClick={continueAction.onAction}
+          >
+            {continueAction.label}
+          </Button>
+        ) : undefined
+      }
     >
       <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
         {/* No fixed height: the frame stretches to whatever the column beside
@@ -161,7 +214,8 @@ export function InspectionModal({
             onScaleChange={setCameraScale}
             className="h-full"
           >
-            <CircuitSceneView
+            <BuildSceneView
+              projectId={projectId}
               scene={scene}
               showLabels
               highlight={highlight}
@@ -173,8 +227,29 @@ export function InspectionModal({
                 ring are already saying the same thing at that distance. So the
                 overlay belongs to the framing, and hands over when the framing
                 stops being one. */}
+            <AgentMascot />
             {cameraScale <= OVERLAY_MAX_SCALE ? (
-              <VisionOverlay nodes={detected} />
+              <VisionOverlay
+                nodes={detected}
+                /* Read off the scene in the frame, never off the finished
+                   build. Chapter one's parts move now, so the boxes taken once
+                   from `breathingLamp` annotated where a part *would* be if the
+                   build were done — a detection bracket six pitches from the
+                   LED, over empty desk, claiming the vision saw a part that is
+                   not there. A build's own `boxesFor` omits a part with no path
+                   to a hole, so one still in the kit correctly gets no bracket.
+
+                   Asked of the registry rather than of a name: this was
+                   `projectId === "breathingLamp" ? …`, which is the third copy
+                   of "which build is this" the modal has carried, and the last
+                   two both went stale. `partBox` stays the answer for the
+                   capstone, whose parts do not move and whose row therefore
+                   owns no `boxesFor`. */
+                boxes={buildFor(projectId)?.boxesFor?.(scene) ?? partBox}
+                /* Keyed by the build's own part names, so the overlay needs
+                   the build's own vocabulary to turn a lead into one. */
+                spec={buildFor(projectId)?.placement}
+              />
             ) : null}
           </CanvasViewport>
         </CameraFrame>
@@ -185,6 +260,7 @@ export function InspectionModal({
               {copy.inspection.referenceView}
             </p>
             <ReferenceView
+              projectId={projectId}
               reference={reference}
               finding={highlighted ?? open_[0]}
               label={copy.inspection.referenceView}
@@ -218,7 +294,12 @@ export function InspectionModal({
                 finding={finding}
                 resolved={isResolved(finding, scene)}
                 onShow={busy ? undefined : () => onShow(finding.id)}
-                onResolve={busy ? undefined : () => onResolve(finding.id)}
+                onCheck={busy ? undefined : () => onCheck(finding.id)}
+                onSimulate={
+                  onSimulate && !busy
+                    ? () => onSimulate(finding.id)
+                    : undefined
+                }
               />
             ))}
           </AlertStack>

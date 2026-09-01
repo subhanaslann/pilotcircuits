@@ -61,7 +61,7 @@ export function LiveDock() {
     const found =
       (outcome?.result as { findings?: { id: string }[] })?.findings ?? [];
     for (const finding of found) {
-      session.act({ kind: "resolve", findingId: finding.id });
+      session.act({ kind: "repair", findingId: finding.id });
     }
   };
 

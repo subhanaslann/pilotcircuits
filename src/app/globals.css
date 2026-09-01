@@ -96,9 +96,40 @@
   --color-connector: #2f3742;
   --color-connector-muted: #4d565f;
 
+  /* --- S-01 · The workshop surface ---------------------------------------- */
+  /* The entry screen is not a dashboard printed on white; it is a bench seen
+     from above. These seven values are the only ones that describe it, and they
+     are deliberately separate from the `--color-app` family: that family is the
+     product's reading surface and this one is a physical object.
+
+     `--color-paper` is the bench paper the whole screen is laid on, one step
+     cooler and darker than `--color-app` so the header can sit *on* it in
+     `--color-paper-soft` rather than dissolving into it. */
+  --color-paper: #edf1f3;
+  --color-paper-soft: #f7f8f7;
+  --color-paper-line: #cfd6da;
+  /* The diagnostics table's two alternating rows. */
+  --color-paper-row: #f6f8f9;
+  --color-paper-row-alt: #e9edf0;
+  /* The agent's terminal — a diagnostic surface, not a panel. */
+  --color-terminal: #222c36;
+  --color-terminal-ink: #a2ff7b;
+  /* The cutting mat the build stands on, and the capsule that says the agent
+     is listening. Both belong to the object rather than to the interface. */
+  --color-mat: #293640;
+  --color-status-cyan: #39d7df;
+
   /* --- F-03 · Typography -------------------------------------------------- */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", monospace;
+  /* S-01 · What is printed *on* the workshop: the designation, the scene label,
+     the wordmark, the control. Narrow, upright, and never used for prose.
+     `Arial Narrow` is the fallback because it is the one condensed face that is
+     actually installed everywhere, so the headline does not double in width
+     while the webfont loads. */
+  --font-condensed:
+    var(--font-barlow-condensed), "Arial Narrow", "Helvetica Neue Condensed",
+    ui-sans-serif, sans-serif;
 
   --text-display: 30px;
   --text-display--line-height: 36px;
@@ -317,6 +348,22 @@
    Utilities
    ========================================================================== */
 
+/* A pane that scrolls but does not advertise it.
+
+   For the one place a scrollbar would be furniture rather than information: the
+   project rail on a screen that does not scroll, where a notch under the window
+   says which way it moves and a system scrollbar beside it would say the same
+   thing twice, in the operating system's handwriting. Keyboard and wheel still
+   reach it; only the bar is gone. */
+.scroll-quiet {
+  scrollbar-width: none;
+}
+
+.scroll-quiet::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 /* F-07 · Named transition durations. Tailwind v4 ships `--ease-*` as a theme
    namespace but has no equivalent for duration, so these bind the tokens. */
 @utility surface-shimmer {
@@ -358,6 +405,13 @@
 }
 @utility motion-expand {
   animation: cp-expand var(--duration-quick) var(--ease-out-soft) both;
+}
+/* A part being placed: it comes down onto the bench rather than appearing on
+   it. Mount-triggered on purpose — a transition on a node that mounts already
+   at its target does nothing, and would need a second timer a frame later.
+   The distance is in SVG user space, so 60 units is six pitches, about 15 mm. */
+@utility motion-settle {
+  animation: cp-settle var(--duration-deliberate) var(--ease-out-soft) both;
 }
 
 @utility duration-instant {
@@ -407,6 +461,20 @@
       black calc(100% - 10px),
       transparent 100%
     );
+  }
+
+  /* S-01 · The bench paper.
+     An engineering-paper dot at 8px. Faint on purpose: from a normal reading
+     distance it must not read as a pattern, only stop the wide margins from
+     looking sterile. */
+  .grid-paper {
+    background-color: var(--color-paper);
+    background-image: radial-gradient(
+      circle,
+      rgba(45, 67, 78, 0.1) 0.7px,
+      transparent 0.8px
+    );
+    background-size: 8px 8px;
   }
 
   /* Fine dotted technical grid used behind the circuit canvas. */
@@ -638,5 +706,34 @@
   }
   to {
     transform: translateX(100%);
+  }
+}
+
+@keyframes cp-settle {
+  from {
+    transform: translateY(-60px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/*
+ * The lamp, breathing.
+ *
+ * Chapter one is the difference between a light that blinks and a light that
+ * swells, so this is the build's behaviour rather than decoration — the same
+ * standing the sonar rings have while the sensor is sensing. It rides on the
+ * LED artwork's own glow group; the body underneath does not move, because a
+ * second copy of the dome composited over the first shifts its tint as well as
+ * its brightness and the lamp reads as changing colour.
+ */
+@keyframes cp-breathe {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 1;
   }
 }

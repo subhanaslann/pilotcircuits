@@ -109,6 +109,23 @@ export function BuildSummary({ project }: { project: ProjectDef }) {
         {copy.complete.noSessionDetail}
       </Alert> : null}
 
+      {/* Who made this build.
+
+          The agent can place a lead now, and on this screen that matters more
+          than anywhere else: it is the page that says you finished. Shown only
+          when it happened, and counted rather than judged — one lead when you
+          were stuck and a whole chapter built for you are different things, and
+          the number is the only honest way to tell them apart. */}
+      {state.assistedEdits > 0 ? (
+        <Alert
+          tone="info"
+          title={copy.complete.assisted(state.assistedEdits)}
+          className="mt-8"
+        >
+          {copy.complete.assistedDetail}
+        </Alert>
+      ) : null}
+
       <Divider className="mt-8" />
       <div className="grid grid-cols-2 gap-6 py-6 sm:grid-cols-4">
         <Figure label={copy.complete.timeSpent}>
@@ -135,7 +152,7 @@ export function BuildSummary({ project }: { project: ProjectDef }) {
           360px panel; left to itself on a 1360px page it would be a band across
           the whole window rather than a change of ground for one passage. */}
       <div className="mt-10 max-w-[560px]">
-        <KnowledgeCheck />
+        <KnowledgeCheck projectId={project.id} />
       </div>
 
       <div className="mt-10 flex flex-wrap items-center gap-4">

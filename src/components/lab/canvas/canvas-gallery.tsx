@@ -269,7 +269,7 @@ export function CanvasGallery() {
               }}
               disabled={!echoWrong}
             >
-              {copy.workbench.iFixedIt}
+              {copy.workbench.checkThis}
             </Button>
             <Button
               variant="tertiary"
@@ -287,7 +287,7 @@ export function CanvasGallery() {
               }}
               disabled={!servoWrong}
             >
-              {copy.workbench.iRemounted}
+              {copy.workbench.checkThis}
             </Button>
             <Button
               variant="secondary"

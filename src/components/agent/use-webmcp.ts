@@ -2,17 +2,20 @@
 
 import { useEffect, useRef } from "react";
 import { useBuildSession } from "@/components/build/build-provider";
+import type { AgentSession } from "@/components/agent/use-agent-session";
 import { useCopy, useLocale } from "@/content/copy-provider";
 import {
   asToolResult,
   findMcpHost,
   librarySchemas,
   registerTool,
-  workbenchSchemas,
+  workbenchSchemasFor,
   type McpRegistration,
 } from "@/lib/agent/webmcp";
+import { schemaFactsFor } from "@/lib/agent/builds";
 import type { AgentTool } from "@/lib/agent/model";
 import type { AllToolInputs } from "@/lib/agent/tools";
+import type { ProjectId } from "@/lib/projects/catalog";
 
 /**
  * Batch 8 · §9 · Handing this route's tools to the browser.
@@ -41,8 +44,22 @@ import type { AllToolInputs } from "@/lib/agent/tools";
  * session — the design lab's included — knows what the browser can do; this
  * hook only registers, and does nothing at all when there is no host.
  */
-export function useWebMcpTools(tools: readonly AgentTool[]) {
-  const session = useBuildSession();
+export function useWebMcpTools(
+  tools: readonly AgentTool[],
+  /**
+   * Whose session the browser's calls land in.
+   *
+   * The workbench and the library want the build the product is carrying, and
+   * that is the default. The entry screen wants its own — pressing a button on
+   * a marketing page, or an agent calling into it, must not move the build
+   * waiting at `/workbench`. See `landing/landing-session.tsx`.
+   */
+  given?: AgentSession,
+) {
+  /* Called unconditionally and then discarded when a session was handed in:
+     a hook cannot be skipped, and every caller is inside the provider. */
+  const carried = useBuildSession();
+  const session = given ?? carried;
   const copy = useCopy();
   const { locale } = useLocale();
 
@@ -61,22 +78,45 @@ export function useWebMcpTools(tools: readonly AgentTool[]) {
     live.current = { session, copy };
   });
 
-  /* The dependency is the list flattened, plus the language. The array is
-     rebuilt by every caller on every render, so its identity says nothing;
-     what actually decides whether the browser's list has to change is which
-     tools this route offers and which language their descriptions are in. */
-  const key = `${locale}:${tools.join(",")}`;
+  /**
+   * What decides whether the browser's list has to be rebuilt.
+   *
+   * The tools this route offers, the language their descriptions are in — and,
+   * since Batch 9, **which build is on the bench**: the schemas enumerate that
+   * build's steps, checks, leads and holes, so walking from chapter one to
+   * chapter six has to hand the host a different set. Left out, an agent on the
+   * second bench would be reading the first one's vocabulary.
+   */
+  const projectId = session.state.projectId;
+  const key = `${locale}:${projectId}:${tools.join(",")}`;
 
   useEffect(() => {
     const host = findMcpHost();
     if (!host) return;
 
-    const names = key.split(":")[1].split(",").filter(Boolean) as AgentTool[];
+    /**
+     * The badge, told by the strongest evidence there is.
+     *
+     * `useAgentSession` probes once, when the session mounts. A host that
+     * arrives after that — an extension enabling itself, a client attaching
+     * to a page already open — left the panel printing `Agent not connected`
+     * beside a list of tools it had just handed over. Nothing is more certain
+     * that a host exists than having successfully registered with it.
+     */
+    live.current.session.setWebMcpAvailable(true);
+
+    const [, build, list] = key.split(":");
+    const names = list.split(",").filter(Boolean) as AgentTool[];
+    /* Built once per registration, from the build named in the key — never
+       from a render-time read, so the schemas a host holds and the key that
+       decided to give them to it cannot disagree. */
+    const schemas = workbenchSchemasFor(schemaFactsFor(build as ProjectId));
+
     const registrations: McpRegistration[] = names.map((name) =>
       registerTool(host, {
         name,
         description: live.current.copy.agentPanel.tools[name],
-        inputSchema: workbenchSchemas[name] ?? librarySchemas[name] ?? {},
+        inputSchema: schemas[name] ?? librarySchemas[name] ?? {},
         /**
          * Nothing thrown crosses this line.
          *

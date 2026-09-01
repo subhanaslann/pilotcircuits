@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LabSection } from "@/components/lab/lab-primitives";
 import { CanvasGallery } from "@/components/lab/canvas/canvas-gallery";
+import { LampSpecimen } from "@/components/lab/canvas/lamp-specimen";
 import { getServerCopy } from "@/content/copy-server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -32,6 +33,15 @@ export default async function CanvasPage() {
         description={t.section.description}
       >
         <CanvasGallery />
+      </LabSection>
+
+      <LabSection
+        id="c-lamp"
+        code="C-18"
+        title="Chapter one, on the same canvas"
+        description="Three parts and no breadboard. The router, the pin marks and the correction callout are the capstone's — only the build is different."
+      >
+        <LampSpecimen />
       </LabSection>
     </div>
   );

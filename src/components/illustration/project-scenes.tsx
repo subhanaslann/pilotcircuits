@@ -11,8 +11,10 @@ import {
 /**
  * P-02 · Project illustration set · P-09 · Hero
  *
- * Seven scenes, one per project, drawn rather than composed — each build gets
- * its own arrangement instead of the same parts shuffled around.
+ * Six scenes, one per chapter, drawn rather than composed — each build gets its
+ * own arrangement instead of the same parts shuffled around. They are declared
+ * in ladder order, so reading down the file is reading up the curriculum: three
+ * parts and a glow at the top, the whole barrier at the bottom.
  *
  * The set is held together by three things, decided before any of them was
  * drawn (`spec.ts`):
@@ -251,6 +253,74 @@ function Run({ d, tone }: { d: string; tone: string }) {
 
 /* --- The seven ----------------------------------------------------------- */
 
+/**
+ * Chapter one. Three parts and no breadboard: the LED is in the board's own
+ * header, which is exactly what makes this the first chapter. The subject is
+ * the glow, and the glow is drawn mid-breath rather than fully on — a lamp that
+ * is *going* somewhere reads as a lamp with a program behind it.
+ */
+export function BreathingLampScene(props: SceneProps) {
+  return (
+    <Scene {...props}>
+      <circle cx={110} cy={50} r={30} fill="#F2D98B" opacity={0.13} />
+      <circle cx={110} cy={50} r={19} fill="#F2D98B" opacity={0.2} />
+      <Board x={16} y={32} w={40} />
+      {/* The resistor, in line with the leg, because in this chapter it is not
+          a detail — it is the reason the LED survives its first minute. */}
+      <g>
+        <rect
+          x={64}
+          y={47}
+          width={22}
+          height={7}
+          rx={3.4}
+          fill={m.beige}
+          stroke={m.beigeEdge}
+          strokeWidth={SCENE_STROKE}
+        />
+        <rect x={69} y={47} width={2.4} height={7} fill={m.bandRed} />
+        <rect x={73} y={47} width={2.4} height={7} fill={m.bandRed} />
+        <rect x={77} y={47} width={2.4} height={7} fill={m.bandBrown} />
+      </g>
+      <rect x={56} y={49.4} width={8} height={2.2} rx={1.1} fill={m.leg} />
+      <rect x={86} y={49.4} width={12} height={2.2} rx={1.1} fill={m.leg} />
+      <LedGlow x={110} y={50} tone="#F2D98B" r={7} />
+    </Scene>
+  );
+}
+
+/**
+ * Chapter two. The circuit has outgrown the board's own header, so it moves on
+ * to the breadboard — and the breadboard is drawn as the subject rather than as
+ * furniture, because moving on to it is the lesson. Three domes, one lit: a
+ * sequence is a thing with a *current* member.
+ */
+export function TrafficLightScene(props: SceneProps) {
+  return (
+    <Scene {...props}>
+      <Board x={12} y={34} w={34} />
+      {/* The breadboard: a slab with the centre channel that makes it one. */}
+      <rect
+        x={58}
+        y={22}
+        width={86}
+        height={56}
+        rx={4}
+        fill={m.cream}
+        stroke={m.creamEdge}
+        strokeWidth={SCENE_STROKE}
+      />
+      <rect x={58} y={47} width={86} height={6} fill={m.creamEdge} opacity={0.5} />
+      <Run d="M 46 44 C 54 40, 56 34, 66 33" tone={m.ledRed} />
+      <Run d="M 46 50 C 54 50, 58 50, 66 50" tone={m.beige} />
+      <Run d="M 46 56 C 54 60, 56 66, 66 67" tone={m.ledGreen} />
+      <circle cx={101} cy={33} r={6} fill={m.ledRedDim} />
+      <LedGlow x={101} y={50} tone="#E8B33C" r={6} />
+      <circle cx={101} cy={67} r={6} fill={m.ledGreenDim} />
+    </Scene>
+  );
+}
+
 /** P-09 too: the hero is this drawing, larger. */
 export function SmartParkingBarrierScene(props: SceneProps) {
   return (
@@ -389,101 +459,7 @@ export function MotionNightLightScene(props: SceneProps) {
   );
 }
 
-export function MiniRadarScene(props: SceneProps) {
-  return (
-    <Scene {...props}>
-      {/* The sweep is the subject here, not a garnish: four arcs, brighter,
-          reaching the top of the frame the way a radar display does. */}
-      <Arcs
-        cx={80}
-        cy={80}
-        from={26}
-        step={13}
-        count={4}
-        tone={g.sense}
-      />
-      <Run d="M 68 74 C 52 74, 44 62, 34 60" tone={m.pcbBlue} />
-      <Board x={12} y={40} w={36} />
-      {/* Servo at the pivot, sensor riding it. */}
-      <rect
-        x={66}
-        y={72}
-        width={28}
-        height={20}
-        rx={3}
-        fill={m.servoBlue}
-        stroke={m.servoBlueEdge}
-        strokeWidth={SCENE_STROKE}
-      />
-      <Sensor x={64} y={56} w={32} />
-      <circle cx={80} cy={70} r={3.4} fill={m.plasticWhite} />
-    </Scene>
-  );
-}
 
-export function RoomClimateStationScene(props: SceneProps) {
-  return (
-    <Scene {...props}>
-      <Run d="M 54 40 C 70 34, 82 46, 96 42" tone={m.pcbBlue} />
-      <Board x={14} y={30} w={40} />
-      {/* The sensor, vented — the one part that has to breathe. */}
-      <rect
-        x={96}
-        y={28}
-        width={26}
-        height={30}
-        rx={3}
-        fill={m.plasticWhite}
-        stroke={m.creamEdge}
-        strokeWidth={SCENE_STROKE}
-      />
-      {[34, 39, 44, 49].map((y) => (
-        <line
-          key={y}
-          x1={101}
-          y1={y}
-          x2={117}
-          y2={y}
-          stroke={m.metalEdge}
-          strokeWidth={1.6}
-          strokeLinecap="round"
-        />
-      ))}
-      {/* What it says about the room, drawn as the reading it is. */}
-      <rect
-        x={30}
-        y={70}
-        width={100}
-        height={20}
-        rx={3}
-        fill={m.shellDeep}
-        opacity={0.75}
-      />
-      {[
-        [38, 12],
-        [48, 7],
-        [58, 15],
-        [68, 10],
-        [78, 16],
-        [88, 8],
-        [98, 13],
-        [108, 6],
-        [118, 11],
-      ].map(([x, h]) => (
-        <rect
-          key={x}
-          x={x}
-          y={86 - h}
-          width={4}
-          height={h}
-          rx={1.2}
-          fill={m.pcbBlue}
-          opacity={0.85}
-        />
-      ))}
-    </Scene>
-  );
-}
 
 export function TouchlessSoapDispenserScene(props: SceneProps) {
   return (
@@ -531,75 +507,14 @@ export function TouchlessSoapDispenserScene(props: SceneProps) {
   );
 }
 
-export function DigitalReactionGameScene(props: SceneProps) {
-  return (
-    <Scene {...props}>
-      <Run d="M 44 36 C 60 30, 76 42, 92 36" tone={m.ledRed} />
-      <Board x={12} y={26} w={34} />
-      {/* The breadboard the game is built on. */}
-      <rect
-        x={54}
-        y={44}
-        width={94}
-        height={40}
-        rx={3}
-        fill={m.cream}
-        stroke={m.metalEdge}
-        strokeWidth={SCENE_STROKE}
-      />
-      <rect x={54} y={62} width={94} height={4} fill={m.creamEdge} />
-      {/* Four lights; one of them is on, and that is the whole game. */}
-      {[
-        [68, false],
-        [88, false],
-        [108, true],
-        [128, false],
-      ].map(([x, lit]) => (
-        <g key={String(x)}>
-          {lit ? (
-            <LedGlow x={Number(x)} y={54} tone={m.ledRed} r={4} />
-          ) : (
-            <circle
-              cx={Number(x)}
-              cy={54}
-              r={4}
-              fill={m.ledRed}
-              opacity={0.28}
-            />
-          )}
-        </g>
-      ))}
-      {/* The button you are about to hit. */}
-      <rect
-        x={92}
-        y={70}
-        width={22}
-        height={22}
-        rx={3}
-        fill={m.creamEdge}
-        stroke={m.metalEdge}
-        strokeWidth={SCENE_STROKE}
-      />
-      <circle
-        cx={103}
-        cy={81}
-        r={7}
-        fill={m.shell}
-        stroke={m.shellDeep}
-        strokeWidth={SCENE_STROKE}
-      />
-    </Scene>
-  );
-}
 
 const scenes: Record<ProjectId, (props: SceneProps) => ReactElement> = {
-  smartParkingBarrier: SmartParkingBarrierScene,
-  plantGuardian: PlantGuardianScene,
+  breathingLamp: BreathingLampScene,
+  trafficLight: TrafficLightScene,
   motionNightLight: MotionNightLightScene,
-  miniRadar: MiniRadarScene,
-  roomClimateStation: RoomClimateStationScene,
+  plantGuardian: PlantGuardianScene,
   touchlessSoapDispenser: TouchlessSoapDispenserScene,
-  digitalReactionGame: DigitalReactionGameScene,
+  smartParkingBarrier: SmartParkingBarrierScene,
 };
 
 /**

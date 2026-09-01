@@ -64,7 +64,7 @@ export function ButtonSpecimens() {
             <Button variant="secondary" iconLeft={<Eye {...glyph} />}>
               {copy.workbench.showMe}
             </Button>
-            <Button variant="tertiary">{copy.workbench.iFixedIt}</Button>
+            <Button variant="tertiary">{copy.workbench.checkThis}</Button>
             <Button variant="danger" iconLeft={<RotateCcw {...glyph} />}>
               {copy.workbench.resetDemo}
             </Button>
@@ -126,7 +126,7 @@ export function ButtonSpecimens() {
               <Button variant="secondary" iconLeft={<Eye {...glyph} />}>
                 {copy.workbench.showMe}
               </Button>
-              <Button variant="tertiary">{copy.workbench.iFixedIt}</Button>
+              <Button variant="tertiary">{copy.workbench.checkThis}</Button>
             </div>
           </div>
           <div className="bg-surface border-border rounded-lg border p-6">
@@ -140,7 +140,7 @@ export function ButtonSpecimens() {
               <Button variant="secondary" iconLeft={<Eye {...glyph} />}>
                 {copy.workbench.showMe}
               </Button>
-              <Button variant="tertiary">{copy.workbench.iFixedIt}</Button>
+              <Button variant="tertiary">{copy.workbench.checkThis}</Button>
             </div>
           </div>
         </div>

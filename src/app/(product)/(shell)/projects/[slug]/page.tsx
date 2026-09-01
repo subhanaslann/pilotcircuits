@@ -12,6 +12,7 @@ import { Breadcrumb } from "@/components/ui/nav";
 import { MetadataLine } from "@/components/ui/text";
 import { getServerCopy } from "@/content/copy-server";
 import { toProgressSteps } from "@/lib/agent/steps";
+import { buildBySlug } from "@/lib/agent/builds";
 import { projectBySlug } from "@/lib/projects/catalog";
 
 export async function generateMetadata(
@@ -57,10 +58,23 @@ export default async function ProjectDetailPage(
   const words = copy.projects[project.id];
   const ready = project.status === "ready";
 
-  /* The same seven the workbench rail draws, so the preview cannot promise a
-     build the bench does not deliver. Statuses are irrelevant here — the strip
-     renders names and durations — so the list is asked for from the start. */
-  const steps = toProgressSteps(copy, "kit", [], []);
+  /* **This chapter's** steps, so the preview cannot promise a build the bench
+     does not deliver. Statuses are irrelevant here — the strip renders names
+     and durations — so the list is asked for from its own first step.
+
+     It used to be the literal `"kit"`, which is the parking barrier's opening
+     step, and `stepsOwning` answers the barrier's list for any id it does not
+     recognise. So `/projects/breathing-lamp` printed "4 steps · 3 parts" in the
+     summary and then listed the barrier's seven underneath it — the one screen
+     in the product that stated something untrue. A chapter with no bench yet
+     has no steps of its own to name, and falls back to the same seven it
+     always did. */
+  const steps = toProgressSteps(
+    copy,
+    buildBySlug(slug)?.activeStepId ?? "kit",
+    [],
+    [],
+  );
 
   return (
     <main className="pt-6 pb-20">

@@ -41,8 +41,8 @@ export function LibraryBlocks() {
   const [checked, setChecked] = useState<ComponentId[]>([
     "board",
     "breadboard",
-    "jumper",
-    "usb",
+    "led",
+    "resistor",
   ]);
   const toggle = (id: ComponentId) =>
     setChecked((current) =>

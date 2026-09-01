@@ -95,10 +95,10 @@ export function EvidenceLine({
   className?: string;
 }) {
   const copy = useCopy();
-  const source =
-    evidence.kind === "camera"
-      ? copy.findings.evidence.camera
-      : copy.findings.evidence.alignment;
+  /* Keyed off the kind rather than tested against one of them: a two-way test
+     captions every new kind as an alignment check, and a wrong provenance is
+     the one error on this line that still renders as a sentence. */
+  const source = copy.findings.evidence[evidence.kind];
   /* The number is a reading, so it is mono; the word around it is prose. They
      are separate keys because Turkish writes the sign before the digits. */
   const value = copy.findings.confidenceValue(
@@ -127,7 +127,8 @@ export function FindingRow({
   correctionOpen = false,
   correctionId,
   onShow,
-  onResolve,
+  onCheck,
+  onSimulate,
   onFocusNode,
   className,
   children,
@@ -138,7 +139,17 @@ export function FindingRow({
   /** Id of the correction this row's `Show me` reveals. */
   correctionId?: string;
   onShow?: () => void;
-  onResolve?: () => void;
+  /** `Check this`. A read: it asks the agent to look, it never writes a fix. */
+  onCheck?: () => void;
+  /**
+   * `Move it for me` — a write, offered only where the person has no hands.
+   *
+   * On a bench laid out by the author there is nothing to drag, so a read-only
+   * check would leave the build with no route to a fix. The button says out
+   * loud who is doing the moving, which is the whole difference between this
+   * and the `I fixed it` it replaced.
+   */
+  onSimulate?: () => void;
   onFocusNode?: (id: string) => void;
   className?: string;
   /** The correction (G-08), rendered inside the text column. */
@@ -147,12 +158,19 @@ export function FindingRow({
   const copy = useCopy();
   const words = findingWords(copy, finding);
 
-  /* Two of the three finding types resolve to the same sentence — a wire is
-     back where it belongs either way. */
+  /* Two of the four resolve to the same sentence — a wire is back where it
+     belongs whether it was in the wrong hole or in no hole at all. The stray
+     needs its own: nothing matches now, the join is gone, and
+     `Connection matches now` would congratulate the person for the opposite of
+     what they just did. */
   const resolvedTitle =
     finding.type === "mechanical-alignment"
       ? copy.findings.resolvedServo
-      : copy.findings.resolvedConnection;
+      : finding.type === "unexpected-connection"
+        ? copy.findings.resolvedExtra
+        : finding.type === "part-not-placed"
+          ? copy.findings.resolvedPart
+          : copy.findings.resolvedConnection;
 
   if (resolved) {
     return (
@@ -182,6 +200,25 @@ export function FindingRow({
         evidence={finding.evidence}
         severityWord={copy.findings.severity[finding.severity]}
       />
+
+      {/* The third state, and the reason the honest check is usable.
+
+          `Check this` is a read, so a build nobody has touched renders exactly
+          the row that was already on screen — a button that appears to do
+          nothing, which is how an accurate answer gets read as a broken
+          control. This line is the answer made visible: the agent looked, and
+          the fault is still there. It is metadata rather than a new heading
+          because nothing about the finding changed; only the reading did. */}
+      {finding.checkedAt && finding.lastCheck !== "resolved" ? (
+        <MetadataLine
+          className="mt-1"
+          items={[
+            finding.lastCheck === "unreachable"
+              ? copy.findings.checkedUnreachable
+              : copy.findings.checkedStillOpen,
+          ]}
+        />
+      ) : null}
 
       <Sentence
         className="text-body-sm text-ink-secondary mt-2 block"
@@ -215,9 +252,14 @@ export function FindingRow({
             {words.actions.show}
           </Button>
         ) : null}
-        {onResolve ? (
-          <Button variant="tertiary" size="sm" onClick={onResolve}>
-            {words.actions.resolve}
+        {onCheck ? (
+          <Button variant="tertiary" size="sm" onClick={onCheck}>
+            {words.actions.check}
+          </Button>
+        ) : null}
+        {onSimulate ? (
+          <Button variant="tertiary" size="sm" onClick={onSimulate}>
+            {copy.workbench.moveItForMe}
           </Button>
         ) : null}
       </div>

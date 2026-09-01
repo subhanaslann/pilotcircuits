@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
-import type { ComponentId } from "@/lib/projects/catalog";
+import type { KitId } from "@/lib/projects/catalog";
 import {
   ICON_BOX,
   ICON_STROKE,
@@ -457,17 +457,40 @@ export function ButtonMark(props: MarkProps) {
   );
 }
 
-const marks: Record<ComponentId, (props: MarkProps) => ReactElement> = {
+/**
+ * What can be drawn, which is deliberately wider than what can be *counted*.
+ *
+ * `ComponentId` shrank to the six parts a chapter's list is allowed to name.
+ * The kit still contains wire, and the barrier still swings a cardboard arm —
+ * the workbench names both in its parts rail — so their marks stay. A drawing
+ * vocabulary that could only draw the counted things would have nothing to
+ * offer the one screen where the uncounted things are in your hands.
+ */
+export type MarkId = KitId;
+
+const marks: Record<MarkId, (props: MarkProps) => ReactElement> = {
   board: BoardMark,
   breadboard: BreadboardMark,
   sensor: SensorMark,
   servo: ServoMark,
   led: LedMark,
+  /* One mark, three ids. A mark is monochrome by design — it says *what* the
+     part is and the row beside it says which one — so three tinted LEDs here
+     would be a colour the legend cannot explain. The kit shelf draws the real
+     artwork and that is where the colour belongs. */
+  ledRed: LedMark,
+  ledYellow: LedMark,
+  ledGreen: LedMark,
+  /* And the same for the three sensors, for the same reason plus one: the
+     legend's entry is `sensor`, one mark, and a motion sensor drawn as a dome
+     beside a distance sensor drawn as two cans would make the counted
+     vocabulary look like three components rather than one. The shelf draws the
+     part that is actually in the box; this says which KIND of thing it is. */
+  sensorMotion: SensorMark,
+  sensorMoisture: SensorMark,
   resistor: ResistorMark,
   jumper: JumperMark,
-  usb: UsbMark,
   cardboard: CardboardMark,
-  button: ButtonMark,
 };
 
 /**
@@ -483,7 +506,7 @@ export function ComponentIcon({
   size,
   className,
 }: {
-  id: ComponentId;
+  id: MarkId;
   size?: number;
   className?: string;
 }) {

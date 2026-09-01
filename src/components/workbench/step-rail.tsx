@@ -6,7 +6,9 @@ import { ListRow, Panel } from "@/components/ui/card";
 import { MonoValue } from "@/components/ui/text";
 import { useCopy } from "@/content/copy-provider";
 import type { BuildStep } from "@/lib/agent/steps";
-import type { StepParts } from "@/lib/agent/parts";
+import { partNameOf, type StepParts } from "@/lib/agent/parts";
+import type { TerminalId } from "@/lib/circuit/placement";
+import type { ComponentId, KitId } from "@/lib/projects/catalog";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -14,6 +16,16 @@ import { cn } from "@/lib/utils/cn";
  *
  * The workbench's left region: seven steps in the order they happen, and — at
  * the foot, pinned — what the step you are standing on actually touches.
+ *
+ * **The parts at the foot are now where the kit is.** The rail's *step list*
+ * still does not navigate — that half of the rule below is untouched. What
+ * changed is the block under it: on a build the person assembles, the kit is
+ * picked up from there, so those rows became controls. A row that is suddenly
+ * pressable in a column of six read-only ones would be a rule-1 violation on
+ * its own, so the affordance is paid for where rule 1 asks: a **capsule** chip
+ * at the end of the row, carrying the **state word** (rule 9). Capsule says
+ * pressable, the word says which state, and the row itself stays a 14px list
+ * row — a 252px rail of capsules is not this language.
  *
  * **The rail does not navigate.** It reads, and that is deliberate. Three
  * things already move the build between steps: the agent, through
@@ -109,16 +121,79 @@ export function StepRailItem({
  * `stepParts`. Steps that wire nothing render nothing, which is honest: laying
  * out the kit is not a step with four components in it.
  */
+/**
+ * What the person can do with one row of the kit.
+ *
+ * **One row is one lead, not one component.** `placed: boolean` had two states
+ * and a lead has four, and the missing one — a lead clipped onto another lead —
+ * is exactly what chapter one's third step is about: saying `Placed` about it
+ * would be the rail asserting a hole that does not exist. So the row carries the
+ * state word itself rather than a flag this file would have to interpret, and it
+ * carries the `terminal` because that, not the component, is what `place`
+ * commits.
+ *
+ * An ordered array rather than a record keyed by component, for the same
+ * reason: step 3 touches three leads across two parts, and a record could hold
+ * one row per part.
+ */
+export interface KitRow {
+  /** What `place` is called with. */
+  terminal: TerminalId;
+  component: KitId;
+  /**
+   * The lead's name, or `null` when this row is the whole part.
+   *
+   * Both readings are real. `Check your kit` is about the box — one row per
+   * part, "LED · In the kit" — and a wiring step is about legs. The name is
+   * already a phrase that says which part it belongs to ("the LED's long leg"),
+   * so the row prints it instead of the component's name rather than beside it:
+   * the icon is the part, and 252px does not have room to say so twice.
+   */
+  lead: string | null;
+  state: "inKit" | "loose" | "seated" | "joined";
+}
+
+export interface KitControls {
+  rows: readonly KitRow[];
+  /** The lead currently in hand, if any. */
+  picking: TerminalId | null;
+  onPick: (terminal: TerminalId | null) => void;
+}
+
 export function StepComponents({
   parts,
+  kit,
   className,
 }: {
   parts: StepParts;
+  /** Absent on a build laid out by the author: the rows stay read-only. */
+  kit?: KitControls;
   className?: string;
 }) {
   const copy = useCopy();
 
-  if (!parts.components.length && !parts.jumpers) return null;
+  const rows = kit?.rows ?? [];
+  if (!parts.components.length && !parts.jumpers && !rows.length) return null;
+
+  /* What the step names and no row covers stays the read-only line it has
+     always been. Chapter six has no rows at all and reads exactly as before;
+     chapter one's `Check your kit` names the board, which is part of the step
+     and is not a thing anybody picks up. */
+  const listed = parts.components.filter(
+    (id) => !rows.some((row) => row.component === id),
+  );
+
+  /* Two tables, and the split is the point rather than an oversight.
+     `copy.components` is the CATALOGUE's vocabulary — the six counted parts, in
+     the plural words a project card uses ("LEDs") — and this read-only line has
+     always spoken it. `copy.build.parts` is the BENCH's, which is wider: a
+     chapter can hand you a jumper cable, and the catalogue deliberately does
+     not count one. So the catalogue answers where it can and the bench answers
+     for everything else, rather than one of them being retyped into the other. */
+  const partName = (id: KitId) =>
+    id in copy.components
+      ? copy.components[id as ComponentId]
+      : copy.build.parts[id];
 
   return (
     <div className={className}>
@@ -127,14 +202,80 @@ export function StepComponents({
       </p>
 
       <ul className="mt-2 space-y-1">
-        {parts.components.map((id) => (
+        {listed.map((id) => (
           <li key={id} className="flex items-center gap-2">
             <ComponentIcon id={id} size={24} className="shrink-0" />
             <span className="text-body-sm text-ink min-w-0 truncate">
-              {copy.components[id]}
+              {partName(id)}
             </span>
           </li>
         ))}
+        {rows.map((row) => {
+          const inHand = kit?.picking === row.terminal;
+          const state = inHand
+            ? copy.workbench.kit.picking
+            : row.state === "inKit"
+              ? copy.workbench.kit.inKit
+              : copy.workbench.lead[row.state];
+
+          return (
+            <li key={row.terminal}>
+              <button
+                type="button"
+                aria-pressed={inHand}
+                /* Named by what pressing it does, not by what it is standing
+                   next to. Computed from the contents alone the name came out
+                   "LED Kitte" — a noun glued to a state word, on the control
+                   that is the primary keyboard way into the whole placement
+                   gesture — and `aria-pressed` then implied that pressing it
+                   toggled the LED's kit-ness. It does not: it puts the lead in
+                   your hand. The state stays visible in the chip and audible in
+                   `aria-pressed`, so the chip itself has nothing left to say. */
+                aria-label={
+                  row.lead
+                    ? copy.workbench.lead.pickUp(
+                        copy.build.leadObject[row.terminal],
+                      )
+                    : copy.workbench.kit.pickUp(
+                        partNameOf(copy, row.terminal),
+                      )
+                }
+                /* A name suppresses the contents it was written over, and the
+                   chip is the only place `Loose`, `In a hole` and `Joined` are
+                   said at all. The word comes back as the description rather
+                   than in the name: what this commits does not change with the
+                   state, and a name that moved between four readings would be
+                   four different controls to anybody listening. */
+                aria-describedby={`kit-state-${row.terminal}`}
+                /* The one row this step is about, findable from outside: the
+                   workbench puts the caret back on the lead it just moved, and
+                   `footer button[aria-pressed]` returns the first of three the
+                   moment a step touches more than one leg. */
+                data-terminal={row.terminal}
+                onClick={() => kit?.onPick(inHand ? null : row.terminal)}
+                className="focus-visible:ring-focus hover:bg-surface-hover -mx-1.5 flex w-[calc(100%+0.75rem)] items-center gap-2 rounded-lg px-1.5 py-1 text-left transition-colors"
+              >
+                <ComponentIcon
+                  id={row.component}
+                  size={24}
+                  className="shrink-0"
+                />
+                {/* Singular here and plural in the read-only row above, and
+                    that is not an inconsistency: this row is one thing you can
+                    pick up, that one is a line in a kit list. */}
+                <span className="text-body-sm text-ink min-w-0 flex-1 truncate">
+                  {/* The part, named off the lead this row commits — the
+                      same answer the shelf gives, and the only one that can
+                      tell three 220Ω resistors apart. */}
+                  {row.lead ?? partNameOf(copy, row.terminal)}
+                </span>
+                <KitChip active={inHand} id={`kit-state-${row.terminal}`}>
+                  {state}
+                </KitChip>
+              </button>
+            </li>
+          );
+        })}
         {parts.jumpers ? (
           <li className="flex items-center gap-2">
             <ComponentIcon id="jumper" size={24} className="shrink-0" />
@@ -159,14 +300,42 @@ export function StepComponents({
   );
 }
 
+/** Rule 1's capsule and rule 9's word, in one 20px chip. */
+function KitChip({
+  active,
+  id,
+  children,
+}: {
+  active: boolean;
+  /** So the row's button can point its description at the word. */
+  id?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      id={id}
+      className={cn(
+        "text-caption shrink-0 rounded-full px-2 py-0.5 leading-none",
+        active
+          ? "bg-accent text-inverse"
+          : "border-border text-ink-secondary border",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
 export function StepRail({
   steps,
   parts,
+  kit,
   className,
 }: {
   steps: BuildStep[];
   /** The active step's parts. Omit and the foot is not rendered. */
   parts?: StepParts;
+  kit?: KitControls;
   className?: string;
 }) {
   const copy = useCopy();
@@ -179,8 +348,9 @@ export function StepRail({
       /* An empty foot is still a rule and 28px of padding, so the block has
          to decide before the panel does. */
       footer={
-        parts && (parts.components.length || parts.jumpers) ? (
-          <StepComponents parts={parts} />
+        parts &&
+        (parts.components.length || parts.jumpers || kit?.rows.length) ? (
+          <StepComponents parts={parts} kit={kit} />
         ) : undefined
       }
     >

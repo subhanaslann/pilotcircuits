@@ -58,7 +58,7 @@ function Row({ option }: { option: Option }) {
         type="button"
         className={cn(shell, "bg-surface-sunken text-ink-secondary")}
       >
-        {copy.workbench.iFixedIt}
+        {copy.workbench.checkThis}
       </button>
       <button
         type="button"

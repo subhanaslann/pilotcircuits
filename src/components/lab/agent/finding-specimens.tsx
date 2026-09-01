@@ -31,7 +31,7 @@ function EditorialDirection({ findings }: { findings: Finding[] }) {
           key={finding.id}
           finding={finding}
           onShow={() => {}}
-          onResolve={() => {}}
+          onCheck={() => {}}
         />
       ))}
     </AlertStack>
@@ -70,7 +70,7 @@ function CardDirection({ findings }: { findings: Finding[] }) {
                 {words.actions.show}
               </Button>
               <Button variant="tertiary" size="sm">
-                {words.actions.resolve}
+                {words.actions.check}
               </Button>
             </CardFooter>
           </Card>
@@ -111,7 +111,7 @@ export function FindingSpecimens() {
                 finding={findings[0]}
                 resolved={resolved}
                 onShow={() => {}}
-                onResolve={() => setResolved(true)}
+                onCheck={() => setResolved(true)}
               />
             </PanelColumn>
             <PanelColumn title={t.nothingOpen}>

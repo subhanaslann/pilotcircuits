@@ -29,6 +29,29 @@ export interface BuildStep {
   status: StepStatus;
 }
 
+/**
+ * Which step a build is standing on — the one and only answer, so that every
+ * surface reading it says the same number.
+ *
+ * The rail marks exactly one row **Active**, and that row is the answer. Only
+ * when there is none is the first amber row the answer: `describeSteps` lets
+ * `isBlocked` win over `activeStepId`, so a step that is both is drawn `issue`
+ * and no row is `active` at all.
+ *
+ * A single scan for "active or issue" is what this replaces, and it was wrong
+ * in the case the product is built to produce: a fault injected at step 4 keeps
+ * that row amber after the session walks on, and the scan then answered 4 while
+ * the rail, the guidance panel and the foot were all on step 7.
+ *
+ * `-1` when a build has no step of either kind; callers show the total.
+ */
+export function currentStepIndex(steps: readonly BuildStep[]): number {
+  const active = steps.findIndex((step) => step.status === "active");
+  return active >= 0
+    ? active
+    : steps.findIndex((step) => step.status === "issue");
+}
+
 const tickTone: Record<StepStatus, string> = {
   completed: "bg-accent",
   active: "bg-accent",
@@ -231,9 +254,7 @@ export function BuildProgress({
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  const activeIndex = steps.findIndex(
-    (s) => s.status === "active" || s.status === "issue",
-  );
+  const activeIndex = currentStepIndex(steps);
   const current = activeIndex >= 0 ? activeIndex + 1 : steps.length;
   const activeStep = steps[activeIndex];
   const blocked = activeStep?.status === "issue";

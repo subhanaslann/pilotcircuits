@@ -95,14 +95,23 @@ export function DemoControls({
               </>
             ) : null}
 
-            {groupOrder.map((group) => (
-              <div key={group}>
-                <MenuLabel>{groupLabel[group]}</MenuLabel>
-                {scenarios
-                  .filter((scenario) => scenario.group === group)
-                  .map(item)}
-              </div>
-            ))}
+            {/* A heading over nothing is a control that has gone missing.
+                Chapter two has no servo, so its menu carried an empty `SERVO`
+                label under which the person kept looking for the two rows the
+                capstone has — the same fault as an inspection scope a build
+                cannot honour, one screen out. */}
+            {groupOrder.map((group) => {
+              const rows = scenarios.filter(
+                (scenario) => scenario.group === group,
+              );
+              if (!rows.length) return null;
+              return (
+                <div key={group}>
+                  <MenuLabel>{groupLabel[group]}</MenuLabel>
+                  {rows.map(item)}
+                </div>
+              );
+            })}
 
             <p className="text-caption text-ink-tertiary border-border mt-1.5 border-t px-2.5 pt-2">
               {copy.demo.note}

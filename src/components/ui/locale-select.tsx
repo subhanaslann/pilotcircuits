@@ -19,7 +19,22 @@ import { cn } from "@/lib/utils/cn";
  * the trigger shows the code (`TR`) rather than a flag: a flag is a country,
  * and a language is not one.
  */
-export function LocaleSelect({ className }: { className?: string }) {
+export function LocaleSelect({
+  tone = "chip",
+  className,
+}: {
+  /**
+   * S-01 · the same control on a surface with no chips on it.
+   *
+   * The workshop nameplate carries a wide wordmark, one nav item and a status
+   * light; a raised white capsule between them would be a third object
+   * competing with the two that matter. `bare` keeps every behaviour and drops
+   * the shell — two letters in the same condensed face as the nav item beside
+   * it, which is what a setting looks like on an instrument.
+   */
+  tone?: "chip" | "bare";
+  className?: string;
+}) {
   const { locale, setLocale } = useLocale();
 
   return (
@@ -28,7 +43,20 @@ export function LocaleSelect({ className }: { className?: string }) {
       width="sm"
       label={localeNames[locale]}
       className={className}
-      trigger={({ open, toggle }) => (
+      trigger={({ open, toggle }) =>
+        tone === "bare" ? (
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={localeNames[locale]}
+            className={cn(
+              "font-condensed duration-instant inline-flex items-center text-[14px] leading-none font-semibold tracking-[0.045em] uppercase transition-colors",
+              open ? "text-accent-active" : "text-ink-tertiary hover:text-ink",
+            )}
+          >
+            {localeCodes[locale]}
+          </button>
+        ) : (
         <button
           type="button"
           onClick={toggle}
@@ -47,7 +75,8 @@ export function LocaleSelect({ className }: { className?: string }) {
           />
           <span className="text-mono-sm font-mono">{localeCodes[locale]}</span>
         </button>
-      )}
+        )
+      }
     >
       {({ close }) => (
         <>

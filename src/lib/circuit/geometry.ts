@@ -1,3 +1,5 @@
+import { PX, boxOf, frame } from "@/lib/circuit/wokwi";
+
 /**
  * Batch 3 · Scene geometry.
  *
@@ -6,6 +8,10 @@
  * what is on screen with what is on their desk — a breadboard drawn at the
  * wrong ratio breaks that comparison, and with it the whole premise of
  * "move the yellow wire from D6 to D7".
+ *
+ * The bought parts take their size from the Wokwi drawings rather than from a
+ * datasheet retyped here, so a part's footprint and its artwork can never
+ * disagree. The breadboard is still ours — see `@/lib/circuit/wokwi`.
  */
 
 /** 2.54 mm — the pitch every through-hole part shares. */
@@ -21,14 +27,8 @@ export const scene = {
 
 /** Real part dimensions, in scene units. */
 export const part = {
-  board: {
-    width: mm(68.6),
-    height: mm(53.4),
-    /** Digital header runs along the top edge. */
-    digitalY: mm(4),
-    /** Power header along the bottom edge. */
-    powerY: mm(49.4),
-  },
+  /** Includes the USB shell and the barrel jack overhanging the PCB's left. */
+  board: boxOf(frame.uno),
   breadboard: {
     /** Half-size: 30 columns, two 5-hole banks, plus power rails. */
     columns: 30,
@@ -37,28 +37,20 @@ export const part = {
     /** Vertical gap between the two banks. */
     channel: PITCH * 2,
   },
-  ultrasonic: {
-    width: mm(45),
-    height: mm(20),
-    /** Transducer can diameter. */
-    eye: mm(16),
-  },
+  ultrasonic: boxOf(frame.sensor),
   servo: {
-    width: mm(23),
-    height: mm(12.2),
-    /** Horn arm length from the spline. */
-    horn: mm(16),
+    ...boxOf(frame.servo),
+    /**
+     * Spindle to the tip of the single horn.
+     *
+     * Measured off the drawing: the horn's spline sits at y=59.77 in the
+     * servo's own pixel space and the arm reaches y=0.23, so 59.5 px of it
+     * stands clear of the centre.
+     */
+    horn: 59.5 * PX,
   },
-  led: {
-    /** 5 mm through-hole LED. */
-    diameter: mm(5),
-    legLength: mm(6),
-  },
-  resistor: {
-    bodyWidth: mm(6.5),
-    bodyHeight: mm(2.4),
-    legLength: mm(5),
-  },
+  led: boxOf(frame.led),
+  resistor: boxOf(frame.resistor),
   barrierArm: {
     length: mm(70),
     width: mm(6),
@@ -127,16 +119,16 @@ export const partBox = {
     height: part.servo.height + PAD * 2,
   },
   ledGreen: {
-    x: layout.ledGreen.x - PITCH * 1.5,
-    y: layout.ledGreen.y - PITCH * 2.5,
-    width: PITCH * 4,
-    height: part.led.legLength + PITCH * 3.5,
+    x: layout.ledGreen.x - PAD,
+    y: layout.ledGreen.y - PAD,
+    width: part.led.width + PAD * 2,
+    height: part.led.height + PAD * 2,
   },
   ledRed: {
-    x: layout.ledRed.x - PITCH * 1.5,
-    y: layout.ledRed.y - PITCH * 2.5,
-    width: PITCH * 4,
-    height: part.led.legLength + PITCH * 3.5,
+    x: layout.ledRed.x - PAD,
+    y: layout.ledRed.y - PAD,
+    width: part.led.width + PAD * 2,
+    height: part.led.height + PAD * 2,
   },
 } as const;
 
@@ -150,8 +142,8 @@ export type PartBoxId = keyof typeof partBox;
  * time the servo moved on the bench.
  */
 export const spindle = {
-  x: layout.servo.x + part.servo.width * 0.72,
-  y: layout.servo.y + part.servo.height / 2,
+  x: layout.servo.x + 91.467 * PX,
+  y: layout.servo.y + 59.773 * PX,
 } as const;
 
 /** Spindle to the far end of the arm: the horn, less its overlap, plus the arm. */

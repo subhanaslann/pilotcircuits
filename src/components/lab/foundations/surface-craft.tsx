@@ -148,7 +148,7 @@ export function SurfaceCraft() {
               {copy.workbench.showMe}
             </span>
             <span className="bg-surface-sunken text-ink-secondary text-body-sm inline-flex h-11 items-center rounded-full px-5 font-medium">
-              {copy.workbench.iFixedIt}
+              {copy.workbench.checkThis}
             </span>
             <p className="text-caption text-ink-tertiary">
               {t.raised.staticNote}

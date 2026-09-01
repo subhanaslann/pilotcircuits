@@ -1,14 +1,23 @@
 import { PITCH, layout, part } from "@/lib/circuit/geometry";
 import type { CircuitNode } from "@/lib/circuit/graph";
+import { PX, artTransform, frame } from "@/lib/circuit/wokwi";
 import { bench, material as m } from "@/components/illustration/spec";
+import { ServoArtwork } from "@/components/canvas/parts/wokwi/servo-artwork";
 
 /**
  * C-08 · Micro servo   ·   C-12 · Barrier arm
  *
- * The horn rotates with `angle`, and the cardboard arm is attached to it — so
- * a servo mounted 90° out shows a barrier pointing the wrong way, which is the
- * product's second teaching moment. The rotation transition is what makes the
- * "preview correct angle" action legible (design-language.md, rule 6).
+ * The case, its three leads and the horn are Wokwi's SG90 (MIT). The barrier
+ * arm is ours — it is this build's cardboard, not a part anyone sells.
+ *
+ * Wokwi draws the horn pointing up at `angle=0`; the product means `angle=0` to
+ * be the closed barrier, which lies along the bench to the right. So the
+ * drawing is handed `angle + 90` and the arm is drawn pointing right and turned
+ * by `angle` — both land in the same place, and the product's own vocabulary is
+ * the one the rest of the code keeps speaking.
+ *
+ * The rotation transition is what makes "preview correct angle" legible
+ * (design-language.md, rule 6).
  */
 export function MicroServo({
   pins,
@@ -16,8 +25,17 @@ export function MicroServo({
   showLabels,
   showArm = true,
   tone = "solid",
+  at = layout.servo,
 }: {
   pins: CircuitNode[];
+  /**
+   * Where the case sits.
+   *
+   * Defaults to the capstone's slot. A chapter that lays out its own bench
+   * passes its own — and chapter five does, because its servo is a part
+   * somebody puts on the desk rather than furniture the author placed.
+   */
+  at?: { x: number; y: number };
   /** Horn angle in degrees; 0 is the closed barrier. */
   angle: number;
   showLabels: boolean;
@@ -25,121 +43,107 @@ export function MicroServo({
   /** `ghost` draws the expected position behind the real one. */
   tone?: "solid" | "ghost";
 }) {
-  const { x, y } = layout.servo;
-  const { width, height, horn } = part.servo;
-  const spindle = { x: x + width * 0.72, y: y + height / 2 };
   const ghost = tone === "ghost";
 
-  return (
-    <g opacity={ghost ? 0.45 : 1}>
-      {!ghost ? (
-        <>
-          {/* Body. */}
-          <rect
-            x={x}
-            y={y}
-            width={width}
-            height={height}
-            rx={PITCH * 0.3}
-            fill={m.servoBlue}
-            stroke={m.servoBlueEdge}
-            strokeWidth={1}
-          />
-          {/* Mounting tabs. */}
-          <rect
-            x={x - PITCH * 0.9}
-            y={y + height * 0.25}
-            width={PITCH * 0.9}
-            height={height * 0.5}
-            fill={m.servoBlue}
-          />
-          <rect
-            x={x + width}
-            y={y + height * 0.25}
-            width={PITCH * 0.9}
-            height={height * 0.5}
-            fill={m.servoBlue}
-          />
-          {/* Gearbox cap. */}
-          <circle
-            cx={spindle.x}
-            cy={spindle.y}
-            r={PITCH * 1.5}
-            fill={m.plasticWhite}
-            stroke={m.creamEdge}
-            strokeWidth={1}
-          />
-          {/* Lead wires. */}
-          {pins.map((pin, index) => (
-            <path
-              key={pin.id}
-              d={`M ${x} ${y + height / 2} C ${x - PITCH * 1.5} ${y + height / 2}, ${x - PITCH * 2} ${pin.y}, ${pin.x} ${pin.y}`}
-              fill="none"
-              stroke={
-                ["var(--color-wire-signal)", "var(--color-wire-power)", "var(--color-wire-ground)"][index]
-              }
-              strokeWidth={1.6}
-              strokeLinecap="round"
-            />
-          ))}
-          {pins.map((pin) => (
-            <g key={pin.id}>
-              <circle cx={pin.x} cy={pin.y} r={PITCH * 0.25} fill={m.shellDeep} />
-              {showLabels ? (
-                <text
-                  x={pin.x - PITCH * 0.6}
-                  y={pin.y + PITCH * 0.25}
-                  textAnchor="end"
-                  fill={bench.label}
-                  className="font-mono"
-                  style={{ fontSize: PITCH * 0.55 }}
-                >
-                  {pin.label}
-                </text>
-              ) : null}
-            </g>
-          ))}
-        </>
-      ) : null}
+  /**
+   * Where the horn turns, derived from where the case is.
+   *
+   * `geometry.spindle` is the same two offsets added to the capstone's slot,
+   * and it was the only answer while the servo was furniture. A servo somebody
+   * puts on the desk needs the offsets applied to ITS position, or the arm and
+   * the ghost rotate about a point on another chapter's bench. Identical for
+   * the capstone, which passes no `at`.
+   */
+  const turnsAt = {
+    x: at.x + 91.467 * PX,
+    y: at.y + 59.773 * PX,
+  };
 
-      {/* Horn + arm, rotating about the spindle. */}
+  /* The horn and the arm turn together, so they share one rotation. */
+  const turn = {
+    transform: `rotate(${angle}deg)`,
+    transformOrigin: `${turnsAt.x}px ${turnsAt.y}px`,
+    transition: "transform var(--duration-deliberate) var(--ease-out-soft)",
+  };
+
+  if (ghost) {
+    /* Only the moving parts: the ghost says where the horn should be, and a
+       second case drawn underneath the real one would just thicken its edges. */
+    return (
+      <g opacity={0.45}>
+        <g style={turn} className="motion-reduce:transition-none">
+          <rect
+            x={turnsAt.x - PITCH * 0.5}
+            y={turnsAt.y - PITCH * 0.5}
+            width={part.servo.horn}
+            height={PITCH}
+            rx={PITCH * 0.5}
+            fill="var(--color-success)"
+            stroke="var(--color-success)"
+            strokeWidth={1}
+          />
+          {showArm ? (
+            <rect
+              x={turnsAt.x + part.servo.horn - PITCH}
+              y={turnsAt.y - part.barrierArm.width / 2}
+              width={part.barrierArm.length}
+              height={part.barrierArm.width}
+              rx={1.5}
+              fill="var(--color-success)"
+              stroke="var(--color-success)"
+              strokeWidth={1}
+            />
+          ) : null}
+        </g>
+      </g>
+    );
+  }
+
+  return (
+    <g>
       <g
+        transform={artTransform(frame.servo, at)}
         style={{
-          transform: `rotate(${angle}deg)`,
-          transformOrigin: `${spindle.x}px ${spindle.y}px`,
-          transition: "transform var(--duration-deliberate) var(--ease-out-soft)",
+          /* The artwork rotates its own horn, so the transition has to live on
+             the element that carries the angle rather than on our wrapper. */
+          transition: "none",
         }}
-        className="motion-reduce:transition-none"
       >
-        <rect
-          x={spindle.x - PITCH * 0.5}
-          y={spindle.y - PITCH * 0.5}
-          width={horn}
-          height={PITCH}
-          rx={PITCH * 0.5}
-          fill={ghost ? "var(--color-success)" : m.hornWhite}
-          stroke={ghost ? "var(--color-success)" : m.metal}
-          strokeWidth={1}
-        />
+        <ServoArtwork angle={angle + 90} hornColor={m.hornWhite} />
+      </g>
+
+      {/* The arm rides the horn. */}
+      <g style={turn} className="motion-reduce:transition-none">
         {showArm ? (
           <rect
-            x={spindle.x + horn - PITCH}
-            y={spindle.y - part.barrierArm.width / 2}
+            x={turnsAt.x + part.servo.horn - PITCH}
+            y={turnsAt.y - part.barrierArm.width / 2}
             width={part.barrierArm.length}
             height={part.barrierArm.width}
             rx={1.5}
-            fill={ghost ? "var(--color-success)" : m.armLight}
-            stroke={ghost ? "var(--color-success)" : m.armLightEdge}
+            fill={m.armLight}
+            stroke={m.armLightEdge}
             strokeWidth={1}
           />
         ) : null}
-        <circle
-          cx={spindle.x}
-          cy={spindle.y}
-          r={PITCH * 0.45}
-          fill={ghost ? "var(--color-success)" : m.metalEdge}
-        />
       </g>
+
+      {pins.map((pin) => (
+        <g key={pin.id}>
+          {showLabels ? (
+            <text
+              x={pin.x - PITCH * 0.6}
+              y={pin.y + PITCH * 0.25}
+              textAnchor="end"
+              fill={bench.label}
+              className="font-mono"
+              style={{ fontSize: PITCH * 0.55 }}
+            >
+              {pin.label}
+            </text>
+          ) : null}
+        </g>
+      ))}
     </g>
   );
 }

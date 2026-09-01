@@ -1,10 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { partBox, type PartBoxId } from "@/lib/circuit/geometry";
+import { partBox } from "@/lib/circuit/geometry";
 import type { AffectedNode } from "@/lib/agent/findings";
 import type { Copy } from "@/content/i18n";
 import { useCopy } from "@/content/copy-provider";
+import { partNameOf } from "@/lib/agent/parts";
+import {
+  partOf,
+  type PlacementTopology,
+} from "@/lib/circuit/placement";
 import { bench } from "@/components/illustration/spec";
 import { MonoValue } from "@/components/ui/text";
 import { cn } from "@/lib/utils/cn";
@@ -50,24 +55,71 @@ export type CameraVariant = "capture" | "plate";
 
 /* --- W-07 · the annotations ---------------------------------------------- */
 
-/** Which part a node belongs to, and what that part is called. */
-function ownerOf(
+/** The outline of one part, in scene units. */
+export interface DetectionBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Which part a node belongs to, and what that part is called.
+ *
+ * The key is looked up in the *build's* box map rather than in the capstone's,
+ * because the same node id sits in a different place on a different bench —
+ * `board.D9` is one board on the barrier's mat and another on chapter one's.
+ * A key the map has not got draws nothing, which is the honest failure: a
+ * detection box in the wrong place claims the vision saw a part that is not
+ * there.
+ */
+function substrateOwner(
   id: string,
-): { box: PartBoxId; name: (c: Copy) => string } | null {
+): { key: string; name: (c: Copy) => string } | null {
   const parts = (c: Copy) => c.build.parts;
   if (id.startsWith("board."))
-    return { box: "board", name: (c) => parts(c).board };
+    return { key: "board", name: (c) => parts(c).board };
   if (id.startsWith("bb."))
-    return { box: "breadboard", name: (c) => parts(c).breadboard };
+    return { key: "breadboard", name: (c) => parts(c).breadboard };
   if (id.startsWith("sensor."))
-    return { box: "sensor", name: (c) => parts(c).sensor };
+    return { key: "sensor", name: (c) => parts(c).sensor };
   if (id.startsWith("servo."))
-    return { box: "servo", name: (c) => parts(c).servo };
+    return { key: "servo", name: (c) => parts(c).servo };
   if (id.startsWith("led.green."))
-    return { box: "ledGreen", name: (c) => parts(c).ledGreen };
+    return { key: "ledGreen", name: (c) => parts(c).ledGreen };
   if (id.startsWith("led.red."))
-    return { box: "ledRed", name: (c) => parts(c).ledRed };
+    return { key: "ledRed", name: (c) => parts(c).ledRed };
+  /* Chapter one has one LED and one resistor, so they need no side. Checked
+     after the capstone's two, which are the more specific prefixes. */
+  if (id.startsWith("led.")) return { key: "led", name: (c) => parts(c).led };
+  if (id.startsWith("res."))
+    return { key: "resistor", name: (c) => parts(c).resistor };
   return null;
+}
+
+/**
+ * Which part a node belongs to, on the build actually in the frame.
+ *
+ * The ladder above answers in ONE vocabulary — the capstone's — and a build
+ * that assembles itself keys its boxes by its own `PartId`s: chapter two's are
+ * `ledRed`/`resRed`/`wireGnd`, chapter three's `pir`/`ledNight`/`wirePower`.
+ * Against those, `led.night.cathode → "led"` is a key the map has not got, so
+ * the overlay drew the board and the breadboard and nothing else — never the
+ * part a finding was actually about.
+ *
+ * So a build with a placement is asked directly: `partOf` already answers
+ * exactly this question, in the same words its `boxesFor` is keyed by, and
+ * `partNameOf` already names a lead's owner for the shelf and the rail. The
+ * ladder stays as the answer for a build laid out by an author, which has no
+ * placement to ask.
+ */
+function ownerOf(
+  id: string,
+  spec?: PlacementTopology,
+): { key: string; name: (c: Copy) => string } | null {
+  const part = spec ? partOf(spec, id) : undefined;
+  if (part) return { key: part, name: (c) => partNameOf(c, id) };
+  return substrateOwner(id);
 }
 
 const CORNER = 26;
@@ -83,16 +135,15 @@ const CORNER = 26;
  * a related reason: a full outline reads as a border belonging to the part.
  */
 function Detection({
-  id,
+  box,
   label,
   terminals,
 }: {
-  id: PartBoxId;
+  box: DetectionBox;
   label: string;
   /** What the vision read off it: `Echo`, `D6`. Hardware, so mono. */
   terminals: string[];
 }) {
-  const box = partBox[id];
   const right = box.x + box.width;
   const bottom = box.y + box.height;
 
@@ -150,29 +201,50 @@ function Detection({
  * own 1:1 measuring system rather than on a fourth scale of its own — which is
  * also why a box cannot slide off its part when the layout moves.
  */
-export function VisionOverlay({ nodes }: { nodes: AffectedNode[] }) {
+export function VisionOverlay({
+  nodes,
+  boxes = partBox,
+  spec,
+}: {
+  nodes: AffectedNode[];
+  /** Where this build's parts sit. Defaults to the capstone's bench. */
+  boxes?: Readonly<Record<string, DetectionBox>>;
+  /**
+   * The build's own vocabulary, where it has one.
+   *
+   * `boxes` is keyed by whatever the build calls its parts, so the only thing
+   * that can turn a node id into one of those keys is the build itself.
+   */
+  spec?: PlacementTopology;
+}) {
   const copy = useCopy();
 
-  const grouped = new Map<PartBoxId, { name: string; terminals: string[] }>();
+  const grouped = new Map<
+    string,
+    { box: DetectionBox; name: string; terminals: string[] }
+  >();
   for (const node of nodes) {
-    const owner = ownerOf(node.id);
+    const owner = ownerOf(node.id, spec);
     if (!owner) continue;
-    const entry = grouped.get(owner.box) ?? {
+    const box = boxes[owner.key];
+    if (!box) continue;
+    const entry = grouped.get(owner.key) ?? {
+      box,
       name: owner.name(copy),
       terminals: [],
     };
     if (!entry.terminals.includes(node.terminal)) {
       entry.terminals.push(node.terminal);
     }
-    grouped.set(owner.box, entry);
+    grouped.set(owner.key, entry);
   }
 
   return (
     <g aria-hidden="true">
-      {[...grouped.entries()].map(([id, entry]) => (
+      {[...grouped.entries()].map(([key, entry]) => (
         <Detection
-          key={id}
-          id={id}
+          key={key}
+          box={entry.box}
           label={entry.name}
           terminals={entry.terminals}
         />

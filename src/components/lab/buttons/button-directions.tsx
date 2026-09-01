@@ -176,7 +176,7 @@ function Row({ direction }: { direction: Direction }) {
         {copy.workbench.showMe}
       </button>
       <button type="button" className={cn(direction.shell, direction.tertiary)}>
-        {copy.workbench.iFixedIt}
+        {copy.workbench.checkThis}
       </button>
       <button type="button" className={cn(direction.shell, direction.danger)}>
         <RotateCcw {...g} />

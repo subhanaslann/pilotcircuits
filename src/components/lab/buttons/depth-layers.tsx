@@ -100,7 +100,7 @@ function Row({ variant }: { variant: Variant }) {
       key: "tertiary" as const,
       plate: GREY_EDGE,
       text: "text-ink-secondary",
-      content: <>{copy.workbench.iFixedIt}</>,
+      content: <>{copy.workbench.checkThis}</>,
     },
     {
       key: "danger" as const,

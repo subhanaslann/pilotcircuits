@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { layout, part } from "@/lib/circuit/geometry";
+import { PITCH, layout, part } from "@/lib/circuit/geometry";
 import type { CircuitScene, Highlight } from "@/lib/circuit/graph";
 import { comparedTo, node } from "@/lib/circuit/graph";
+import { placeWireLabels } from "@/lib/circuit/routing";
+import { useCopy } from "@/content/copy-provider";
 import { DeskSurface } from "@/components/canvas/desk-surface";
 import { UnoBoard } from "@/components/canvas/parts/uno-board";
 import { Breadboard } from "@/components/canvas/parts/breadboard";
@@ -11,7 +13,12 @@ import { UltrasonicSensor } from "@/components/canvas/parts/ultrasonic";
 import { MicroServo } from "@/components/canvas/parts/micro-servo";
 import { Led } from "@/components/canvas/parts/led";
 import { Resistor } from "@/components/canvas/parts/resistor";
-import { Wire } from "@/components/canvas/wire";
+import {
+  Wire,
+  WireLabels,
+  type PlacedWireLabel,
+  type WireTone,
+} from "@/components/canvas/wire";
 import { TestOverlay } from "@/components/canvas/overlays/test-overlay";
 import {
   CorrectionCallout,
@@ -22,10 +29,16 @@ import {
 /**
  * The whole build, drawn in one fixed layer order:
  *
- *   grid → substrate → parts → wires → overlays → labels
+ *   grid → substrate → parts → wires → labels → overlays
  *
- * Overlays are always above wires. An error ring that ends up under a jumper
- * would point at nothing.
+ * Overlays are always above everything. An error ring that ends up under a
+ * jumper would point at nothing, and a wire label over a `CorrectionCallout`
+ * would hide the sentence the agent is in the middle of saying.
+ *
+ * Labels are a layer rather than a thing each wire draws for itself, and that
+ * is not tidiness: five wires converge on the Uno's digital header, so a pill
+ * needs to know where the other pills are, and it needs to be drawn after every
+ * cable — neither of which is knowable from inside one wire.
  */
 
 export type { Highlight } from "@/lib/circuit/graph";
@@ -62,21 +75,15 @@ export function CircuitSceneView({
     sensing?: boolean;
   };
 }) {
-  const boardPins = useMemo(
-    () => Object.values(scene.nodes).filter((n) => n.kind === "board-pin"),
-    [scene.nodes],
-  );
+  const copy = useCopy();
+
+  /* The breadboard is the one part we still draw ourselves, so it is the only
+     one that needs its holes handed to it — the bought parts carry their own
+     pin positions in their artwork. */
   const holes = useMemo(
     () =>
       Object.values(scene.nodes).filter((n) => n.kind === "breadboard-hole"),
     [scene.nodes],
-  );
-  const sensorPins = useMemo(
-    () =>
-      ["sensor.vcc", "sensor.trig", "sensor.echo", "sensor.gnd"].map((id) =>
-        node(scene, id),
-      ),
-    [scene],
   );
   const servoPins = useMemo(
     () =>
@@ -85,10 +92,6 @@ export function CircuitSceneView({
       ),
     [scene],
   );
-
-  const highlightedPins = [highlight?.errorPin, highlight?.targetPin].filter(
-    Boolean,
-  ) as string[];
 
   /* C-20 · which connections the current build does not match. */
   const differences = useMemo(
@@ -107,25 +110,101 @@ export function CircuitSceneView({
     scene.mechanical.servoAngle !== reference.mechanical.servoAngle,
   );
 
+  /* The wires, resolved once: which end is where, what state it draws in, and
+     whether it prints its name. Built here rather than inline in the map
+     because the labels have to be placed against **each other**, and a wire
+     cannot see its neighbours.
+
+     Sorted with the subject last, so it crosses over the drained ones rather
+     than under them. */
+  const wires = useMemo(
+    () =>
+      [...scene.observed]
+        .sort((a, b) => {
+          const rank = (c: typeof a) =>
+            highlight?.connectionId === c.id ? 1 : 0;
+          return rank(a) - rank(b);
+        })
+        .map((connection) => {
+          const isSubject = highlight?.connectionId === connection.id;
+          /* In compare, everything that already matches drains to grey — the
+             same device the mismatch uses, so the eye lands on the one route
+             that is different without being told. */
+          const dimmed =
+            (Boolean(highlight?.connectionId) && !isSubject) ||
+            (Boolean(reference) && !differing.has(connection.id));
+          return {
+            connection,
+            from: node(scene, connection.from),
+            to: node(scene, connection.to),
+            state: (isSubject
+              ? "mismatch"
+              : dimmed
+                ? "dimmed"
+                : "normal") as WireTone,
+            /* In compare the reference route carries the label; printing the
+               current one too stacks two labels on the same midpoint. */
+            named:
+              showLabels &&
+              !dimmed &&
+              !highlight?.connectionId &&
+              !differing.has(connection.id),
+          };
+        }),
+    [scene, highlight?.connectionId, reference, differing, showLabels],
+  );
+
+  /**
+   * Every pill in this view, placed in one pass so that none covers another.
+   *
+   * Five wires converge on the Uno's digital header and their midpoints land
+   * within a pill's width of each other: `Trig → D8` and `Echo → D6` overlapped
+   * by 27 × 8 units at fit view, and the later opaque capsule erased the
+   * earlier one down to a bare `T`. The endpoints are read out of the drawing's
+   * own pin tables now, so this is not a coordinate anyone can hand-tune away —
+   * keeping the words readable is the label layer's job. Draw order is the
+   * tie-break, so it is the order the wires draw in, current before reference.
+   */
+  const labels = useMemo((): PlacedWireLabel[] => {
+    const subjects = [
+      ...wires
+        .filter((wire) => wire.named)
+        .map((wire) => ({
+          key: wire.connection.id,
+          from: wire.from,
+          to: wire.to,
+          text: wire.connection.label ?? copy.wire.label[wire.connection.role],
+          tone: wire.state,
+        })),
+      ...(showLabels && reference
+        ? differences.map((want) => ({
+            key: `ref-${want.id}`,
+            from: node(reference, want.from),
+            to: node(reference, want.to),
+            text: want.label ?? copy.wire.label.target,
+            tone: "target" as WireTone,
+          }))
+        : []),
+    ];
+    const at = placeWireLabels(subjects);
+    return subjects.map((subject) => ({
+      key: subject.key,
+      ...at[subject.key],
+      text: subject.text,
+      tone: subject.tone,
+    }));
+  }, [wires, differences, reference, showLabels, copy]);
+
   return (
     <>
       <DeskSurface />
 
       {/* substrate */}
       <Breadboard holes={holes} showLabels={showLabels} />
-      <UnoBoard
-        pins={boardPins}
-        showLabels={showLabels}
-        highlighted={highlightedPins}
-        dimOtherLabels={highlightedPins.length > 0}
-      />
+      <UnoBoard />
 
       {/* parts */}
-      <UltrasonicSensor
-        pins={sensorPins}
-        showLabels={showLabels}
-        highlighted={highlightedPins}
-      />
+      <UltrasonicSensor />
       {servoGhost || mechanicalDiffers ? (
         <MicroServo
           pins={servoPins}
@@ -153,50 +232,27 @@ export function CircuitSceneView({
         lit={ledState?.red}
         label={showLabels ? "Closed" : undefined}
       />
+      {/* One 220Ω in series with each LED, laid alongside it on the bench. */}
       <Resistor
-        x={layout.ledGreen.x - part.resistor.bodyWidth - 30}
-        y={layout.ledGreen.y + 4}
+        x={layout.ledGreen.x - part.resistor.width - PITCH * 2}
+        y={layout.ledGreen.y + part.led.height * 0.62}
       />
       <Resistor
-        x={layout.ledRed.x - part.resistor.bodyWidth - 30}
-        y={layout.ledRed.y + 4}
+        x={layout.ledRed.x - part.resistor.width - PITCH * 2}
+        y={layout.ledRed.y + part.led.height * 0.62}
       />
 
-      {/* wires — the subject last, so it crosses over the drained ones rather
-          than under them. */}
-      {[...scene.observed]
-        .sort((a, b) => {
-          const rank = (c: typeof a) =>
-            highlight?.connectionId === c.id ? 1 : 0;
-          return rank(a) - rank(b);
-        })
-        .map((connection) => {
-          const isSubject = highlight?.connectionId === connection.id;
-          /* In compare, everything that already matches drains to grey — the
-             same device the mismatch uses, so the eye lands on the one route
-             that is different without being told. */
-          const dimmed =
-            (Boolean(highlight?.connectionId) && !isSubject) ||
-            (Boolean(reference) && !differing.has(connection.id));
-          return (
-            <Wire
-              key={connection.id}
-              connection={connection}
-              from={node(scene, connection.from)}
-              to={node(scene, connection.to)}
-              state={isSubject ? "mismatch" : dimmed ? "dimmed" : "normal"}
-              /* In compare the reference route carries the label; printing the
-                 current one too stacks two labels on the same midpoint. */
-              showLabel={
-                showLabels &&
-                !dimmed &&
-                !highlight?.connectionId &&
-                !differing.has(connection.id)
-              }
-              trace={successTrace?.includes(connection.id)}
-            />
-          );
-        })}
+      {/* wires */}
+      {wires.map((wire) => (
+        <Wire
+          key={wire.connection.id}
+          connection={wire.connection}
+          from={wire.from}
+          to={wire.to}
+          state={wire.state}
+          trace={successTrace?.includes(wire.connection.id)}
+        />
+      ))}
 
       {/* C-20 · the reference route, drawn last. It is an annotation rather than
           a cable, so it belongs above the build — under it, a route one pin
@@ -208,9 +264,13 @@ export function CircuitSceneView({
           from={node(reference!, want.from)}
           to={node(reference!, want.to)}
           state="target"
-          showLabel={showLabels}
         />
       ))}
+
+      {/* labels — above every cable, because a jumper drawn across a pill is a
+          pill nobody can read, and the wire that crosses it is always the one
+          drawn later. */}
+      <WireLabels labels={labels} />
 
       {test ? (
         <TestOverlay

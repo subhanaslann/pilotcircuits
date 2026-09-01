@@ -2,7 +2,11 @@
 
 import type { ReactNode } from "react";
 import { StatusChip } from "@/components/ui/badge";
-import { BuildProgress, type BuildStep } from "@/components/ui/build-progress";
+import {
+  BuildProgress,
+  currentStepIndex,
+  type BuildStep,
+} from "@/components/ui/build-progress";
 import { BackHeader } from "@/components/ui/nav";
 import { MonoValue } from "@/components/ui/text";
 import { useCopy } from "@/content/copy-provider";
@@ -48,9 +52,12 @@ export function WorkbenchTopbar({
 }) {
   const copy = useCopy();
 
-  const current = steps.findIndex(
-    (step) => step.status === "active" || step.status === "issue",
-  );
+  /* The same function the instrument beside it uses, which is the whole of the
+     promise above: two readings of one fact cannot disagree if they are one
+     line of code. They used to be two copies of a scan for "active or issue",
+     and a fault left behind at step 4 made them both say 4 while the rail, the
+     guidance panel and the foot stood on step 7. */
+  const current = currentStepIndex(steps);
 
   return (
     <BackHeader

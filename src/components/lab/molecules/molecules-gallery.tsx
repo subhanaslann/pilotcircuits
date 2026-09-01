@@ -137,7 +137,7 @@ export function ContainerSpecimens() {
                 {copy.workbench.showMe}
               </Button>
               <Button variant="tertiary" size="sm">
-                {copy.workbench.iFixedIt}
+                {copy.workbench.checkThis}
               </Button>
             </CardFooter>
           </Card>

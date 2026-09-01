@@ -64,8 +64,8 @@ export const ICON_STROKE_BOLD = 1.8;
  */
 export const material = {
   /** The microcontroller's PCB (`uno-board.tsx`). */
-  pcbGreen: "#0F5D52",
-  pcbGreenEdge: "#0A473F",
+  pcbGreen: "#12797E",
+  pcbGreenEdge: "#0B5B60",
   /** The sensor's PCB (`ultrasonic.tsx`) — a different maker, a different blue. */
   pcbBlue: "#1B4F9C",
   pcbBlueEdge: "#143C78",

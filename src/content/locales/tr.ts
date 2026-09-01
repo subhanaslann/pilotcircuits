@@ -87,7 +87,11 @@ export const tr: Copy = {
     webMcpReady: "WebMCP hazır",
     webMcpUnavailable: "WebMCP yok",
     home: "Ana sayfa",
+    agentOnline: "AJAN ÇEVRİMİÇİ • CANLI",
+    agentOffline: "AJAN ÇEVRİMDIŞI",
   },
+
+
 
   dashboard: {
     heading: "Gerçek elektronik kur, yanında bir ajanla.",
@@ -105,41 +109,106 @@ export const tr: Copy = {
     ],
   },
 
-  projects: {
-    smartParkingBarrier: {
-      name: "Akıllı Otopark Bariyeri",
-      summary:
-        "Yaklaşan arabayı fark eden, geçmesi için kalkan ve arkasından kapanan bir bariyer.",
+  /* The six chapters, in ladder order. The names are objects, not lessons: a
+     child builds a night light, not "an introduction to digital input". */
+
+
+  landing: {
+    designation: "YAPIM 01 — AKILLI OTOPARK BARİYERİ",
+    sub: (board: string, sensor: string, servo: string, pin: string) =>
+      `${board} + ${sensor} + ${servo} servo. Ajan ${pin} pinindeki sinyal yolunu izliyor.`,
+    cta: "EĞİTİME BAŞLA",
+    ctaContinue: "YAPIMA DEVAM ET",
+    ctaNextStep: (step: string) => `SONRAKİ ADIM: ${step.toLocaleUpperCase("tr")}`,
+
+    stripRegion: "Yapım teşhisi",
+    logRegion: "Ajan günlüğü",
+    status: "Durum",
+    statusGreen: "YEŞİL",
+    statusOpen: (count: number) => `${count} AÇIK`,
+    stepsValue: (done: number, total: number) => `${done} / ${total}`,
+
+    sceneLabel: "MEVCUT YAPIM — ÜSTTEN GÖRÜNÜŞ",
+
+
+    helpTitle: "BARİYER AÇILMIYOR",
+    helpBody:
+      "Araç çizgide ve sensör atıyor, ama program okumayı hiç alamıyor: Echo kablosu bir delik yanlışta. Ajandan taşımasını iste.",
+    helpTools: "Burada kayıtlı:",
+    helpAction: "Kabloyu düzelt",
+    helpBusy: "Ajan çalışıyor",
+    helpHost: "Bir ajan bunları çağırabilir",
+    helpNoHost: "Bu tarayıcıda WebMCP yok",
+    helpAfter:
+      "Demo birkaç saniye sonra arızayı geri koyuyor, tekrar izleyebilesin diye.",
+
+
+    log: {
+      attach: (pin: string) => `AJAN: servo ${pin} pinine bağlandı`,
+      trigger: (cm: number) => `TETİK: ${cm} cm → TAMAM`,
+      mistake: (found: string, expected: string) =>
+        `HATA: Echo ${found} pininde, ${expected} bekleniyor`,
+      fixed: (pin: string) => `DÜZELTME: ${pin} pinine taşındı`,
+      sweep: "BARİYER TARAMASI AKTİF",
     },
-    plantGuardian: {
-      name: "Bitki Bekçisi",
+
+    steps: "Adım",
+    tools: "Araç",
+
+    ladderTitle: "Altı bölüm, bir merdiven",
+    ladderBody:
+      "Her bölüm bir öncekine tam olarak bir fikir ekliyor, ve parça listesi onunla birlikte büyüyor: üçle başlıyor, altıyla bitiyor. Yukarıdaki tezgah altıncı bölüm.",
+
+    ledgerCaption: "Proje kataloğu — altı bölüm",
+    ledgerChapter: "Bölüm",
+    ledgerBuild: "Yapım",
+    ledgerAdds: "Ne ekliyor",
+    ledgerTime: "Süre",
+    ledgerParts: "Parça",
+    ledgerStatus: "Durum",
+    ledgerBench: "Mavi kenar: yukarıdaki tezgahta duran yapım.",
+
+    closingTitle: "Kart simüle, hata gerçek.",
+    closingBody:
+      "Kamera yok, seri port yok, yükleme yok. Gerçek olan devre grafiği, içindeki iki hata ve seni onlardan çıkaran akıl yürütme.",
+  },
+
+  projects: {
+    breathingLamp: {
+      name: "Nefes Alan Lamba",
+      adds: "İlk pin, ilk LED, zamanlama",
       summary:
-        "Saksının ne kadar kuruduğunu izleyen ve bitki su isteyince yanan bir toprak probu.",
+        "Yavaşça parlayıp yavaşça sönen tek bir LED. Karta doğrudan takılıyor, breadboard bile gerekmiyor.",
+    },
+    trafficLight: {
+      name: "Trafik Lambası",
+      adds: "Breadboard ve şaşmayan sıra",
+      summary:
+        "Breadboard üzerinde üç LED; kırmızı, sarı, yeşil sırayla yanıyor ve sıra hiç şaşmıyor.",
     },
     motionNightLight: {
       name: "Hareketli Gece Lambası",
+      adds: "Sensör: bir olayı beklemek",
       summary:
         "Biri geçince uyanan, koridor sakinleşince yeniden sönen bir lamba.",
     },
-    miniRadar: {
-      name: "Mini Radar",
+    plantGuardian: {
+      name: "Bitki Bekçisi",
+      adds: "Analog okuma ve eşik değeri",
       summary:
-        "Servonun üstünde dönen bir mesafe sensörü; odayı tarar ve bulduğunu bildirir.",
-    },
-    roomClimateStation: {
-      name: "Oda İklim İstasyonu",
-      summary:
-        "Odanın sıcaklığını ve nemini okuyan, saptığında haber veren bir masa aleti.",
+        "Saksının ne kadar kuruduğunu izleyen ve bitki su isteyince yanan bir toprak probu.",
     },
     touchlessSoapDispenser: {
       name: "Temassız Sabunluk",
+      adds: "Mesafe ölçümü ve servo",
       summary:
         "El yaklaşınca çalışan bir pompa; kullanmak için hiçbir yere dokunmak gerekmiyor.",
     },
-    digitalReactionGame: {
-      name: "Dijital Refleks Oyunu",
+    smartParkingBarrier: {
+      name: "Akıllı Otopark Bariyeri",
+      adds: "Kalibrasyon, test, yargı",
       summary:
-        "Tahmin edemeyeceğin bir anda ışık yanar, kart da ne kadar hızlı bastığını ölçer.",
+        "Yaklaşan arabayı fark eden, geçmesi için kalkan ve arkasından kapanan bir bariyer.",
     },
   },
 
@@ -150,10 +219,6 @@ export const tr: Copy = {
     servo: "Mikro servo",
     led: "LED'ler",
     resistor: "Dirençler",
-    jumper: "Jumper kabloları",
-    usb: "USB kablosu",
-    cardboard: "Karton kol",
-    button: "Buton",
   },
 
   concepts: {
@@ -174,7 +239,7 @@ export const tr: Copy = {
   library: {
     title: "Projeler",
     intro:
-      "Yedi yapım, her biri bitmiş bir nesne. Elindekine, ayırabildiğin zamana ya da öğrenmek istediğin şeye göre seç.",
+      "Altı bölüm, her biri bitmiş bir nesne. Sırayla gidiyorlar — ilkinde üç parça, sonuncusunda altı — ama istediğin yerden başlayabilirsin.",
     search: "Projelerde ara",
     filters: {
       difficulty: "Zorluk",
@@ -184,6 +249,9 @@ export const tr: Copy = {
       readyNow: "Şimdi hazır",
     },
     clear: "Filtreleri temizle",
+    /* `Bölüm 01`. İki haneli, çünkü altı bölümlük bir merdivende tek hane
+       sıralı bir liste gibi değil, gelişigüzel bir numara gibi okunuyor. */
+    chapter: (n: number) => `Bölüm ${String(n).padStart(2, "0")}`,
     difficulty: {
       beginner: "Başlangıç",
       intermediate: "Orta",
@@ -213,6 +281,7 @@ export const tr: Copy = {
     agentOffline: "Ajan bağlı değil",
     connectedViaWebMcp: "WebMCP ile bağlı",
     toolsAvailable: (n: number) => `${n} araç kullanılabilir`,
+    toolsOnThisPage: (n: number) => `Bu sayfada ${n} araç tanımlı`,
   },
 
   projectDetail: {
@@ -234,8 +303,12 @@ export const tr: Copy = {
     askAgent: "Ajandan kitimi kontrol etmesini iste",
     kitReport: "Ajan kitini kontrol etti",
     kitReportHint: "Projenin parça listesinden okundu.",
+    /* Önündeki projenin kendisi için doğru olanı söylüyor, hiçbir şey saymıyor.
+       Eskiden rehberli tek yapım olarak capstone'u adlandırıyordu; 1. bölüm
+       çıktığı anda yanlış oldu, ve bundan sonraki her bölümde yeniden
+       yanlış olurdu. */
     previewNotice:
-      "Bu proje bir önizleme. Bu sürümde yalnızca Akıllı Otopark Bariyeri'nin tam rehberli atölyesi var.",
+      "Bu proje bir önizleme. Parçaları ve adımları gerçek — henüz olmayan tek şey kendi rehberli atölyesi.",
     previewNoSteps:
       "Yapım adımları, bir proje atölyesine kavuştuğunda yazılıyor.",
   },
@@ -246,11 +319,494 @@ export const tr: Copy = {
       board: "Kart",
       breadboard: "Breadboard",
       sensor: "Ultrasonik sensör",
+      sensorMotion: "Hareket sensörü",
+      sensorMoisture: "Toprak probu",
       servo: "Mikro servo",
       ledGreen: "Yeşil LED",
       ledRed: "Kırmızı LED",
+      ledYellow: "Sarı LED",
+      led: "LED",
+      resistor: "Direnç",
+      resistorRed: "Kırmızı lambanın direnci",
+      resistorYellow: "Sarı lambanın direnci",
+      resistorGreen: "Yeşil lambanın direnci",
+      jumper: "Jumper kablo",
+      cardboard: "Karton",
+    },
+
+    /**
+     * Bacaklar, tek tek. Bir ucun adı zaten bir tamlama — `LED'in uzun bacağı`
+     * — ve tamlamanın sonu cümleye göre değişiyor. Üç tablo bunun için var:
+     * çağıran hangi hâli istediğini söylüyor, cümle de sonuna `parçasını`
+     * gibi bir kelime ekleyip ekten kaçmak zorunda kalmıyor.
+     */
+    /* Yalın hâl, ve tek okuyucusu ray satırı: cümlenin içinde değil, kendi
+       başına duran bir etiket. O yüzden büyük harfle başlıyor — aynı sütunda
+       `LED` ve `Direnç` de var, ve üçü alt alta hizalı duruyor. Cümle ortasına
+       bir uç adı gerekirse `leadObject` ya da `leadTarget` doğru tablo. */
+    leads: {
+      "led.cathode": "LED'in kısa bacağı",
+      "led.anode": "LED'in uzun bacağı",
+      "res.in": "Direncin LED tarafındaki ucu",
+      "res.out": "Direncin kart tarafındaki ucu",
+
+      /* 2. bölüm. Üç direnç de aynı bej 220Ω parça — "kırmızı direnç" diye bir
+         şey yok — o yüzden her biri hizmet ettiği lambayla anılıyor;
+         `parts.resistorRed` de aynı şeyi aynı şekilde söylüyor. Zincir uzun
+         ama Türkçe onu taşıyor: lamba-nın direnc-i-nin uc-u.
+
+         Dört jumperın uçları ise bilerek aynı adı taşıyor. Modelde dördü tek
+         bir nesne — sekiz ucun hepsi tek bir `interchangeable` grubunda — yani
+         yeşil diye aldığı kabloyla kırmızı lambayı kablolayan biri doğru devre
+         kurmuş oluyor. Onları birbirinden ayıran bir ad, sözlüğün grafiğe ters
+         düşmesi olurdu; bir ucu ayıran şey hangi lambaya değil, hangi karta
+         gittiği. */
+      "wire.gnd.rail": "Jumper kablonun ray ucu",
+      "wire.gnd.pin": "Jumper kablonun kart ucu",
+      "led.red.cathode": "Kırmızı LED'in kısa bacağı",
+      "led.red.anode": "Kırmızı LED'in uzun bacağı",
+      "res.red.in": "Kırmızı lambanın direncinin LED tarafındaki ucu",
+      "res.red.out": "Kırmızı lambanın direncinin ray tarafındaki ucu",
+      "wire.red.row": "Jumper kablonun breadboard ucu",
+      "wire.red.pin": "Jumper kablonun kart ucu",
+      "led.yellow.cathode": "Sarı LED'in kısa bacağı",
+      "led.yellow.anode": "Sarı LED'in uzun bacağı",
+      "res.yellow.in": "Sarı lambanın direncinin LED tarafındaki ucu",
+      "res.yellow.out": "Sarı lambanın direncinin ray tarafındaki ucu",
+      "wire.yellow.row": "Jumper kablonun breadboard ucu",
+      "wire.yellow.pin": "Jumper kablonun kart ucu",
+      "led.green.cathode": "Yeşil LED'in kısa bacağı",
+      "led.green.anode": "Yeşil LED'in uzun bacağı",
+      "res.green.in": "Yeşil lambanın direncinin LED tarafındaki ucu",
+      "res.green.out": "Yeşil lambanın direncinin ray tarafındaki ucu",
+      "wire.green.row": "Jumper kablonun breadboard ucu",
+      "wire.green.pin": "Jumper kablonun kart ucu",
+
+      /* 3. bölüm. Tek lamba, o yüzden taşınacak bir renk yok; tek sensör, ama
+         onun üç ucu ayırt EDİLİYOR — parça uçlarının yanına `+`, `D` ve `−`
+         basıyor, yani kişi hangisinin hangisi olduğunu görebiliyor. Dört kablo
+         2. bölümün kuralını sürdürüyor: bir uç hangi karta gittiğiyle anılıyor. */
+      "wire.power.rail": "Jumper kablonun ray ucu",
+      "wire.power.pin": "Jumper kablonun kart ucu",
+      "wire.ground.rail": "Jumper kablonun ray ucu",
+      "wire.ground.pin": "Jumper kablonun kart ucu",
+      "pir.vcc": "Sensörün güç ucu",
+      "pir.out": "Sensörün sinyal ucu",
+      "pir.gnd": "Sensörün toprak ucu",
+      "wire.signal.row": "Jumper kablonun breadboard ucu",
+      "wire.signal.pin": "Jumper kablonun kart ucu",
+      "led.night.cathode": "LED'in kısa bacağı",
+      "led.night.anode": "LED'in uzun bacağı",
+      "res.night.in": "Direncin LED tarafındaki ucu",
+      "res.night.out": "Direncin ray tarafındaki ucu",
+      "wire.lamp.row": "Jumper kablonun breadboard ucu",
+      "wire.lamp.pin": "Jumper kablonun kart ucu",
+
+      /* 4. bölüm. Probun üçüncü ucu, yanına basılmış dört harfle değil,
+         taşıdığı şeyle anılıyor: `AOUT` kartın kelimesi ve zaten kartın
+         üstünde duruyor; bir insan "probun ölçüm ucu" der. */
+      "soil.vcc": "Probun güç ucu",
+      "soil.gnd": "Probun toprak ucu",
+      "soil.aout": "Probun ölçüm ucu",
+      "led.plant.cathode": "LED'in kısa bacağı",
+      "led.plant.anode": "LED'in uzun bacağı",
+      "res.plant.in": "Direncin LED tarafındaki ucu",
+      "res.plant.out": "Direncin ray tarafındaki ucu",
+
+      /* 5. bölüm. İki modülü de 6. bölümün iki nesnesi, o yüzden kimlikleri de
+         onun; yeni olan şey artık birinin onları eline alması. Servonun üç ucu
+         renkleriyle anılıyor, çünkü bir servo kablosu tam olarak budur:
+         dünyadaki her servoda kırmızı, kahverengi ve turuncu, ve çizim de öyle
+         diyor. */
+      "sensor.vcc": "Sensörün güç ucu",
+      "sensor.gnd": "Sensörün toprak ucu",
+      "sensor.trig": "Sensörün Trig ucu",
+      "sensor.echo": "Sensörün Echo ucu",
+      "servo.power": "Servonun kırmızı ucu",
+      "servo.ground": "Servonun kahverengi ucu",
+      "servo.signal": "Servonun turuncu ucu",
+      "led.soap.cathode": "LED'in kısa bacağı",
+      "led.soap.anode": "LED'in uzun bacağı",
+      "res.soap.in": "Direncin LED tarafındaki ucu",
+      "res.soap.out": "Direncin ray tarafındaki ucu",
+    },
+    /**
+     * Belirtme hâli: `… al`, `… boşa çıkardın`.
+     *
+     * Büyük harfle başlıyor, çünkü Türkçe SOV: nesne cümlenin başına geçiyor,
+     * ve bu tablonun bugünkü bütün okuyucuları — `lead.choose` başlığı,
+     * picker'ın buton adları, zaman çizelgesinin satırları — cümleyi bu
+     * kelimeyle açıyor. İngilizce açmıyor (`Pick up …` fiille başlar), o yüzden
+     * `en` tarafı küçük kalıyor; fark tam da bu yüzden sözlükte duruyor.
+     *
+     * Büyütme burada, `${…}` yerinde değil: `line.ts` tabloda olmayan bir ucu
+     * ham `TerminalId` olarak geri veriyor, ve bir kimliği büyütmek onu artık
+     * grafikteki adıyla eşleşmeyen bir şeye çevirir (kural 13).
+     */
+    leadObject: {
+      "led.cathode": "LED'in kısa bacağını",
+      "led.anode": "LED'in uzun bacağını",
+      "res.in": "Direncin LED tarafındaki ucunu",
+      "res.out": "Direncin kart tarafındaki ucunu",
+
+      "wire.gnd.rail": "Jumper kablonun ray ucunu",
+      "wire.gnd.pin": "Jumper kablonun kart ucunu",
+      "led.red.cathode": "Kırmızı LED'in kısa bacağını",
+      "led.red.anode": "Kırmızı LED'in uzun bacağını",
+      "res.red.in": "Kırmızı lambanın direncinin LED tarafındaki ucunu",
+      "res.red.out": "Kırmızı lambanın direncinin ray tarafındaki ucunu",
+      "wire.red.row": "Jumper kablonun breadboard ucunu",
+      "wire.red.pin": "Jumper kablonun kart ucunu",
+      "led.yellow.cathode": "Sarı LED'in kısa bacağını",
+      "led.yellow.anode": "Sarı LED'in uzun bacağını",
+      "res.yellow.in": "Sarı lambanın direncinin LED tarafındaki ucunu",
+      "res.yellow.out": "Sarı lambanın direncinin ray tarafındaki ucunu",
+      "wire.yellow.row": "Jumper kablonun breadboard ucunu",
+      "wire.yellow.pin": "Jumper kablonun kart ucunu",
+      "led.green.cathode": "Yeşil LED'in kısa bacağını",
+      "led.green.anode": "Yeşil LED'in uzun bacağını",
+      "res.green.in": "Yeşil lambanın direncinin LED tarafındaki ucunu",
+      "res.green.out": "Yeşil lambanın direncinin ray tarafındaki ucunu",
+      "wire.green.row": "Jumper kablonun breadboard ucunu",
+      "wire.green.pin": "Jumper kablonun kart ucunu",
+
+      "wire.power.rail": "Jumper kablonun ray ucunu",
+      "wire.power.pin": "Jumper kablonun kart ucunu",
+      "wire.ground.rail": "Jumper kablonun ray ucunu",
+      "wire.ground.pin": "Jumper kablonun kart ucunu",
+      "pir.vcc": "Sensörün güç ucunu",
+      "pir.out": "Sensörün sinyal ucunu",
+      "pir.gnd": "Sensörün toprak ucunu",
+      "wire.signal.row": "Jumper kablonun breadboard ucunu",
+      "wire.signal.pin": "Jumper kablonun kart ucunu",
+      "led.night.cathode": "LED'in kısa bacağını",
+      "led.night.anode": "LED'in uzun bacağını",
+      "res.night.in": "Direncin LED tarafındaki ucunu",
+      "res.night.out": "Direncin ray tarafındaki ucunu",
+      "wire.lamp.row": "Jumper kablonun breadboard ucunu",
+      "wire.lamp.pin": "Jumper kablonun kart ucunu",
+
+      "soil.vcc": "Probun güç ucunu",
+      "soil.gnd": "Probun toprak ucunu",
+      "soil.aout": "Probun ölçüm ucunu",
+      "led.plant.cathode": "LED'in kısa bacağını",
+      "led.plant.anode": "LED'in uzun bacağını",
+      "res.plant.in": "Direncin LED tarafındaki ucunu",
+      "res.plant.out": "Direncin ray tarafındaki ucunu",
+
+      "sensor.vcc": "Sensörün güç ucunu",
+      "sensor.gnd": "Sensörün toprak ucunu",
+      "sensor.trig": "Sensörün Trig ucunu",
+      "sensor.echo": "Sensörün Echo ucunu",
+      "servo.power": "Servonun kırmızı ucunu",
+      "servo.ground": "Servonun kahverengi ucunu",
+      "servo.signal": "Servonun turuncu ucunu",
+      "led.soap.cathode": "LED'in kısa bacağını",
+      "led.soap.anode": "LED'in uzun bacağını",
+      "res.soap.in": "Direncin LED tarafındaki ucunu",
+      "res.soap.out": "Direncin ray tarafındaki ucunu",
+    },
+    /** Yönelme hâli: `… tuttur` cümlesinin varacağı yer. */
+    leadTarget: {
+      "led.cathode": "LED'in kısa bacağına",
+      "led.anode": "LED'in uzun bacağına",
+      "res.in": "direncin LED tarafındaki ucuna",
+      "res.out": "direncin kart tarafındaki ucuna",
+
+      /* İlk kelime küçük — cümlenin ortasında duruyor. `LED'in …` istisna,
+         çünkü orada ilk kelime bir kısaltma ve kısaltmalar cümlenin ortasında
+         da büyük yazılır; aynı ayrım yukarıdaki `res.in`/`res.out` satırlarında
+         da var. */
+      "wire.gnd.rail": "jumper kablonun ray ucuna",
+      "wire.gnd.pin": "jumper kablonun kart ucuna",
+      "led.red.cathode": "kırmızı LED'in kısa bacağına",
+      "led.red.anode": "kırmızı LED'in uzun bacağına",
+      "res.red.in": "kırmızı lambanın direncinin LED tarafındaki ucuna",
+      "res.red.out": "kırmızı lambanın direncinin ray tarafındaki ucuna",
+      "wire.red.row": "jumper kablonun breadboard ucuna",
+      "wire.red.pin": "jumper kablonun kart ucuna",
+      "led.yellow.cathode": "sarı LED'in kısa bacağına",
+      "led.yellow.anode": "sarı LED'in uzun bacağına",
+      "res.yellow.in": "sarı lambanın direncinin LED tarafındaki ucuna",
+      "res.yellow.out": "sarı lambanın direncinin ray tarafındaki ucuna",
+      "wire.yellow.row": "jumper kablonun breadboard ucuna",
+      "wire.yellow.pin": "jumper kablonun kart ucuna",
+      "led.green.cathode": "yeşil LED'in kısa bacağına",
+      "led.green.anode": "yeşil LED'in uzun bacağına",
+      "res.green.in": "yeşil lambanın direncinin LED tarafındaki ucuna",
+      "res.green.out": "yeşil lambanın direncinin ray tarafındaki ucuna",
+      "wire.green.row": "jumper kablonun breadboard ucuna",
+      "wire.green.pin": "jumper kablonun kart ucuna",
+
+      "wire.power.rail": "jumper kablonun ray ucuna",
+      "wire.power.pin": "jumper kablonun kart ucuna",
+      "wire.ground.rail": "jumper kablonun ray ucuna",
+      "wire.ground.pin": "jumper kablonun kart ucuna",
+      "pir.vcc": "sensörün güç ucuna",
+      "pir.out": "sensörün sinyal ucuna",
+      "pir.gnd": "sensörün toprak ucuna",
+      "wire.signal.row": "jumper kablonun breadboard ucuna",
+      "wire.signal.pin": "jumper kablonun kart ucuna",
+      "led.night.cathode": "LED'in kısa bacağına",
+      "led.night.anode": "LED'in uzun bacağına",
+      "res.night.in": "direncin LED tarafındaki ucuna",
+      "res.night.out": "direncin ray tarafındaki ucuna",
+      "wire.lamp.row": "jumper kablonun breadboard ucuna",
+      "wire.lamp.pin": "jumper kablonun kart ucuna",
+
+      "soil.vcc": "probun güç ucuna",
+      "soil.gnd": "probun toprak ucuna",
+      "soil.aout": "probun ölçüm ucuna",
+      "led.plant.cathode": "LED'in kısa bacağına",
+      "led.plant.anode": "LED'in uzun bacağına",
+      "res.plant.in": "direncin LED tarafındaki ucuna",
+      "res.plant.out": "direncin ray tarafındaki ucuna",
+
+      "sensor.vcc": "sensörün güç ucuna",
+      "sensor.gnd": "sensörün toprak ucuna",
+      "sensor.trig": "sensörün Trig ucuna",
+      "sensor.echo": "sensörün Echo ucuna",
+      "servo.power": "servonun kırmızı ucuna",
+      "servo.ground": "servonun kahverengi ucuna",
+      "servo.signal": "servonun turuncu ucuna",
+      "led.soap.cathode": "LED'in kısa bacağına",
+      "led.soap.anode": "LED'in uzun bacağına",
+      "res.soap.in": "direncin LED tarafındaki ucuna",
+      "res.soap.out": "direncin ray tarafındaki ucuna",
     },
     steps: {
+      /* --- 1. bölüm · Nefes Alan Lamba ---------------------------------- */
+      lampKit: {
+        name: "Kitini kontrol et",
+        instruction: "Üç parça: kart, bir LED, bir 220Ω direnç.",
+        rationale:
+          "Bu bölümde breadboard yok — devre hâlâ kartın kendi header'ına sığıyor.",
+      },
+      lampSeat: {
+        name: "LED'i yerine otur",
+        instruction:
+          "LED'in kısa bacağını üst sıradaki GND deliğine sok. Uzun bacağı şimdilik boşta bırak.",
+        rationale:
+          "Kısa bacak katot. Kullanacağın her LED'de toprağa giden bacak odur.",
+      },
+      lampResistor: {
+        name: "Aradaki boşluğu dirençle köprüle",
+        instruction:
+          "Direncin bir ucunu D9'a sok, öbür ucunu LED'in uzun bacağına tuttur.",
+        rationale:
+          "İki bağlantı var ve ikisini de sen yapıyorsun: pine ulaşan da LED'i hayatta tutan da direnç.",
+        asideSummary: "Neden D9?",
+        asideBody:
+          "Sadece bazı pinler kısılıp açılabilir — üzerinde ~ olanlar. D9 onlardan biri, D8 değil. Bir delik yanlış takmak lambayı bozmaz, sadece nefes almak yerine yanıp sönmesine yol açar.",
+      },
+      lampUpload: {
+        name: "Yükle ve nefesini izle",
+        instruction: "Programı yükle ve tam bir dolup boşalmayı izle.",
+        rationale:
+          "Bir yavaş nefes, yapımın tamamı. Yanıp sönüyorsa uç yanlış pinde.",
+      },
+
+      /* --- 2. bölüm · Trafik Lambası -------------------------------------
+         Beş adım, ve üçüncüsü bölümün kendisi: aralarında kablo olmadan iki
+         bacağın ilk kez birleştiği yer orası. Delik adresleri — `F7`, `J7`,
+         `H8`, `D13` — plastiğin üstünde yazıyor, çevrilmiyor (kural 13). */
+      tlKit: {
+        name: "Kitini kontrol et",
+        instruction:
+          "On iki parça: kart, breadboard, üç LED, üç 220Ω direnç ve dört jumper kablo.",
+        /* 1. bölümün kit cümlesine karşılık veriyor — orada "bu bölümde
+           breadboard yok" yazıyor, burada aynı cümle tersini söylüyor. */
+        rationale:
+          "Yeni parça breadboard. Üç lamba kartın kendi header'ına sığmıyor, onun için buraya geliyorlar.",
+      },
+      tlGround: {
+        name: "Toprağı breadboard'a taşı",
+        /* "Herhangi bir delik" bir kaçamak değil: rayın tamamı tek bir düğüm,
+           yani hangi deliğe girerse girsin doğrulanıyor. Tek bir deliği
+           adreslemek, kartın sahip olmadığı bir hassasiyeti öğretmek olurdu. */
+        instruction:
+          "Bir jumper kablonun kart ucunu GND'ye, öbür ucunu − rayında herhangi bir deliğe sok.",
+        rationale:
+          "O ray tek parça uzun bir metal şerit. Tek bir kablo rayın tamamını toprak yapıyor, üç lamba da oraya dönüyor.",
+      },
+      tlRed: {
+        name: "Kırmızı lambayı kur",
+        instruction:
+          "Kırmızı LED'in kısa bacağını F7'ye, uzun bacağını F8'e sok. Direncini J7'den − rayına indir, sonra H8'den D13'e bir jumper çek.",
+        rationale:
+          "Lambanın tamamı bu: kart D13'ü sürüyor, akım LED'i geçiyor ve direnç üzerinden toprak rayına çıkıyor.",
+        asideSummary: "Direnç neden başka bir satıra giriyor?",
+        asideBody:
+          "Bir sütuna yukarıdan aşağı bak: beş delik, ve plastiğin altında hepsi tek bir metal şerit. Yani LED'in kısa bacağı F7'de, direncin ucu J7'de — ikisi zaten birbirine değiyor; onları sen bağlamadın, breadboard bağladı. Hangi satırı kullandığın fark etmiyor. Hangi sütunu kullandığın ediyor.",
+      },
+      tlOthers: {
+        name: "Aynısını iki kez tekrarla",
+        instruction:
+          "Aynı üç parçayı sarı için 18 ve 19. sütunlara, yeşil için 27 ve 28. sütunlara yeniden kur. Jumper kabloları D12 ve D11'e gidiyor.",
+        /* Bölümün ikinci dersi, ve yeri yükleme adımı değil burası: sırayı
+           belirleyen şey her kablonun hangi pine ulaştığı, ve son iki kablo bu
+           adımda seçiliyor. */
+        rationale:
+          "Sıra burada belirleniyor. Program önce D13'ü, sonra D12'yi, sonra D11'i sürüyor — hangi lambanın yanacağını kablosunun ulaştığı pin belirliyor.",
+      },
+      tlUpload: {
+        name: "Yükle ve sırayı izle",
+        instruction:
+          "Programı yükle ve tam bir turu izle: kırmızı, yeşil, sarı ve yeniden kırmızı.",
+        rationale:
+          "Aynı anda tek lamba, ve hep aynı sırayla. Biri hiç yanmıyorsa kablosu yanlış pinde.",
+      },
+
+      /* --- 3. bölüm · Hareketli Gece Lambası -----------------------------
+         Beş adım, ve yeni olan ikinci ve üçüncüsü. `mnlPower` bu üründe bir
+         şeyin ilk kez sürülmek yerine BESLENDİĞİ yer, `mnlSensor` ise kartın
+         okuduğu ilk pin — açıklama kutusu bu yüzden orada duruyor. Delik
+         adresleri plastiğin üstünde yazıyor ve hiç çevrilmiyor (kural 13);
+         `INSTRUCTION_MONO` onları mono'ya alıyor. */
+      mnlKit: {
+        name: "Kitini kontrol et",
+        instruction:
+          "Dokuz parça: kart, breadboard, hareket sensörü, bir LED, bir 220Ω direnç ve dört jumper kablo.",
+        rationale:
+          "Yeni parça hareket sensörü, ve beslenmesi gereken ilk parça. Ondan öncekilerin yalnızca sürülmesi yetiyordu.",
+      },
+      mnlPower: {
+        name: "İki raya da güç getir",
+        /* "Herhangi bir delik" 2. bölümdeki gerekçeyle: bir ray tek düğüm,
+           yani içindeki her delik doğrulanıyor, ve tek bir deliği adreslemek
+           kartın sahip olmadığı bir hassasiyeti öğretmek olurdu. */
+        instruction:
+          "Bir jumper kabloyu 5V'tan + rayında herhangi bir deliğe, bir tanesini de GND'den − rayında herhangi bir deliğe çek.",
+        rationale:
+          "İki uzun şerit, şimdiye kadar ölü. Sensörün çalışabilmesi için beş volt ve kartla aynı toprak gerekiyor — her raya bir kablo, ve yapımın geri kalanı boyunca ikisi de canlı.",
+      },
+      mnlSensor: {
+        name: "Sensörü kablola",
+        instruction:
+          "Sensörün + ucunu + rayında, − ucunu − rayında herhangi bir deliğe sok. D ucu A29'a giriyor; sonra E29'dan D2'ye bir jumper çek.",
+        rationale:
+          "Sensör tek bir telden cevap veriyor: bir şey kımıldarken yüksek, koridor sakinleşince alçak. Program o cevabı D2'den dinliyor.",
+        asideSummary: "D2'nin farkı ne?",
+        asideBody:
+          "Şimdiye kadar kullandığın her pin kartın yazdığı bir pindi — program karar veriyor, pin uyguluyor. D2 kartın okuduğu bir pin. Üstünde ne olacağına programdaki hiçbir şey karar vermiyor; sensör veriyor, ve programın bütün işi durmadan sormak.",
+      },
+      mnlLamp: {
+        name: "Lambayı kur",
+        instruction:
+          "LED'in kısa bacağını F9'a, uzun bacağını F10'a sok. Direncini J9'dan − rayına indir, sonra H10'dan D13'e bir jumper çek.",
+        rationale:
+          "Geçen bölümün lambası, üç kez değil bir kez. Kart D13'ü sürüyor, akım LED'i geçiyor ve direnç üzerinden toprak rayına çıkıyor.",
+      },
+      mnlUpload: {
+        name: "Yükle ve önünden geç",
+        instruction:
+          "Programı yükle, sonra elini sensörün önünden geçir ve lambanın yanmasını izle.",
+        rationale:
+          "Lamba bir zamanlayıcıya bağlı değil. Sensör öyle dediği için yanıyor, koridor sakinleşince de yeniden sönüyor.",
+      },
+
+      /* --- 4. bölüm · Bitki Bekçisi --------------------------------------
+         Altı adım, ve beşincisi hiçbir bağlantıya sahip değil: bir eşik seçmek
+         bir bağlantı değil, bir karar — ve bu bölümün eklediği şeyin tamamı o.
+         Açıklama kutusu `pgProbe`'da duruyor: kişinin ilk kez `A` yazan bir
+         deliğe uç soktuğu yer orası. */
+      pgKit: {
+        name: "Kitini kontrol et",
+        instruction:
+          "Dokuz parça: kart, breadboard, toprak probu, bir LED, bir 220Ω direnç ve dört jumper kablo.",
+        rationale:
+          "Yeni parça toprak probu, ve kart onu karşılamak için ters dönüyor: bu yapımın kullandığı dört deliğin üçü alt kenardaki header'da.",
+      },
+      pgPower: {
+        name: "İki raya da güç getir",
+        instruction:
+          "Bir jumper kabloyu 5V'tan + rayında herhangi bir deliğe, bir tanesini de GND'den − rayında herhangi bir deliğe çek.",
+        rationale:
+          "Geçen bölümdeki iki kablonun aynısı, yukarı değil aşağı iniyor. Prob bir şey söyleyebilmek için önce beş volta ve kartın kendi toprağına ihtiyaç duyuyor.",
+      },
+      pgProbe: {
+        name: "Probu kablola",
+        instruction:
+          "Probun + ucunu + rayında, − ucunu − rayında herhangi bir deliğe sok. A ucu B28'e giriyor; sonra A28'den A0'a bir jumper çek.",
+        rationale:
+          "Prob bir gerilimle cevap veriyor, ve A0 o gerilimi 0 ile 1023 arasında bir sayıya çevirebilen altı delikten biri.",
+        asideSummary: "Neden A0, D2 değil?",
+        asideBody:
+          "Dijital bir pinin iki cevabı var ve kart hangisine yakınsa onu seçiyor: yaklaşık 2,5 V'un üstünü 1, altını 0 okuyor. A yazan altı delik ise bir çeviriciden geçiyor ve 0 ile 1023 arasında bir sayı getiriyor. Islak toprakla kuru toprak iki ayrı durum değil — aralarında yavaş bir geçiş var, ve o geçişi yalnızca A delikleri görebiliyor.",
+      },
+      pgLamp: {
+        name: "Lambayı kur",
+        instruction:
+          "LED'in kısa bacağını F9'a, uzun bacağını F10'a sok. Direncini J9'dan − rayına indir, sonra H10'dan D9'a bir jumper çek.",
+        rationale:
+          "İki kez kurduğun lamba, programın sürdüğü pinde. Onda yeni bir şey yok; yeni olan, ne zaman yanacağına neyin karar verdiği.",
+      },
+      pgSketch: {
+        name: "Eşiği seç",
+        instruction:
+          "Prob kuruyken bir, ıslak toprağa batırılmışken bir monitörü oku; sonra programın eşiğini iki sayının arasına ayarla.",
+        rationale:
+          "Kart sana bitkinin susadığını söyleyemez. Ölçümün 618 olduğunu söyleyebilir; 618'in kuru olduğuna karar veren sensin.",
+      },
+      pgUpload: {
+        name: "Yükle ve kurumasını bekle",
+        instruction:
+          "Programı yükle ve ölçümün senin sayını geçip lambayı yakmasını izle.",
+        rationale:
+          "Hiçbir şey anahtarlanmadı. Bir sayı senin çizdiğin çizgiyi geçti, ve program o konuda ona söylediğini yaptı.",
+      },
+
+      /* --- 5. bölüm · Temassız Sabunluk -----------------------------------
+         Altı adım, ve ikisi yeni bir tür şey: iki pine yayılmış bir ölçüm, ve
+         açık-kapalı değil bir konum söylenen bir parça. Açıklama kutusu
+         `tsdSensor`'da, çünkü bölümün adı oradan geliyor. */
+      tsdKit: {
+        name: "Kitini kontrol et",
+        instruction:
+          "Dokuz parça: kart, breadboard, mesafe sensörü, servo, bir LED, bir 220Ω direnç ve üç jumper kablo.",
+        rationale:
+          "İki yeni parça, ve servo bu üründe hareket eden ilk şey. Bir lambadan daha fazla akım çekiyor; raylardan beslenmesinin sebebi de bu.",
+      },
+      tsdPower: {
+        name: "İki raya da güç getir",
+        instruction:
+          "Bir jumper kabloyu 5V'tan + rayında herhangi bir deliğe, bir tanesini de GND'den − rayında herhangi bir deliğe çek.",
+        rationale:
+          "İki yeni parça da raylardan besleniyor. Buradan sonra header'a giden tek şey kartın kendi sinyalleri.",
+      },
+      tsdSensor: {
+        name: "Mesafe sensörünü kablola",
+        instruction:
+          "Sensörün + ucunu + rayında, − ucunu − rayında herhangi bir deliğe sok. Trig ucu D8'e, Echo ucu D7'ye gidiyor.",
+        rationale:
+          "Trig ile Echo iki pine yayılmış tek bir ölçüm: kart D8'den kısa bir darbe gönderiyor ve onun D7'ye dönmesinin ne kadar sürdüğünü ölçüyor.",
+        asideSummary: "İki pin bir mesafeyi nasıl ölçer?",
+        asideBody:
+          "Kart Trig'e kısa bir darbe koyuyor. Sensör onu duyabileceğin her şeyin çok üstünde bir cıvıltıya çeviriyor, yankıyı bekliyor, ve Echo'yu sesin havada kaldığı süre kadar yüksekte tutuyor. Ses saniyede yaklaşık 343 metre gidiyor; kart bu süreyi ikiye bölüyor — gidiş ve dönüş — ve çarpıyor. Mesafe, sensörün hesapladığı bir şey değil, kartın tuttuğu bir kronometre.",
+      },
+      tsdServo: {
+        name: "Servoyu kablola",
+        instruction:
+          "Kırmızı ucu + rayında, kahverengi ucu − rayında herhangi bir deliğe sok; turuncu ucu D9'a gidiyor.",
+        rationale:
+          "D9'un yanında ~ işareti var, ve bu bir tercih değil: servoya bir açı söyleniyor, ve bir açıyı ancak açık ile kapalı arasında bir değerde durabilen pinler söyleyebiliyor.",
+      },
+      tsdLamp: {
+        name: "Lambayı kur",
+        instruction:
+          "LED'in kısa bacağını F8'e, uzun bacağını F9'a sok. Direncini J8'den − rayına indir, sonra H9'dan D13'e bir jumper çek.",
+        rationale:
+          "Bunu dördüncü kez kuruyorsun, ve sonuncusu. Buradaki işi, pompanın çalıştığını söylemek.",
+      },
+      tsdUpload: {
+        name: "Yükle ve elini uzat",
+        instruction:
+          "Programı yükle, sonra elini sensöre doğru yaklaştır ve kolun dönüp geri gelmesini izle.",
+        rationale:
+          "Bir ölçüm, bir karar, bir hareket — ve sonra bir sonraki eli bekliyor.",
+      },
+
+      /* --- 6. bölüm · Akıllı Otopark Bariyeri ---------------------------- */
       kit: {
         name: "Kitini kontrol et",
         instruction: "Hiçbir şey kablolamadan önce bütün parçaları önüne diz.",
@@ -299,19 +855,287 @@ export const tr: Copy = {
     },
   },
 
+  briefing: {
+    title: "Başlamadan önce",
+    next: "İleri",
+    back: "Geri",
+    start: "Başla",
+    replay: "Tekrar oynat",
+    screenOf: (current: number, total: number) =>
+      `${total} perdeden ${current}.`,
+    purposeHeading: "Ne yapıyorsun",
+    assemblyHeading: "Nasıl kuruluyor",
+
+    steps: {
+      label: "Tanıtım adımları",
+      purpose: "Proje",
+      parts: "Parçalar",
+      assembly: "Kurulum",
+    },
+
+    chapters: {
+      breathingLamp: {
+        parts: {
+          board: {
+            name: "Kart",
+            note: "Programı çalıştıran parça. Yüklediğin kod burada durur ve üst kenarındaki delikleri sırayla açıp kapatır.",
+          },
+          led: {
+            name: "LED",
+            note: "Işığı veren parça. İki bacağı farklı uzunlukta ve bu bir süs değil: akım uzun bacaktan girer, kısa bacaktan çıkar. Ters takarsan hiç yanmaz.",
+          },
+          resistor: {
+            name: "Direnç",
+            note: "Akımı kısan parça. LED doğrudan karta takılırsa taşıyabileceğinden fazlasını çeker ve bir süre sonra ölür; direnç geçen akımı güvenli bir seviyede tutar. Bu bölümde ikinci bir işi daha var: LED'in bacağı D9'a yetişmiyor ve o boşluğu kapatan sensin.",
+          },
+        },
+        purpose:
+          "Tek bir LED, yavaşça parlayıp yavaşça sönüyor. Yanıp sönmüyor — arada duruyor. Bunun olabilmesi için kartın pini yalnızca açık ya da kapalı olmakla kalmayıp arada bir yerde durabilmeli, ve bunu sadece bazı pinler yapabiliyor. Bu bölümün tamamı o farkın üstünde duruyor.",
+        assembly: {
+          board: "Kart tezgâhta. Program yüklü, hiçbir şey bağlı değil.",
+          seat: "LED'in kısa bacağı üst sıradaki GND deliğine giriyor. Uzun bacak bekliyor.",
+          reach: "Direnç D9'a iniyor ve LED'e doğru uzanıyor.",
+          bridge: "Öbür ucu LED'in uzun bacağına değiyor. Devre kapanıyor.",
+          upload: "Program karta gidiyor. D9 artık sürülüyor.",
+          breathe: "Lamba yavaşça parlıyor ve sönüyor — yanıp sönmüyor.",
+        },
+      },
+
+      trafficLight: {
+        parts: {
+          board: {
+            name: "Kart",
+            note: "Geçen bölümdeki kartın aynısı, ama işi arttı. Kenarındaki deliklerden hangisinin açılacağına yine program karar veriyor; bu sefer sırayla üçünü birden kullanıyor, ve kullandığı sıra bu yapımın bütün meselesi.",
+          },
+          breadboard: {
+            name: "Breadboard",
+            /* Bölümün üstünde durduğu tek gerçek, daha hiçbir şey
+               yerleştirilmeden söyleniyor. Tezgah bunu çizemiyor — plastiğin
+               altındaki şerit görünmüyor — o yüzden tanıtım, onun
+               gösterilebileceği tek yer. */
+            note: "Altında metal şeritler saklı bir delik bloğu. Beş delikten oluşan her sütun tek bir şerit, yani aynı sütuna sokulmuş iki bacak aralarında hiç kablo olmadan birbirine bağlanıyor. Kenarlardaki iki uzun hat ise ray: baştan sona bağlılar, ve toprak oraya gidiyor.",
+          },
+          led: {
+            name: "LED'ler",
+            note: "Artık üç tane var, ve her biri zaten tanıdığın parça: akım uzun bacaktan girer, kısa bacaktan çıkar. Birini ters takarsan o lamba karanlıkta kalır, diğer ikisi çalışmaya devam eder — bu bölümde gözden kaçması en kolay hata da bu.",
+          },
+          resistor: {
+            name: "Dirençler",
+            note: "Her lambaya bir tane, ve üçü de aynı 220Ω parça. Her biri kendi lambasının sütununda durup toprak rayına iniyor; böylece her lambanın kendi dönüş yolu oluyor ve hiçbiri taşıyabileceğinden fazlasını çekmiyor.",
+          },
+        },
+        purpose:
+          "Üç ışık, ve hiç şaşmayan bir sıra. Üç lamba kartın kendi header'ına sığmıyor, o yüzden bu bölüm onları breadboard'a taşıyor — delikleri şeritler hâlinde zaten birbirine bağlanmış bir blok. Bağlantıların çoğu sen dokunmadan yapılmış durumda; iş, hangi deliklerin bağlı olduğunu bilmekte.",
+        /* Altı perde. `ground` en başta, çünkü bir kablo GND'ye ulaşana kadar
+           ray ölü metal ve ondan sonraki her lamba o raya asılıyor — ayrıca
+           jumperın kendine ait bir parça perdesi yok, yani bu perde onun
+           tanıtımının tamamı. `GND`, `D13`, `D12` ve `D11` tam olarak böyle
+           yazılıyor: `AssemblyAct` onları eşleştirerek mono'ya alıyor. */
+        assembly: {
+          bench: "Kart ve breadboard tezgâhta. Hiçbir şey bağlı değil.",
+          ground:
+            "İlk jumper takılıyor: bir ucu GND'de, öbür ucu − rayında. Rayın tamamı artık toprak.",
+          red: "Kırmızı lamba bir bütün hâlinde geliyor — LED, direnç, jumper — iki sütuna yayılmış durumda.",
+          others:
+            "Sarı ve yeşil aynısını tekrarlıyor, her biri kendi sütun grubunda. Yeni hiçbir şey eklenmiyor.",
+          upload: "Program karta gidiyor. D13, D12 ve D11 artık sürülüyor.",
+          cycle:
+            "Kırmızı. Sonra yeşil, sonra sarı, sonra yine kırmızı — ve sıra hiç şaşmıyor.",
+        },
+      },
+
+      motionNightLight: {
+        parts: {
+          board: {
+            name: "Kart",
+            note: "Yine aynı kart, ama bu sefer iki kenarı da işin içinde. Üst kenardaki delikler kartın sürdüğü delikler; alt kenardakiler gücün karttan çıktığı yer, ve onlara ihtiyaç duyan ilk bölüm bu.",
+          },
+          breadboard: {
+            name: "Breadboard",
+            note: "Aynı delik bloğu, ve nihayet iki rayı da kullanılıyor. Sütunlar hâlâ tek metal şeritten beş delik; kenarlardaki iki uzun hat baştan sona bağlı, ve her birine bir kablo ulaştığı anda tahtadaki her şey karta bir kez daha gitmeden beslenip topraklanabiliyor.",
+          },
+          sensor: {
+            name: "Hareket sensörü",
+            /* Tezgahın çizemediği şey: kubbe donuk, mercek onun içinde, ve
+               ekranda hiçbir şey neye yaradığını gösteremiyor. Bunun
+               söylenebileceği tek yer tanıtım. */
+            note: "Odayı izleyen parça. Beyaz kubbenin altında, önünden geçen ısıyı fark eden bir mercek var; fark ettiğinde modül ortadaki pinini birkaç saniye yüksekte tutuyor, sonra bırakıyor. Koridorun ne olduğunu bilmiyor — yalnızca sıcak bir şeyin yer değiştirdiğini biliyor.",
+          },
+          led: {
+            name: "LED",
+            note: "Bu sefer tek lamba, ve her zamanki kural: akım uzun bacaktan girer, kısa bacaktan çıkar. Ters takılırsa hiç yanmaz.",
+          },
+          resistor: {
+            name: "Direnç",
+            note: "Bir tane 220Ω, geçen bölümde yaptığı işin aynısını yapıyor. Lambanın kendi sütununda durup toprak rayına iniyor, böylece LED taşıyabileceğinden fazlasını hiç çekmiyor.",
+          },
+        },
+        purpose:
+          "Bekleyen bir lamba. Şimdiye kadar kurduğun her şey programın dediğini, saate göre yapıyordu; bu, odanın dediğini yapıyor. Lambayı yine kart sürüyor — yeni olan şey, kartın yazdığı değil okuduğu bir pin, ve o pinin öbür ucunda üstünde ne olacağına karar veren bir parça.",
+        /* Altı perde, 2. bölümün ritmiyle. `power` en başta, çünkü o olana
+           kadar iki ray da ölü ve sonraki her şey onlara asılıyor — ayrıca
+           kartın öbür header'ından çıkan bir kablo burada ilk kez görülüyor.
+           `5V`, `GND`, `D2` ve `D13` tam olarak böyle yazılıyor:
+           `AssemblyAct` onları eşleştirerek mono'ya alıyor. */
+        assembly: {
+          bench: "Kart ve breadboard tezgâhta. İki ray da ölü.",
+          power:
+            "İki jumper takılıyor: 5V'tan + rayına, GND'den − rayına. Artık tahtadaki her şey beslenebilir.",
+          sense:
+            "Sensör üç ucuyla geliyor, ve bir jumper onun cevabını D2'ye taşıyor.",
+          lamp: "Lamba zaten bildiğin gibi kuruluyor — LED, direnç, ve D13'e bir jumper.",
+          upload: "Program karta gidiyor. D2 artık okunuyor, durmadan.",
+          wake: "Bir şey kımıldıyor. Lamba yanıyor — ve kendiliğinden yeniden sönüyor.",
+        },
+      },
+
+      plantGuardian: {
+        parts: {
+          board: {
+            name: "Kart",
+            note: "Aynı kart, ters çevrilmiş. Üst kenarı ilk bölümden beri lamba sürdüğün header; alttaki gücü taşıyor, ve sağ ucunda A yazan altı delik var. Kartın bu şekilde durmasının sebebi o altı delik.",
+          },
+          breadboard: {
+            name: "Breadboard",
+            note: "Aynı delik bloğu, aynı iki ray, yine her birini birer kablo canlandırıyor. Onda hiçbir şey değişmedi — mesele de bu: artık mobilya, ve bölüm başka bir şeyi anlatmakta serbest.",
+          },
+          sensor: {
+            name: "Toprak probu",
+            /* Tezgahın çizemediği şey: bıçak çıplak plaka gibi görünüyor çünkü
+               öyle, ve bunun neden önemli olduğu görünmüyor. Söylenebileceği
+               tek yer tanıtım. */
+            note: "Saksıya giren parça. Bıçağın üstünde metal yok — elektronik baş kısımda duruyor ve toprağı kaplamanın altından okuyor; probun iki haftada çürüyüp gitmesini engelleyen şey de bu. Bir gerilimle cevap veriyor, ve o gerilim toprak kurudukça yükseliyor.",
+          },
+          led: {
+            name: "LED",
+            note: "Tek lamba, ve her zamanki kural: akım uzun bacaktan girer, kısa bacaktan çıkar.",
+          },
+          resistor: {
+            name: "Direnç",
+            note: "Bir tane 220Ω, lambanın kendi sütununda durup toprak rayına iniyor — iki bölümdür yaptığı işin aynısı.",
+          },
+        },
+        purpose:
+          "Susadığını söyleyen bir saksı. Kart yine bir pin okuyor ve yine bir lamba sürüyor — ama bu pin bir evetle değil bir sayıyla cevap veriyor, ve tezgahtaki hiçbir şey o sayının ne anlama geldiğini bilmiyor. Hangi sayının kuru sayılacağına karar vermek, bölümün kendisi.",
+        /* Altı perde, 3. bölümün ritmiyle. `5V`, `GND`, `A0` ve `D9` tam olarak
+           böyle yazılıyor: `AssemblyAct` onları eşleştirerek mono'ya alıyor. */
+        assembly: {
+          bench:
+            "Kart ve breadboard tezgâhta — bu sefer kart üstte. İki ray da ölü.",
+          power: "İki jumper aşağı iniyor: 5V'tan + rayına, GND'den − rayına.",
+          probe:
+            "Prob üç ucuyla geliyor, ve bir jumper onun ölçümünü A0'a taşıyor.",
+          lamp: "Lamba zaten bildiğin gibi kuruluyor — LED, direnç, ve D9'a bir jumper.",
+          upload:
+            "Program karta gidiyor. A0 artık okunuyor, ve bir sayıya çevriliyor.",
+          dry: "Toprak kuruyor. Sayı seninkini geçiyor, ve lamba yanıyor.",
+        },
+      },
+
+      touchlessSoapDispenser: {
+        parts: {
+          board: {
+            name: "Kart",
+            note: "Yine aynı kart, düz duruyor. Bu yapımın okuduğu ve sürdüğü her şey üst kenarda; öbür kenardan gelen tek şey, sensörle servonun çalıştığı beş volt.",
+          },
+          breadboard: {
+            name: "Breadboard",
+            note: "Aynı blok, ve artık onu kullanmanın tamamı raylar: beslenecek iki parça, ve bunu mümkün kılan birer kablo.",
+          },
+          sensor: {
+            name: "Mesafe sensörü",
+            note: "Ölçen parça. Öne bakan iki kutu var — biri konuşuyor, biri dinliyor — ve kart aradaki süreyi tutuyor. Görmüyor; sana yalnızca bir sesin geri dönmesinin ne kadar sürdüğünü söyleyebiliyor, ki ilk iki metrede bu aynı şey.",
+          },
+          servo: {
+            name: "Servo",
+            /* Tezgahın çizemediği şey: kutudan üç aynı tel çıkıyor ve onları
+               birbirinden ayıran tek şey renkleri. */
+            note: "Hareket eden parça. Üç tel çıkıyor: kırmızı ile kahverengi beslemesi, turuncu olan ise bir konum taşıyor — içinden geçecek bir gerilim değil, kendisine başka bir şey söylenene kadar tuttuğu bir talimat.",
+          },
+          led: {
+            name: "LED",
+            note: "Tek lamba, bu sefer yeşil, ve her zamanki kural: akım uzun bacaktan girer, kısa bacaktan çıkar.",
+          },
+          resistor: {
+            name: "Direnç",
+            note: "Bir tane 220Ω, lambanın kendi sütununda durup toprak rayına iniyor.",
+          },
+        },
+        purpose:
+          "El yaklaşınca çalışan bir pompa. Şimdiye kadar kurduğun her şey bir ışıkla bitiyordu; bu, hareket eden bir şeyle bitiyor — ve hareket ettirmek, bir parçaya açık mı kapalı mı olacağını değil, nereye gideceğini söylemek demek. Kararı veren şey, kartın kendi gönderdiği bir darbeden ve o darbenin dönme süresinden kendi hesapladığı bir mesafe.",
+        /* Altı perde. `5V`, `GND`, `D8`, `D7`, `D9` ve `D13` tam olarak böyle
+           yazılıyor: `AssemblyAct` onları eşleştirerek mono'ya alıyor. */
+        assembly: {
+          bench: "Kart ve breadboard tezgâhta. İki ray da ölü.",
+          power:
+            "İki jumper takılıyor: 5V'tan + rayına, GND'den − rayına. Artık iki yeni parça da beslenebilir.",
+          sense:
+            "Sensör geliyor. Beslemesi raylara gidiyor; Trig ile Echo kendi telleriyle doğrudan D8 ve D7'ye.",
+          pump: "Servo ona katılıyor — kırmızı ve kahverengi raylara, turuncu D9'a — ve lamba da yanlarına giriyor.",
+          upload:
+            "Program karta gidiyor. D8'den bir darbe çıkıyor, ve D7'nin beklenmesi başlıyor.",
+          wave:
+            "Bir el yaklaşıyor. Lamba yanıyor, ve servoya nereye gideceği söyleniyor.",
+        },
+      },
+    },
+  },
+
   workbench: {
-    back: "Projeye dön",
+    back: "Çalışma alanına dön",
     stepOf: (current: number, total: number) => `Adım ${current} / ${total}`,
     resetDemo: "Demoyu sıfırla",
     demoControls: "Demo kontrolleri",
+    kit: {
+      inKit: "Kitte",
+      /** Printed on the tray in the scene, the way the board prints its own
+          pin names. One word, uppercase, never a sentence. */
+      tray: "KİT",
+      picking: "Elinde",
+      pickUp: (part: string) => `${part} parçasını al`,
+    },
+
+    /* Aynı hareketler, bacak bacak. `kit` kutuyu anlatır — raftan bacak
+       alınmaz, parça alınır — burası tezgâhta elle tutulan ucu anlatıyor.
+       `lead` argümanları belirtme hâlinde geliyor, `other` yönelme hâlinde. */
+    lead: {
+      /* Hepsi ucun adıyla açılıyor — Türkçede nesne cümlenin başına geçiyor —
+         o yüzden ad büyük harfiyle `build.leadObject`ten hazır geliyor; burada
+         büyütme yapılmıyor. Nedeni `leadObject`in kendi notunda yazıyor. */
+      pickUp: (lead: string) => `${lead} al`,
+      move: (lead: string) => `${lead} taşı`,
+      choose: (lead: string) => `${lead} nereye tutturacağını seç.`,
+      whichLead: (part: string) => `${part} parçasının hangi ucunu taşıyorsun?`,
+      whichLeadWhy:
+        "Taşımak istediğin ucu seç. Escape parçayı olduğu yerde bırakır.",
+      blockedLead: (lead: string, hole: string) =>
+        `${lead} ${hole} deliğinde.`,
+      chooseWhyBlocked: (blocked: string) =>
+        `Kartta bir deliğe girebilir. ${blocked} Bir bacağa başka bir uç tutturabilmen için o bacağın delikten çıkmış olması gerekir. Escape geri koyar.`,
+      chooseWhyNoLead:
+        "Kartta bir deliğe girebilir. Tutturulacak boşta uç yok — bir bacağın önce deliğinden çıkmış olması gerekir. Escape geri koyar.",
+      chooseWhy:
+        "Karttaki bir deliğe girebilir ya da başka bir parçanın boştaki ucuna tutunabilir. Escape geri bırakır.",
+      seatIn: (lead: string, pin: string) => `${lead} ${pin} deliğine sok`,
+      /* `other` cümlenin ortasında, yönelme hâlinde: büyütülmüyor. */
+      joinTo: (lead: string, other: string) => `${lead} ${other} tuttur`,
+      release: (lead: string) => `${lead} boşta bırak`,
+      loose: "Boşta",
+      seated: "Delikte",
+      joined: "Bağlı",
+    },
     componentsInStep: "Bu adımdaki parçalar",
     inspect: "Yapımımı incele",
     verify: "Adımı doğrula",
     runFullTest: "Tam testi çalıştır",
     showMe: "Göster",
-    iFixedIt: "Düzelttim",
+    checkThis: "Kontrol et",
+    moveItForMe: "Benim yerime taşı",
+    leaveLoose: "Boşta bırak",
+    backToKit: "Kite geri koy",
+    undo: "Geri al",
+    redo: "İleri al",
     previewAngle: "Doğru açıyı önizle",
-    iRemounted: "Yeniden taktım",
     correctionHighlighted: "Düzeltme vurgulandı",
     stepVerified: "Adım doğrulandı",
     finish: "Yapımı bitir",
@@ -354,6 +1178,7 @@ export const tr: Copy = {
     jumpWiring: "Kablo sorununa atla",
     injectEcho: "Yanlış Echo bağlantısını uygula",
     markWiringFixed: "Kabloyu düzeltilmiş say",
+    agentAttach: "Ajan sıradaki ucu taksın",
     jumpServo: "Servo sorununa atla",
     injectServo: "Servo yönü hatasını uygula",
     markServoRemounted: "Servoyu yeniden takılmış say",
@@ -364,7 +1189,7 @@ export const tr: Copy = {
       servo: "Servo",
       system: "Tam sistem",
     },
-    note: "Dokuzu da ajanın çağırdığı araçları çağırır.",
+    note: "Hepsi ajanın çağırdığı araçları çağırır.",
   },
 
   agentPanel: {
@@ -397,6 +1222,11 @@ export const tr: Copy = {
     noGuidanceHint: "Hazır olduğunda ajandan yapımı incelemesini iste.",
     suggestedNext: "Önerilen sonraki",
     correction: "Düzeltme",
+    checklist: {
+      inThisStep: "Bu adımda",
+      wholeCircuit: "Devrenin tamamı",
+      elsewhere: "başka yerde",
+    },
     context: {
       notInspected: "Ajan bu adıma henüz bakmadı.",
       allMatch: "Bu adımda beklenen bütün bağlantılar eşleşiyor.",
@@ -417,6 +1247,8 @@ export const tr: Copy = {
       comparingSketch: "Programla karşılaştırılıyor",
       checkingAlignment: "Mekanik hizalama kontrol ediliyor",
       locating: "Bağlantı bulunuyor",
+      reaching: "Uca uzanılıyor",
+      carrying: "Uç taşınıyor",
       rereading: "Gözlenen bağlantılar yeniden okunuyor",
       comparingExpected: "Beklenen grafikle karşılaştırılıyor",
       loadingStep: "Adım yükleniyor",
@@ -434,9 +1266,20 @@ export const tr: Copy = {
         `Ajan ${step}. adımın mekanik hizalamasını kontrol etti`,
       inspectingAll: "Ajan yapımın tamamını inceledi",
       mismatchFound: (n: number) => `${n} bağlantı uyuşmazlığı bulundu`,
+      extrasFound: (n: number) => `Programda olmayan ${n} bağlantı`,
+      partsMissing: (n: number) => `${n} parça hâlâ kitte`,
       issuesFound: (n: number) => `${n} sorun bulundu`,
       nothingFound: "Bu adımda düzeltilecek bir şey yok",
       showingCorrection: "Ajan bağlantıyı işaret etti",
+
+      /* Ajanın elleriyle yaptığı tek şey. Cümleler kişinin kendi
+         hareketlerininkiyle aynı yapıda ama ajanın ağzından — kim yaptıysa
+         zaman çizelgesinde o yazıyor. */
+      attachingLead: (lead: string) => `Ajan ${lead} taşıdı`,
+      leadSeated: (lead: string, pin: string) =>
+        `${lead} ${pin} deliğine taktı.`,
+      leadJoined: (a: string, b: string) => `${a} ${b} tutturdu.`,
+      leadLoosened: (lead: string) => `${lead} boşa çıkardı.`,
       correctionHighlighted: "Düzeltme atölyede vurgulandı",
       correctionAlreadyShown: "Düzeltme zaten ekrandaydı",
       verifying: (step: number) => `Ajan ${step}. adımı doğruladı`,
@@ -445,6 +1288,9 @@ export const tr: Copy = {
       navigating: (step: number) => `Ajan ${step}. adıma geçti`,
       movedToStep: (step: number, name: string) => `Adım ${step} · ${name}`,
       alreadyOnStep: (step: number) => `Zaten ${step}. adımdayız`,
+      /* İleri atlanan ve bitmemiş adımlar. Sessiz kalmak, ajanın kurduğu bir
+         yapımın kendiliğinden bitmiş görünmesi demek. */
+      skippedSteps: (n: number) => `${n} adım tamamlanmadan geçildi`,
       testing: (test: string) => `Ajan ${test} testini çalıştırdı`,
       testPassed: "Bütün kontroller geçti",
       testFailed: (n: number) => `${n} kontrol başarısız`,
@@ -456,6 +1302,24 @@ export const tr: Copy = {
       readRequirements: "Ajan projenin neye ihtiyaç duyduğunu okudu",
       startedProject: "Ajan yapımı başlattı",
       buildStarted: "Yapım başladı",
+
+      /* `Kontrol et`. Ajan yapımı yeniden okuyor ve ne bulduğunu söylüyor —
+         düğmenin tamamı artık bu. Eskiden onarımı kendi yazıyor, sonra
+         üstüne kişinin ağzından bir cümle koyuyordu ("220Ω ucunu D9'a
+         taşıdın") — dokunulmamış bir uç için. Bunlar ajanın kendi cümleleri,
+         çünkü yaptığı tek şey okumak. */
+      checking: "Ajan o bağlantıyı yeniden kontrol etti",
+      checkedMatches: (subject: string, pin: string) =>
+        `Kontrol ettim: ${subject} ${pin} içinde. Çizimle eşleşiyor.`,
+      checkedStillOpen: (subject: string, observed: string, expected: string) =>
+        `Hâlâ eşleşmiyor — ${subject} ${observed} içinde, çizim ${expected} diyor.`,
+      checkedStillJoined: "O bağlantı hâlâ duruyor.",
+      checkedUnreachable: (part: string) =>
+        `Bunu kontrol edemem — ${part} kite geri döndü.`,
+      checkedAligned: "Kontrol ettim: kol artık doğru yönde.",
+      checkedPartPlaced: (part: string) =>
+        `Kontrol ettim: ${part} artık tezgahta.`,
+      checkedStillTurned: "Kol hâlâ çeyrek tur kaymış durumda.",
     },
 
     errors: {
@@ -465,11 +1329,57 @@ export const tr: Copy = {
       barrierDirection: "Bariyer AÇIK konumunda ters yöne hareket etti.",
       unknownProject: "Bu id'ye sahip bir proje yok.",
       projectNotReady: "O proje bir önizleme, henüz atölyesi yok.",
+
+      /* Modelin neye hayır dediği, sesli olarak. Reddedilen bir yazma
+         işlemi eskiden gerçekleşen bir yazmadan ayırt edilemiyordu:
+         `attach` her iki durumda da aynı kaydı döndürüyordu. */
+      holeTaken: (pin: string) => `${pin} deliğinde zaten bir uç var.`,
+      leadNotFree: "O ucun üzerinde zaten bir şey var.",
+      sameCircuitPart: "Bir parçanın iki ucu birbirine değemez.",
+      noTarget: "Orada bir şey yok — burası delik değil.",
+      /* 2. bölümün kendi reddi. Jumperın sert bir gövdesi yok; uçları yalnızca
+         girdikleri delikten konumlanıyor, yani bir bacağa tutturulmuş bir kablo
+         ucu çizimin yerini söyleyemeyeceği bir nokta olurdu. Bu yapıma özel bir
+         kural gibi değil, kablonun kendisi hakkında bir gerçek gibi söyleniyor —
+         öyle çünkü. */
+      wireEnd: "Jumper'ın ucu bir deliğe girer, bir bacağa değil.",
+
+      /* `attach_lead`e tarayıcıdan gelebilecek üç yanlış argüman, artı
+         yazmanın gerekmediği durum. Dördü de sessizlik değil, cümle. */
+      noPlacement: "Bu yapımda yerleştirilecek parça yok.",
+      unknownLead: "Bu yapımda öyle bir uç yok.",
+      unknownTarget: "Orası ne bir delik ne de başka bir parçanın ucu.",
+      leadAlreadyThere: "O uç zaten orada.",
+      noBench: "Bu projenin atölyesi yok.",
+      unknownCheck: (checks: string) =>
+        `Böyle bir kontrol yok. Bu yapımdakiler: ${checks}.`,
+      tooClose: "İki delik birbirine çok yakın — birini seç.",
     },
 
     user: {
       movedWire: (subject: string, pin: string) =>
         `${subject} kablosunu ${pin} pinine taşıdın`,
+      placedPart: (part: string, pin: string) =>
+        `${part} parçasını ${pin} pinine koydun.`,
+      removedPart: (part: string) => `${part} parçasını karttan geri aldın.`,
+      movedLead: (subject: string, pin: string) =>
+        `${subject} ucunu ${pin} pinine taşıdın`,
+
+      /* 1. bölümün dört hareketi. `lead` argümanları belirtme hâlinde,
+         `joinedLeads`in ikincisi yönelme hâlinde geliyor — cümlenin kendisi
+         hiçbir ek eklemiyor, çünkü ekleyeceği ek her ada uymuyor. */
+      seatedLead: (lead: string, pin: string) =>
+        `${lead} ${pin} deliğine soktun.`,
+      joinedLeads: (a: string, b: string) => `${a} ${b} tutturdun.`,
+      looseLead: (lead: string) => `${lead} boşa çıkardın.`,
+      releasedJoin: (lead: string) => `${lead} bağlantıdan çıkardın.`,
+      removedJoin: "O bağlantıyı kaldırdın.",
+      /* Başka bir parça kımıldadığı için karta tutunacak yeri kalmayan
+         parça. `removedPart` hareketin kendisi; bu onun sonucu. */
+      cameWithIt: (part: string) => `${part} da onunla birlikte geldi.`,
+      undone: (sentence: string) => `Geri alındı: ${sentence}`,
+      redone: (sentence: string) => `Yeniden yapıldı: ${sentence}`,
+      nothingToUndo: "Geri alınacak bir şey yok.",
       remountedServo: "Servo kolunu yeniden taktın",
       refittedHorn: "Servo kolunu çeyrek tur kaydırarak taktın",
       changedCoaching: (level: string) => `Yardım düzeyini ${level} yaptın`,
@@ -492,9 +1402,15 @@ export const tr: Copy = {
       get_build_context: "Projeyi, aktif adımı ve her bağlantıyı okur.",
       inspect_build: "Yapımı programla karşılaştırır ve bulguları bildirir.",
       show_correction: "Bir bulguyu atölyede işaret eder.",
+      attach_lead:
+        "Bir parçanın ucunu bir deliğe ya da başka bir uca takar. Yapımı değiştiren tek araç.",
       verify_current_step: "Mevcut adımı kontrol eder ve tamamlandı işaretler.",
       navigate_build_step: "Başka bir adıma geçer.",
-      run_functional_test: "Sensör, servo ve LED kontrollerini çalıştırır.",
+      /* Araç açıklaması her yapım için tarayıcıya olduğu gibi veriliyor, yani
+         tek bir yapımın kontrollerini adlandıramaz. Eskiden capstone'un
+         üçünü — sensör, servo, LED — tek bir LED'in başında duran bir ajana
+         sayıyordu. */
+      run_functional_test: "Bu yapımın kendi kontrollerini sırayla çalıştırır.",
       find_projects:
         "Zorluğa, süreye, parçaya veya öğrenme hedefine göre yapım bulur.",
       open_project: "Bir projenin detay ekranını açar.",
@@ -505,20 +1421,127 @@ export const tr: Copy = {
 
     knowledge: {
       title: "Kısa kontrol",
-      question:
-        "Echo kablosu neden programda tanımlı pinle aynı olmak zorunda?",
-      options: [
-        { id: "pin", label: "Program belirli bir giriş pinini okuyor." },
-        { id: "voltage", label: "Kartın voltajını değiştiriyor." },
-        { id: "range", label: "Sensörün menzilini artırıyor." },
-      ],
-      correctId: "pin",
-      correct:
-        "Doğru. Pin numarası bir tercih değil, programın parçası — program D7'yi dinliyor, başka hiçbir yeri değil.",
-      incorrect:
-        "Tam değil. Kablo her iki durumda da aynı sinyali taşır; değişen şey, programın o pini dinleyip dinlemediği.",
       tryAgain: "Tekrar dene",
       correctMark: "Doğru",
+
+      /* Soru bölümün kendisine ait. Tek bir soru varken — capstone'un Echo
+         sorusu — nefes alan lambayı yeni bitirmiş birine, sensörü bile olmayan
+         bir devrenin sensör sorusu soruluyordu. */
+      chapters: {
+        breathingLamp: {
+          question: "Direncin kart tarafındaki ucu neden D9'da olmak zorunda?",
+          options: [
+            {
+              id: "pwm",
+              label:
+                "Sadece bazı pinler açık ile kapalı arasında durabiliyor.",
+            },
+            { id: "current", label: "D9 diğerlerinden daha çok akım veriyor." },
+            { id: "ground", label: "D9 toprak pinine daha yakın." },
+          ],
+          correctId: "pwm",
+          correct:
+            "Doğru. Nefes almak dediğimiz şey pinin açıkla kapalı arasında bir yerde durabilmesi, ve bunu sadece ~ işaretli pinler yapabiliyor.",
+          incorrect:
+            "Tam değil. Uç hangi delikte olursa olsun aynı işi görür; değişen şey, o pinin yalnızca açık ya da kapalı olup olmadığı.",
+        },
+        trafficLight: {
+          /* Soru sıraya değil breadboard'a bakıyor: katalog bu bölümün
+             eklediği şeye "breadboard ve şaşmayan sıra" diyor, ve sırayı kişi
+             zaten gözüyle gördü. Göremediği, ama inanması istenen şey aynı
+             sütundaki iki deliğin birbirine zaten değdiği. */
+          question:
+            "LED'in kısa bacağı F7'de, direncin ucu J7'de. Bu neden çalışıyor?",
+          options: [
+            { id: "column", label: "Bir sütundaki beş delik tek bir metal şerit." },
+            { id: "row", label: "Bir satırdaki delikler birbirine bağlı." },
+            {
+              id: "rail",
+              label: "Kenarlardaki uzun raylar her şeyi birbirine bağlıyor.",
+            },
+          ],
+          correctId: "column",
+          correct:
+            "Doğru. Beş delikten oluşan her sütun plastiğin altında tek bir şerit, yani F7'deki bacakla J7'deki bacak zaten birbirine değiyor — eklenecek bir kablo hiç yoktu.",
+          incorrect:
+            "Tam değil. Bağlı olan sütunlar, satırlar değil: 7. sütundaki beş delik tek bir metal şerit, F7 ile J7 de onlardan ikisi.",
+        },
+        motionNightLight: {
+          /* Sensöre değil pine nişan alıyor. Kişinin gördüğü şey yanan bir
+             lamba; inanması istenen ve göremediği şey, bu yapımdaki iki
+             pinden birinin yazılmak yerine okunduğu. */
+          question: "Lamba D13'te, sensör D2'de. D2'nin farkı ne?",
+          options: [
+            {
+              id: "reads",
+              label: "Program onu okuyor — üstünde ne olduğuna sensör karar veriyor.",
+            },
+            { id: "faster", label: "D2 üstündeki pinlerden daha hızlı anahtarlıyor." },
+            { id: "power", label: "Sensöre gücü D2 veriyor." },
+          ],
+          correctId: "reads",
+          correct:
+            "Doğru. Bundan öncekilerin hepsi yazılan pinlerdi. D2 okunuyor, ve programın tamamı üstünde ne olduğunu soran bir döngü.",
+          incorrect:
+            "Tam değil. Sensör + rayından besleniyor, D2'den değil — D2'nin taşıdığı şey sensörün cevabı, ve programın işi onu okumaya devam etmek.",
+        },
+        plantGuardian: {
+          /* İki header arasındaki farka nişan alıyor — bu bölümde kişinin
+             göremediği tek şey o: `A0` ile `D2` aynı pirinç, aynı boyut, aynı
+             aralık. */
+          question: "Prob A0'da. Onun yerine D2'de olsaydı ne değişirdi?",
+          options: [
+            {
+              id: "number",
+              label: "Kart yalnızca 0 ya da 1 görürdü, aradaki bir sayıyı hiç görmezdi.",
+            },
+            {
+              id: "nothing",
+              label: "Hiçbir şey — program hangi pini adlandırıyorsa onu okur.",
+            },
+            { id: "power", label: "Prob gücünü kaybeder ve cevap vermeyi bırakırdı." },
+          ],
+          correctId: "number",
+          correct:
+            "Doğru. Yalnızca A yazan altı delik bir çeviriciden geçiyor. Dijital bir pin probun gerilimini iki cevaptan birine yuvarlıyor, ve geçebileceğin bir eşiğin duracak yeri kalmıyor.",
+          incorrect:
+            "Tam değil. Prob her hâlükârda + rayından besleniyor — değişen şey, kartın onun cevabından ne çıkarabildiği. Dijital bir pinin iki değeri var; A0'ın 1024.",
+        },
+        touchlessSoapDispenser: {
+          /* Kartın üstündeki tek bir işarete — `~` — nişan alıyor; bu bölüm
+             onun üstünde dönüyor ve ekranda onu daha görünür kılacak hiçbir şey
+             yok. */
+          question:
+            "Servonun turuncu ucu D9'da, ve D9'un yanında ~ var. D4'te olsaydı ne değişirdi?",
+          options: [
+            {
+              id: "angle",
+              label: "Kart kola bir açı söyleyemezdi — yalnızca açık ya da kapalı.",
+            },
+            { id: "power", label: "Servo yeterli akımı alamazdı." },
+            { id: "speed", label: "Kol daha yavaş dönerdi." },
+          ],
+          correctId: "angle",
+          correct:
+            "Doğru. Servoya bir konum söyleniyor, ve konum iki uç arasında bir değer. Onu ancak ~ işaretli pinler tutabiliyor; başka bir pinde kablolama kusursuz oluyor ve kol hiç kımıldamıyor.",
+          incorrect:
+            "Tam değil. Servo akımını raylardan çekiyor, sinyal pininden değil — o pinin taşıdığı şey bir talimat, ve açık-kapalı dışında bir şey söyleyebilen pinler yalnızca bazıları.",
+        },
+        smartParkingBarrier: {
+          question:
+            "Echo kablosu neden programda tanımlı pinle aynı olmak zorunda?",
+          options: [
+            { id: "pin", label: "Program belirli bir giriş pinini okuyor." },
+            { id: "voltage", label: "Kartın voltajını değiştiriyor." },
+            { id: "range", label: "Sensörün menzilini artırıyor." },
+          ],
+          correctId: "pin",
+          correct:
+            "Doğru. Pin numarası bir tercih değil, programın parçası — program D7'yi dinliyor, başka hiçbir yeri değil.",
+          incorrect:
+            "Tam değil. Kablo her iki durumda da aynı sinyali taşır; değişen şey, programın o pini dinleyip dinlemediği.",
+        },
+      },
     },
   },
 
@@ -527,11 +1550,18 @@ export const tr: Copy = {
     missingConnection: "Bağlantı eksik",
     servoOff: "Servo kolu 90° yanlış",
     notWired: "Kablolanmamış",
+    unexpectedConnection: "Programda olmayan bir bağlantı",
+    notAsked: "Programda yok",
 
     wrongPin: (subject: string, observed: string, expected: string) =>
       `${subject} ${observed} pinine bağlı. Bu yapım ${expected} bekliyor.`,
     missingWire: (subject: string, expected: string) =>
       `${subject} için henüz kablo yok. Bu yapım ${expected} bekliyor.`,
+    /* `other` bir delik adı (`D13`) da olabilir bir uç adı (`+`, `220Ω`) da —
+       ikisine birden uyan tek bir ek yok, o yüzden cümle onu iki nokta
+       üst üsteden sonra yalın bırakıyor. */
+    unexpectedDetail: (subject: string, other: string) =>
+      `${subject} şuraya bağlanmış: ${other}. Program böyle bir bağlantı istemiyor.`,
     servoExplanation: "Program AÇIK konumunu gönderdiğinde bariyer kapanacak.",
 
     hint: (subject: string) =>
@@ -540,6 +1570,16 @@ export const tr: Copy = {
       `${subject} pini yansıyan darbenin süresini karta geri gönderir. Program bu sinyali ${expected} pininden okuyor.`,
     exact: (colour: string, subject: string, from: string, to: string) =>
       `${colour} ${subject} kablosunu ${from} pininden ${to} pinine taşı.`,
+
+    /* Kablolama merdiveninin aynı üç basamağı. Orta basamak `subject` alıyor
+       ama yazmıyor: oradaki cümle genel kural, tek bir bacağın hikâyesi
+       değil. Argüman, üç basamağın aynı şekilde çağrılabilmesi için duruyor. */
+    unexpectedHint: (subject: string) =>
+      `${subject} ucu nereye değiyor, tek tek bak.`,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    unexpectedExplain: (subject: string) =>
+      "Bu yapımın ihtiyacı olan her bağlantı programda yazıyor; bu onlardan biri değil. Kimsenin istemediği bir bağlantı da akımın bulacağı bir yoldur.",
+    unexpectedExact: (subject: string) => `${subject} ucunu çöz ve boşta bırak.`,
 
     servoHint: "Bariyer açılması gerekirken kolun hangi yöne döndüğüne bak.",
     servoExplain:
@@ -557,14 +1597,65 @@ export const tr: Copy = {
     confidenceValue: (percent: number) => `%${percent}`,
     confidence: (value: string) => `${value} güven`,
     resolvedConnection: "Bağlantı artık eşleşiyor",
+    resolvedExtra: "O bağlantı kalktı",
+
+    partNotPlaced: "Bir parça hâlâ kitte",
+    partNotPlacedDetail: (part: string) =>
+      `Bu adım ${part} parçasını kabloluyor, ve o henüz tezgahta değil.`,
+    partNotPlacedHint: (part: string) =>
+      `${part} parçasını tezgahın üstündeki kit şeridinden al.`,
+    partNotPlacedExplain: (part: string) =>
+      `${part} karta oturmadan onun hakkında hiçbir şey kontrol edilemez — kutudaki bir parçanın doğru ya da yanlış olacak pini yoktur.`,
+    partNotPlacedExact: (part: string) =>
+      `${part} parçasını kit şeridinden karta sürükle, ya da üzerinde Enter'a basıp ok tuşlarıyla bir delik seç.`,
+    resolvedPart: "O parça artık tezgahta",
+    onTheBench: "Tezgahta",
+    inTheKit: "Hâlâ kitte",
     resolvedServo: "Kol artık hizalı",
     resolvedMeta: "Doğrulandı",
+    checkedStillOpen: "Kontrol edildi · hâlâ açık",
+    checkedUnreachable: "Henüz kontrol edilemez · parça kitte",
     severity: {
       critical: "Kritik",
       warning: "Uyarı",
       info: "Bilgi",
     },
     openCount: (n: number) => `${n} açık bulgu`,
+  },
+
+  /* W-03 · The third column.
+
+     It sells the mechanism, not the mechanism's parts list. An earlier draft
+     printed all ten tool names here and it was the wrong screen for them: a
+     person choosing a kit does not need the agent's vocabulary, they need to
+     know that the agent has hands at all. Written for a twelve-year-old, and
+     short enough that the whole thing is read rather than skimmed. */
+  coach: {
+    title: "Bu sayfa ajanla konuşabiliyor",
+    lead: "Yapay zekâ çoğu yerde sadece yazı yazar. Burada öyle değil.",
+    body: "WebMCP sayesinde sayfa, ajana kendi düğmelerini veriyor. Ajan da o düğmelere basıyor.",
+    canTitle: "Yani ajan şunları yapabiliyor",
+    canLook: "Kurduğun devreye bakar.",
+    canFind: "Yanlış takılan kabloyu bulur.",
+    canShow: "Nerede olduğunu ekranda gösterir.",
+    canCheck: "Sen düzeltince kontrol eder.",
+    limit: "Sayfanın vermediği hiçbir şeyi yapamaz. Neyi görebileceğine sayfa karar verir.",
+  },
+  workspace: {
+    projects: "PROJELER",
+    kit: "KİT",
+    openCase: "Kit çantasını aç",
+    closeCase: "Kit çantasını kapat",
+    caseHint: "İçine bakmak için çantaya bas",
+    moreProjects: "Sonraki projeler",
+    firstProjects: "Başa dön",
+    caseCaption: (project: string) => `${project} — kit çantası`,
+    inventory: "Kutuda ne var",
+    startTitle: "Çalışmaya başla",
+    noBenchYet: (project: string) =>
+      `${project} için rehberli tezgah henüz yok.`,
+    previewNote:
+      "Bu yapımın rehberli atölyesi henüz yok. Kiti ve adımları gerçek.",
   },
 
   device: {
@@ -578,6 +1669,7 @@ export const tr: Copy = {
     },
     board: "Kart",
     boardValue: "Simüle UNO uyumlu kart",
+    boardValueShort: "UNO R3 · simüle",
     port: "Port",
     portValue: "Demo",
     voltage: "Voltaj",
@@ -603,6 +1695,32 @@ export const tr: Copy = {
     sensor: "Mesafe sensörü okunuyor",
     servo: "Bariyer servosu hareket ediyor",
     leds: "Durum LED'leri kontrol ediliyor",
+    /* 1. bölümün iki kontrolü. Satır adları yapımın kendi kontrol
+       kimliklerinden geliyor; sözlükte karşılığı olmayan bir kimlik ham hâliyle
+       yazılır. */
+    wiring: "Bağlantılar okunuyor",
+    breathing: "Lamba nefes alıyor mu",
+    /* 2. bölümünki. Adı sonucu değil okuduğu şeyi söylüyor: her sürücü
+       kablonun gerçekte hangi pine ulaştığını programın adlandırdığı üçüyle
+       karşılaştırıyor, ve bir delik yanlıştaki kablo o lambayı tur boyunca
+       karanlıkta bırakıyor. */
+    sequence: "Işık sırası okunuyor",
+    /* 3. bölümünki, ve aynı biçimde adlandırılmış: sensörün cevabının hangi
+       pine, lambanın kablosunun hangi pine ulaştığını programın adlandırdığı
+       ikisine karşı okuyor. İki bağlantı da yapılmış olabilir ve yapım yine de
+       hiçbir şeyi fark etmeyen bir lamba olabilir. */
+    senses: "İki pin okunuyor",
+    /* 4. bölümünki, ve adı tam da ayırdığı şey: satır probun kablolanıp
+       kablolanmadığını sormuyor, ulaştığı deliğin bir sayı bildirip
+       bildiremediğini soruyor. Dijital bir pin her bağlantı testini geçer ve
+       0 ya da 1023 der, arada hiçbir şey demez. */
+    reads: "Sayı mı okunuyor, evet mi",
+    /* 5. bölümün ikisi. `distance` kartın tetiklediği yankıyı okuyup
+       okumadığını soruyor; `sweep` ise pompaya bir açı söyleyip
+       söyleyemediğini — ki bu, servonun kablolanıp kablolanmadığından farklı
+       bir soru. */
+    distance: "Mesafe okunuyor",
+    sweep: "Pompaya açı söylenebiliyor mu",
     barrierDirection: "Bariyer yönü",
     states: {
       idle: "Başlamadı",
@@ -613,12 +1731,10 @@ export const tr: Copy = {
     },
     summary: {
       idle: "Henüz test çalışmadı",
-      idleDetail:
-        "Tam test bitmiş yapımı sürüyor: bir şey yaklaşır, sensör onu okur, bariyer cevap verir.",
+      idleDetail: "Tam test, bitmiş yapımı baştan sona çalıştırır.",
       running: "Fonksiyonel test çalışıyor",
-      passed: "Üç kontrol de geçti",
-      passedDetail:
-        "Bariyer menzile giren için açılıyor, arkasından yeniden kapanıyor.",
+      passed: (n: number) => `${n} kontrolün hepsi geçti`,
+      passedDetail: "Yapımın her kontrolü beklendiği gibi cevap verdi.",
       failed: (n: number) => `${n} kontrol başarısız`,
       failedDetail:
         "Yapımın geri kalanı çalışıyor. Başarısız kontrolü düzelt ve testi yeniden çalıştır.",
@@ -632,6 +1748,7 @@ export const tr: Copy = {
     findingsSummary: "Bulgu özeti",
     demoVisionResult: "Demo görüntü sonucu",
     close: "İncelemeyi kapat",
+    backToBench: "Tezgaha dön",
     capturedAt: "Alındı",
     hornAngle: "Kol açısı",
     observed: "Gözlenen",
@@ -643,6 +1760,9 @@ export const tr: Copy = {
     sub: "Sadece bitirmedin. Nasıl çalıştığını da öğrendin.",
     timeSpent: "Harcanan süre",
     issuesFixed: "Düzeltilen sorunlar",
+    assisted: (n: number) => `Bu yapımın ${n} hareketini ajan yaptı`,
+    assistedDetail:
+      "Ajan senin için parça takabiliyor. Yaptıkları da yapımın bir parçası — bu yüzden burada yazıyor.",
     conceptsLearned: "Öğrenilen kavramlar",
     testResult: "Test sonucu",
     knowledgeCheck: "Kısa kontrol",

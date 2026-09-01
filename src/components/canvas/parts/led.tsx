@@ -1,90 +1,86 @@
-import { PITCH, part } from "@/lib/circuit/geometry";
-import { bench, material as m } from "@/components/illustration/spec";
+import { PITCH } from "@/lib/circuit/geometry";
+import { artTransform, boxOf, frame } from "@/lib/circuit/wokwi";
+import { bench } from "@/components/illustration/spec";
+import { LedArtwork } from "@/components/canvas/parts/wokwi/led-artwork";
 
 /**
  * C-09 · LED
  *
- * Polarity is drawn, not colour-coded: the anode leg is visibly longer and the
- * body carries the flat edge on the cathode side, exactly as on the real part.
- * A learner who cannot tell red from green still gets the leg right
- * (design-language.md, rule 7).
+ * Wokwi's 5 mm through-hole LED (MIT). Polarity is drawn rather than
+ * colour-coded — the anode leg is the long one on the right and the cathode is
+ * the short one on the left, exactly as on the real part — so a learner who
+ * cannot tell red from green still gets the leg right (design-language.md,
+ * rule 7).
+ *
+ * `lit` drives the drawing's own glow instead of the halo we used to pulse
+ * behind it. The glow is two blurred ellipses inside the dome, so a lit LED
+ * reads as the bulb being on rather than as a highlight the interface has put
+ * around a part.
  */
+/**
+ * The breath, in one class.
+ *
+ * `motion-safe:` like every other looping animation in the product, and the
+ * caller has to say what a still lamp means: under reduced motion chapter one
+ * draws it lit and steady and puts the fact in words, because a *breathing*
+ * lamp frozen mid-cycle is the one frame of that chapter that cannot survive
+ * being still.
+ */
+const BREATHE =
+  "motion-safe:animate-[cp-breathe_2400ms_var(--ease-in-out-soft)_infinite]";
+
 export function Led({
   x,
   y,
   colour,
+  uid = `led-${colour}`,
   lit = false,
+  breathing = false,
   label,
 }: {
   x: number;
   y: number;
-  colour: "green" | "red";
+  /**
+   * Three, because a traffic light is three. `led-artwork.tsx` already carries
+   * the glow for each — `yellow: "#ffff80"` was in the port from the day it
+   * landed — so this is the union catching up with the drawing.
+   */
+  colour: "green" | "red" | "yellow";
+  /**
+   * What makes this LED's blur filters its own.
+   *
+   * `LedArtwork` builds two `<filter id>` out of it and SVG filter ids are
+   * document-global: two LEDs sharing one id share one glow, the later
+   * definition wins, and the first lamp lights with the second's radius. One
+   * per colour was enough while a build had one of each. It is not enough now
+   * — a red lamp on the bench and a red one being carried off the kit shelf
+   * are both `led-red` — so a caller with more than one of a colour on screen
+   * passes something that separates them, and the part id is what it has.
+   */
+  uid?: string;
   lit?: boolean;
+  /** Swelling and fading rather than simply on — chapter one's whole point. */
+  breathing?: boolean;
   label?: string;
 }) {
-  const { diameter, legLength } = part.led;
-  const r = diameter / 2;
-  const body = colour === "green" ? m.ledGreen : m.ledRed;
-  const dim = colour === "green" ? m.ledGreenDim : m.ledRedDim;
+  const { width } = boxOf(frame.led);
 
   return (
     <g>
-      {/* Legs — anode long, cathode short. */}
-      <line
-        x1={x}
-        y1={y + r * 0.4}
-        x2={x}
-        y2={y + legLength}
-        stroke={m.leg}
-        strokeWidth={1.4}
-        strokeLinecap="round"
-      />
-      <line
-        x1={x + PITCH}
-        y1={y + r * 0.4}
-        x2={x + PITCH}
-        y2={y + legLength * 0.66}
-        stroke={m.leg}
-        strokeWidth={1.4}
-        strokeLinecap="round"
-      />
-
-      {/* Dome with a flat on the cathode side. */}
-      <path
-        d={`M ${x - r + PITCH / 2} ${y + r * 0.5}
-            A ${r} ${r} 0 1 1 ${x + r + PITCH / 2} ${y + r * 0.5}
-            L ${x + r + PITCH / 2} ${y + r * 0.5}
-            L ${x - r + PITCH / 2} ${y + r * 0.5} Z`}
-        fill={lit ? body : dim}
-        stroke={body}
-        strokeWidth={1}
-      />
-      {/* Flat edge marker on the cathode. */}
-      <line
-        x1={x + r + PITCH / 2}
-        y1={y + r * 0.5}
-        x2={x + r + PITCH / 2}
-        y2={y - r * 0.35}
-        stroke={body}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-      />
-
-      {lit ? (
-        <circle
-          cx={x + PITCH / 2}
-          cy={y}
-          r={r * 1.9}
-          fill={body}
-          opacity={0.18}
-          className="motion-safe:animate-[cp-attention_1.8s_var(--ease-in-out-soft)_infinite]"
+      <g transform={artTransform(frame.led, { x, y })}>
+        {/* `uid` keeps this LED's blur filters out of the other ones' reach. */}
+        <LedArtwork
+          color={colour}
+          value={lit || breathing}
+          uid={uid}
+          glowClass={breathing ? BREATHE : undefined}
         />
-      ) : null}
+      </g>
 
       {label ? (
         <text
-          x={x + PITCH / 2}
-          y={y - r * 1.4}
+          x={x + width / 2}
+          y={y - PITCH * 0.4}
           textAnchor="middle"
           fill={bench.label}
           className="font-mono"

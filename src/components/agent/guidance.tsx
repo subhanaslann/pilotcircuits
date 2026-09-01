@@ -16,6 +16,8 @@ import {
   type CoachingLevel,
 } from "@/lib/agent/model";
 import { icon, type MonoTone } from "@/lib/design/tokens";
+import { quizFor } from "@/lib/agent/quiz";
+import type { ProjectId } from "@/lib/projects/catalog";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -322,10 +324,29 @@ export function Correction({
  * come free — rule 14's rebuild cost is only paid when a native control is
  * thrown away, and here it is not.
  */
-export function KnowledgeCheck({ className }: { className?: string }) {
+export function KnowledgeCheck({
+  projectId,
+  className,
+}: {
+  /**
+   * Which chapter's question this is.
+   *
+   * It used to be one question for the whole product — the capstone's, about
+   * the Echo wire and D7 — and it was shown at the end of every chapter. A
+   * learner who had just built a breathing lamp, which has no sensor and no
+   * Echo pin, was asked why the Echo wire has to match the sketch. The check
+   * that is meant to prove the chapter landed was about a different chapter.
+   */
+  projectId: ProjectId;
+  className?: string;
+}) {
   const copy = useCopy();
-  const quiz = copy.agentPanel.knowledge;
+  const quiz = quizFor(copy, projectId);
   const [answerId, setAnswerId] = useState<string | null>(null);
+
+  /* A chapter with no question asks none. Better than the capstone's standing
+     in for it, which is what this replaces. */
+  if (!quiz) return null;
 
   const answered = answerId !== null;
   const correct = answerId === quiz.correctId;
@@ -339,7 +360,7 @@ export function KnowledgeCheck({ className }: { className?: string }) {
     >
       <fieldset>
         <legend className="text-overline text-ink-tertiary uppercase">
-          {quiz.title}
+          {copy.agentPanel.knowledge.title}
         </legend>
         <p className="text-h3 text-ink mt-1.5">{quiz.question}</p>
 
@@ -378,7 +399,7 @@ export function KnowledgeCheck({ className }: { className?: string }) {
                         className="text-success"
                         aria-hidden="true"
                       />
-                      {quiz.correctMark}
+                      {copy.agentPanel.knowledge.correctMark}
                     </span>
                   ) : null}
                 </span>
@@ -401,7 +422,7 @@ export function KnowledgeCheck({ className }: { className?: string }) {
             className="mt-1"
             onClick={() => setAnswerId(null)}
           >
-            {quiz.tryAgain}
+            {copy.agentPanel.knowledge.tryAgain}
           </Button>
         ) : null}
       </fieldset>

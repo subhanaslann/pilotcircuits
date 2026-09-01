@@ -79,6 +79,8 @@ export function InspectionSpecimen() {
 
       <InspectionModal
         open={open}
+        projectId={session.state.projectId}
+        projectName={copy.build.project}
         onClose={() => setOpen(false)}
         scene={session.scene}
         reference={referenceScene}
@@ -92,7 +94,7 @@ export function InspectionSpecimen() {
         onShow={(id) =>
           void session.run("show_correction", { finding_id: id })
         }
-        onResolve={(id) => session.act({ kind: "resolve", findingId: id })}
+        onCheck={(id) => session.act({ kind: "check", findingId: id })}
       />
 
       <ToastViewport toasts={session.toasts} onDismiss={session.dismissToast} />

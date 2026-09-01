@@ -1,4 +1,11 @@
 import { PITCH, layout, part } from "@/lib/circuit/geometry";
+import {
+  ledPins,
+  pin as pinAt,
+  sensorPins,
+  servoPins,
+  unoPins,
+} from "@/lib/circuit/wokwi";
 import type { CircuitNode, CircuitScene, Connection, NodeId } from "@/lib/circuit/graph";
 
 /**
@@ -17,42 +24,36 @@ const add = (n: CircuitNode) => {
 };
 
 /* --- Board ---------------------------------------------------------------
-   Digital header along the top edge, power header along the bottom. Pin
-   spacing is the standard 0.1", so wires land on real coordinates.          */
+   Digital header along the top edge, power header along the bottom. Positions
+   come from the drawing's own pin table rather than from a pitch multiplied
+   out here, so the hole a wire ends in is the hole that is drawn — including
+   the real gap between D7 and D8, which a computed run of fourteen would have
+   quietly closed.                                                            */
 
-const DIGITAL = [
-  "D13", "D12", "D11", "D10", "D9", "D8",
-  "D7", "D6", "D5", "D4", "D3", "D2", "D1", "D0",
+/** Our address on the left, the name Wokwi's table uses on the right. */
+const BOARD_PINS: Array<[NodeId, keyof typeof unoPins, string]> = [
+  ["board.D13", "D13", "D13"], ["board.D12", "D12", "D12"],
+  ["board.D11", "D11", "D11"], ["board.D10", "D10", "D10"],
+  ["board.D9", "D9", "D9"],    ["board.D8", "D8", "D8"],
+  ["board.D7", "D7", "D7"],    ["board.D6", "D6", "D6"],
+  ["board.D5", "D5", "D5"],    ["board.D4", "D4", "D4"],
+  ["board.D3", "D3", "D3"],    ["board.D2", "D2", "D2"],
+  ["board.D1", "D1", "D1"],    ["board.D0", "D0", "D0"],
+  ["board.5V", "5V", "5V"],
+  ["board.3V3", "3V3", "3V3"],
+  ["board.VIN", "VIN", "VIN"],
+  /* The header prints GND twice on the power side; the build uses both. */
+  ["board.GND", "GND2", "GND"],
+  ["board.GND2", "GND3", "GND"],
 ];
 
-DIGITAL.forEach((label, index) => {
+BOARD_PINS.forEach(([id, source, label]) => {
   add({
-    id: `board.${label}`,
+    id,
     kind: "board-pin",
     label,
-    x: layout.board.x + part.board.width - PITCH * 1.5 - index * PITCH,
-    y: layout.board.y + part.board.digitalY,
+    ...pinAt(layout.board, unoPins[source]),
   });
-});
-
-const POWER = ["5V", "3V3", "GND", "VIN"];
-POWER.forEach((label, index) => {
-  add({
-    id: `board.${label}`,
-    kind: "board-pin",
-    label,
-    /* Second GND is addressed separately below. */
-    x: layout.board.x + PITCH * 4 + index * PITCH,
-    y: layout.board.y + part.board.powerY,
-  });
-});
-
-add({
-  id: "board.GND2",
-  kind: "board-pin",
-  label: "GND",
-  x: layout.board.x + PITCH * 4 + 4 * PITCH,
-  y: layout.board.y + part.board.powerY,
 });
 
 /* --- Breadboard ----------------------------------------------------------
@@ -90,7 +91,32 @@ ROWS_BOTTOM.forEach((row, r) => {
   }
 });
 
-/* Power rails: one + and one − line, top and bottom. */
+/**
+ * Power rails: one `+` and one `−` line, top and bottom.
+ *
+ * **Centred in the board, which is a change to a chapter this file otherwise
+ * freezes.** These two rows used to sit half a pitch outside `layout.breadboard`
+ * and `+ height`, which put all ten bank rows in the top half of a 54 mm board
+ * and left nine pitches of blank plastic under row J, with the ground rail
+ * floating at the very edge and every wire reaching it down an 87-unit run.
+ * `Breadboard` draws the plastic from the rails it is handed, so the body came
+ * out 252.6 units tall against a real half-size board's 212.6.
+ *
+ * Chapter two fixed that for itself and left this one alone, and the difference
+ * was visible walking between the two benches. This is the same arithmetic,
+ * applied here: ten bank rows centred, the rails derived from them, and the
+ * board exactly `part.breadboard.height` tall because `Breadboard` draws
+ * fifteen units of plastic outside each rail.
+ *
+ * The pin snapshot in `builds.ts` was regenerated in the same change. Nothing
+ * about the CONNECTIONS moved — `BARRIER_SNAPSHOT` is untouched — and the six
+ * rail holes this build wires into are the only coordinates that differ.
+ */
+const BANK_TOP = bbOriginY;
+const BANK_BOTTOM = bbOriginY + 9 * PITCH + part.breadboard.channel;
+const RAIL_OFFSET =
+  (part.breadboard.height - PITCH * 3 - (BANK_BOTTOM - BANK_TOP)) / 2;
+
 for (let col = 1; col <= part.breadboard.columns; col++) {
   add({
     id: `bb.pos${col}`,
@@ -98,61 +124,72 @@ for (let col = 1; col <= part.breadboard.columns; col++) {
     row: "+",
     col,
     x: bbOriginX + (col - 1) * PITCH,
-    y: layout.breadboard.y - PITCH * 0.5,
+    y: BANK_TOP - RAIL_OFFSET,
   });
   add({
     id: `bb.neg${col}`,
     kind: "breadboard-hole",
     row: "-",
-    col,
-    x: bbOriginX + (col - 1) * PITCH,
-    y: layout.breadboard.y + part.breadboard.height + PITCH * 0.5,
+    col,    x: bbOriginX + (col - 1) * PITCH,
+    y: BANK_BOTTOM + RAIL_OFFSET,
   });
 }
 
 /* --- Component terminals ------------------------------------------------- */
 
+/**
+ * Batch 8 · S-01 · What this build is actually made of.
+ *
+ * Part numbers, not part names: `HC-SR04` is what is printed on the board and
+ * it reads the same in every language, so it belongs here beside the graph
+ * rather than in the dictionary (rule 13). The entry screen states the kit in
+ * one line and the sensor's own silkscreen is drawn from the same three
+ * strings, so the drawing cannot label a part the build does not use.
+ */
+export const partNumbers = {
+  board: "Arduino Uno",
+  sensor: "HC-SR04",
+  servo: "SG90",
+} as const;
+
 const SENSOR_PINS = ["vcc", "trig", "echo", "gnd"] as const;
 const SENSOR_LABELS = { vcc: "VCC", trig: "Trig", echo: "Echo", gnd: "GND" };
 
-SENSOR_PINS.forEach((pin, index) => {
+SENSOR_PINS.forEach((pin) => {
   add({
     id: `sensor.${pin}`,
     kind: "terminal",
     label: SENSOR_LABELS[pin],
-    x: layout.ultrasonic.x + part.ultrasonic.width / 2 - PITCH * 1.5 + index * PITCH,
-    y: layout.ultrasonic.y + part.ultrasonic.height,
+    ...pinAt(layout.ultrasonic, sensorPins[pin]),
   });
 });
 
 const SERVO_PINS = ["signal", "power", "ground"] as const;
 const SERVO_LABELS = { signal: "SIG", power: "5V", ground: "GND" };
 
-SERVO_PINS.forEach((pin, index) => {
+SERVO_PINS.forEach((pin) => {
   add({
     id: `servo.${pin}`,
     kind: "terminal",
     label: SERVO_LABELS[pin],
-    x: layout.servo.x - PITCH,
-    y: layout.servo.y + part.servo.height / 2 - PITCH + index * PITCH,
+    ...pinAt(layout.servo, servoPins[pin]),
   });
 });
 
 (["green", "red"] as const).forEach((colour) => {
   const origin = colour === "green" ? layout.ledGreen : layout.ledRed;
+  /* Anode right, cathode left — the way the drawing has them. */
   add({
     id: `led.${colour}.anode`,
     kind: "terminal",
     label: "+",
-    x: origin.x,
-    y: origin.y + part.led.legLength,
+    ...pinAt(origin, ledPins.anode),
   });
   add({
     id: `led.${colour}.cathode`,
     kind: "terminal",
     label: "−",
-    x: origin.x + PITCH,
-    y: origin.y + part.led.legLength,
+    ...pinAt(origin, ledPins.cathode),
   });
 });
 

@@ -2,9 +2,13 @@
 
 import { PITCH } from "@/lib/circuit/geometry";
 import type { CircuitNode, Connection } from "@/lib/circuit/graph";
-import { wireExits, wireMidpoint, wirePath } from "@/lib/circuit/routing";
+import {
+  WIRE_LABEL_HEIGHT,
+  wireExits,
+  wireLabelWidth,
+  wirePath,
+} from "@/lib/circuit/routing";
 import { connector, wireNeutral, wireRoles } from "@/lib/design/tokens";
-import { useCopy } from "@/content/copy-provider";
 
 /**
  * C-11 · Jumper wire   ·   C-13 · Mismatch state   ·   C-17 · Light trace
@@ -24,13 +28,43 @@ import { useCopy } from "@/content/copy-provider";
  *
  * The travelling glint is a single short highlight, not a dash pattern — it
  * points at the wire the agent is talking about without breaking it up.
+ *
+ * **A wire does not print its own name.** It used to, and the two labels a
+ * scene needed most were the two the picture destroyed: a cable drawn after
+ * another wire's pill runs straight across the words, and `Trig → D8` read as
+ * `Trig`. Neither problem is visible from inside one wire — one needs to know
+ * where the other pills are, the other needs to be drawn after every cable —
+ * so the words go up to `WireLabels`, a layer, which is where the file header
+ * has always said they belong.
  */
+export type WireTone = "normal" | "mismatch" | "target" | "dimmed";
+
+/**
+ * A wire is a picture of a join, not a handle on one.
+ *
+ * Nothing in this canvas set `pointer-events` at all, and wires are painted
+ * *after* the parts' grab rects — so under SVG's default `visiblePainted` every
+ * stroked path and every moulded plug housing was a hit target sitting on top
+ * of the controls beneath it. Pressing the LED's dome right of centre, or
+ * either end of the resistor's body, landed on a cable, bubbled to the
+ * viewport, and panned the bench instead of picking the part up.
+ *
+ * There is nothing to grab here even in principle: paths are derived from their
+ * two endpoints (`routing.ts`) and the only way to change one is to move a
+ * lead. The gesture is on the leads; this is the drawing of the result.
+ */
+const NOT_A_CONTROL = { pointerEvents: "none" } as const;
+
+/** Tinned copper. Not a token: it is the material, not a role. */
+const LEG_METAL = "#B9C2CC";
+/** A 0.5 mm lead is two scene units; drawn a hair over so it survives zoom-out. */
+const LEG_WIDTH = 2.4;
+
 export function Wire({
   connection,
   from,
   to,
   state = "normal",
-  showLabel = false,
   trace = false,
 }: {
   connection: Connection;
@@ -41,8 +75,7 @@ export function Wire({
    * which is drawn as an annotation rather than a cable; `dimmed` is every
    * other wire while one of them is the subject.
    */
-  state?: "normal" | "mismatch" | "target" | "dimmed";
-  showLabel?: boolean;
+  state?: WireTone;
   /**
    * C-22 · One green pulse down the wire, played once when the step it belongs
    * to verifies. Remounting the component replays it, which is exactly when it
@@ -50,7 +83,6 @@ export function Wire({
    */
   trace?: boolean;
 }) {
-  const copy = useCopy();
   const role =
     state === "mismatch"
       ? wireRoles.error
@@ -58,8 +90,24 @@ export function Wire({
         ? wireRoles.target
         : wireRoles[connection.role];
 
-  const d = wirePath(from, to);
-  const mid = wireMidpoint(from, to);
+  /**
+   * A component's own leg is not a cable.
+   *
+   * Chapter one has no jumper wires at all — its joins are the LED's and the
+   * resistor's own legs, which `graph.ts` has recorded as `medium: "leg"` since
+   * the day the kit list stopped offering a beginner two cables they do not
+   * have. Nothing has ever read it, so a 220Ω resistor standing in the header
+   * was drawn with a fat blue Dupont cable and two moulded plug housings — one
+   * of them planted over the D13 hole, which is a target the person is being
+   * asked to aim at.
+   *
+   * So a leg draws as what it is: one thin stroke in the part's own tinned
+   * metal, no shadow, no rim, no housings — and it **routes** as what it is
+   * too, which is the half of this that was missed: see `legPath`.
+   */
+  const leg = connection.medium === "leg";
+
+  const d = wirePath(from, to, connection.medium);
   const exits = wireExits(from, to);
 
   const dimmed = state === "dimmed";
@@ -67,7 +115,11 @@ export function Wire({
      place a dash still belongs — it means "there is nothing here yet". */
   const ghost = state === "target";
 
-  const stroke = dimmed ? wireNeutral.stroke : role.stroke;
+  const stroke = dimmed
+    ? wireNeutral.stroke
+    : leg && state === "normal"
+      ? LEG_METAL
+      : role.stroke;
   const edge = dimmed ? wireNeutral.edge : role.edge;
   /* How far the darker rim shows past the cable on each side. */
   const edgeWidth = role.width * 1.4;
@@ -79,59 +131,59 @@ export function Wire({
 
   if (ghost) {
     return (
-      <g>
-        <path
-          d={d}
-          fill="none"
-          stroke={role.stroke}
-          strokeWidth={role.width}
-          strokeLinecap="round"
-          strokeDasharray={role.dash}
-        />
-        {showLabel ? (
-          <WireLabel
-            x={mid.x}
-            y={mid.y}
-            text={connection.label ?? copy.wire.label[role.id]}
-            tone={state}
-          />
-        ) : null}
-      </g>
+      <path
+        style={NOT_A_CONTROL}
+        d={d}
+        fill="none"
+        stroke={role.stroke}
+        strokeWidth={role.width}
+        strokeLinecap="round"
+        strokeDasharray={role.dash}
+      />
     );
   }
 
+  const width = leg ? LEG_WIDTH : role.width;
+
   return (
-    <g>
+    <g style={NOT_A_CONTROL}>
       {/* One shadow, unbroken, offset down and to the right. Two layers or a
-          blur made the edge mushy at zoom; the rim below carries the volume. */}
-      <path
-        d={d}
-        fill="none"
-        stroke={dimmed ? "rgba(16,24,40,0.10)" : "rgba(16,24,40,0.16)"}
-        strokeWidth={edgeWidth + 1.4}
-        strokeLinecap="round"
-        transform="translate(0.8 1.4)"
-        className={fade}
-      />
+          blur made the edge mushy at zoom; the rim below carries the volume.
+          A leg is a wire a third of a millimetre across and casts nothing you
+          would see. */}
+      {leg ? null : (
+        <path
+          d={d}
+          fill="none"
+          stroke={dimmed ? "rgba(16,24,40,0.10)" : "rgba(16,24,40,0.16)"}
+          strokeWidth={edgeWidth + 1.4}
+          strokeLinecap="round"
+          transform="translate(0.8 1.4)"
+          className={fade}
+        />
+      )}
 
       {/* Rim: the same hue 25% darker, a shade wider than the cable, so a dark
           line shows down both sides. This is the whole volume trick — the
           cable is flat, its edges are not. Run down the centre instead, the
-          same colour reads as a groove and the cable looks hollow. */}
-      <path
-        d={d}
-        fill="none"
-        stroke={edge}
-        strokeWidth={edgeWidth}
-        strokeLinecap="round"
-        className={fade}
-      />
+          same colour reads as a groove and the cable looks hollow. A leg has no
+          sleeve to catch the light on. */}
+      {leg ? null : (
+        <path
+          d={d}
+          fill="none"
+          stroke={edge}
+          strokeWidth={edgeWidth}
+          strokeLinecap="round"
+          className={fade}
+        />
+      )}
 
       <path
         d={d}
         fill="none"
         stroke={stroke}
-        strokeWidth={role.width}
+        strokeWidth={width}
         strokeLinecap="round"
         className={fade}
       />
@@ -142,7 +194,7 @@ export function Wire({
           d={d}
           fill="none"
           stroke="rgba(255,255,255,0.4)"
-          strokeWidth={role.width * 0.34}
+          strokeWidth={width * 0.34}
           strokeLinecap="round"
           strokeDasharray="12 120"
           className="motion-safe:animate-[cp-glint_2.4s_linear_infinite]"
@@ -157,7 +209,7 @@ export function Wire({
           /* Wider than the cable, so the wire itself reads as lighting up. A
              hairline over an amber jumper is invisible at fit-view zoom, which
              is exactly where the user is standing when a step verifies. */
-          strokeWidth={role.width + 1}
+          strokeWidth={width + 1}
           strokeLinecap="round"
           strokeDasharray="70 400"
           /* Linear, not eased: a signal travels the wire at one speed. An
@@ -167,17 +219,15 @@ export function Wire({
         />
       ) : null}
 
-      <Connector at={from} exit={exits.from} muted={dimmed} fade={fade} />
-      <Connector at={to} exit={exits.to} muted={dimmed} fade={fade} />
-
-      {showLabel ? (
-        <WireLabel
-          x={mid.x}
-          y={mid.y}
-          text={connection.label ?? copy.wire.label[role.id]}
-          tone={state}
-        />
-      ) : null}
+      {/* Housings belong to a cable. A leg goes straight into the hole, and a
+          moulded plug drawn on one covers the hole underneath it — which on
+          this bench is a candidate somebody is being asked to aim at. */}
+      {leg ? null : (
+        <>
+          <Connector at={from} exit={exits.from} muted={dimmed} fade={fade} />
+          <Connector at={to} exit={exits.to} muted={dimmed} fade={fade} />
+        </>
+      )}
     </g>
   );
 }
@@ -236,6 +286,40 @@ function Connector({
   );
 }
 
+export interface PlacedWireLabel {
+  /** The wire this names, so React can key it. */
+  key: string;
+  /** Pill centre, already de-conflicted by `placeWireLabels`. */
+  x: number;
+  y: number;
+  text: string;
+  tone: WireTone;
+}
+
+/**
+ * Every wire label in a scene, drawn in one pass above every cable.
+ *
+ * Above the wires, below the agent's marks: a pill that a jumper crosses is
+ * unreadable, and a pill over a `CorrectionCallout` hides the sentence the
+ * agent is in the middle of saying. Positions come from `placeWireLabels`,
+ * which is the only thing that can see all of them at once.
+ */
+export function WireLabels({ labels }: { labels: readonly PlacedWireLabel[] }) {
+  return (
+    <>
+      {labels.map((label) => (
+        <WireLabel
+          key={label.key}
+          x={label.x}
+          y={label.y}
+          text={label.text}
+          tone={label.tone}
+        />
+      ))}
+    </>
+  );
+}
+
 function WireLabel({
   x,
   y,
@@ -245,10 +329,12 @@ function WireLabel({
   x: number;
   y: number;
   text: string;
-  tone: "normal" | "mismatch" | "target" | "dimmed";
+  tone: WireTone;
 }) {
-  const width = text.length * PITCH * 0.55 + PITCH * 2.6;
-  const height = PITCH * 1.8;
+  /* Shared with `placeWireLabels`, which has to know how much room a pill takes
+     before it can tell whether two of them collide. */
+  const width = wireLabelWidth(text);
+  const height = WIRE_LABEL_HEIGHT;
 
   const ink =
     tone === "mismatch"

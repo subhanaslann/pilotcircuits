@@ -7,14 +7,18 @@ import {
   GuidanceSummary,
   KnowledgeCheck,
 } from "@/components/agent/guidance";
+import { StepChecklist } from "@/components/agent/checklist";
 import { FindingRow } from "@/components/agent/finding";
 import { ActivityTimeline } from "@/components/agent/activity";
 import type { AgentSession } from "@/components/agent/use-agent-session";
 import { AlertStack, EmptyState } from "@/components/ui/status";
 import { Divider } from "@/components/ui/text";
 import { useCopy } from "@/content/copy-provider";
+import { buildFor } from "@/lib/agent/builds";
+import { checklistFor } from "@/lib/agent/checklist";
 import { isResolved } from "@/lib/agent/findings";
-import { stepAside, stepCount, stepWords } from "@/lib/agent/steps";
+import { stepAside, stepTotalFor, stepWords } from "@/lib/agent/steps";
+import { diff } from "@/lib/circuit/graph";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -50,9 +54,37 @@ export function AgentWorkspace({
   const copy = useCopy();
   const { state, step, openFindings } = session;
 
-  const matched = step.connections.length - openFindings.length;
-  const inspected = state.findings.length > 0;
-  const solved = inspected && openFindings.length === 0;
+  /* Asked of the graph, not counted off the findings list. One open finding
+     was one unmatched connection only while every finding was about one; a
+     stray is a finding with no expected connection behind it, so subtracting
+     it undercounts the matches, and two strays on a two-wire step reported
+     `0 of 2` on a step where both wires were right. */
+  const matched = diff(state.scene, step.connections).matched;
+  /**
+   * Whether the agent has looked at **this step**.
+   *
+   * It used to be `findings.length > 0`, which is a claim about what was
+   * *found* rather than about what was looked at — so an inspection that came
+   * back clean left the panel printing "the agent has not looked at this step
+   * yet" directly underneath a timeline entry saying it had. `inspectedStepId`
+   * has existed for exactly this since the tool started writing it.
+   */
+  const inspected = state.inspectedStepId === step.id;
+  const checklist = checklistFor(state);
+  /**
+   * Solved is a fact about the build, not about the list.
+   *
+   * `openFindings.length === 0` was a claim about what the agent had *noticed*,
+   * and findings are only born on `inspect_build` — so a fault made after an
+   * inspection left the panel printing "every expected connection for this step
+   * matches" directly above a progress bar reading the live graph and saying
+   * `1 of 2`. Two sentences, one screen, and one of them false. The list still
+   * decides whether the agent has looked; the graph decides what is true.
+   */
+  const solved =
+    inspected &&
+    openFindings.length === 0 &&
+    matched === step.connections.length;
 
   return (
     <AgentPanel
@@ -79,7 +111,7 @@ export function AgentWorkspace({
       >
         <GuidanceSummary
           stepIndex={step.index}
-          stepTotal={stepCount}
+          stepTotal={stepTotalFor(step.id)}
           stepName={stepWords(copy, step.id).name}
           context={
             !inspected
@@ -91,13 +123,17 @@ export function AgentWorkspace({
                   )
                 : copy.agentPanel.context.allMatch
           }
-          connections={
-            inspected
-              ? { matched, expected: step.connections.length }
-              : undefined
-          }
+          /* The bar is gone from here: the checklist below is the same count
+             with each item named, which is what rule 5 asks of a countable
+             thing in the first place. Two drawings of one number, one of them
+             mute, is the redundancy the panel could least afford. */
           blocked={openFindings.length > 0}
           aside={stepAside(copy, step.id)}
+        />
+        <StepChecklist
+          className="border-border border-t"
+          checklist={checklist}
+          scene={state.scene}
         />
         <Divider />
         <CoachingLevelSelector
@@ -107,7 +143,7 @@ export function AgentWorkspace({
             session.act({ kind: "set-coaching", level })
           }
         />
-        {solved ? <KnowledgeCheck /> : null}
+        {solved ? <KnowledgeCheck projectId={state.projectId} /> : null}
       </TabPanel>
 
       <TabPanel
@@ -132,8 +168,15 @@ export function AgentWorkspace({
                       detail_level: state.coaching,
                     })
                   }
-                  onResolve={() =>
-                    session.act({ kind: "resolve", findingId: finding.id })
+                  onCheck={() =>
+                    session.act({ kind: "check", findingId: finding.id })
+                  }
+                  /* Only where there is nothing to drag — see `onSimulate`. */
+                  onSimulate={
+                    buildFor(state.projectId)?.placement
+                      ? undefined
+                      : () =>
+                          session.act({ kind: "repair", findingId: finding.id })
                   }
                 >
                   {open ? (

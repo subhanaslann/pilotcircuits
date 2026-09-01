@@ -16,17 +16,34 @@ import { cn } from "@/lib/utils/cn";
  * told a different story from the drawing would be worse than no dock.
  */
 
-export type TestSubject = "sensor" | "servo" | "leds";
-
-export const testSubjects: TestSubject[] = ["sensor", "servo", "leds"];
+/**
+ * Which check a row is about — a `CheckSpec.id` from the build's own run.
+ *
+ * It used to be the capstone's three, written here, which is why chapter one's
+ * test reported a distance reading and a servo sweep on a build with neither.
+ * The rows are whatever the build says they are, in the order it says them.
+ */
+export type TestSubject = string;
 
 export type TestRowStates = Record<TestSubject, StepState>;
 
-export const idleRows: TestRowStates = {
-  sensor: "idle",
-  servo: "idle",
-  leds: "idle",
-};
+/** No run has happened, so there are no rows to draw. */
+export const idleRows: TestRowStates = {};
+
+/**
+ * What a row is called, in the reader's language.
+ *
+ * A lookup rather than an index, because the set of ids is per build and the
+ * dictionary is one object: a build naming a check the copy has no word for
+ * shows the id — ugly and legible, which beats a blank row.
+ */
+export function checkLabel(
+  labels: Record<string, unknown>,
+  id: TestSubject,
+): string {
+  const found = labels[id];
+  return typeof found === "string" ? found : id;
+}
 
 /**
  * D-05 · Test runner rows
@@ -53,11 +70,11 @@ export function TestRunnerRows({
 
   return (
     <div className={cn("w-full", className)}>
-      {testSubjects.map((subject) => (
+      {Object.keys(states).map((subject) => (
         <StepLoader
           key={subject}
           state={states[subject]}
-          label={copy.test[subject]}
+          label={checkLabel(copy.test, subject)}
           detail={details?.[subject]}
         />
       ))}
@@ -78,12 +95,15 @@ export function TestRunnerRows({
  */
 export function TestVerdict({
   status,
-  /** How many of the three failed. Only read when `status` is `failed`. */
+  /** How many checks failed. Only read when `status` is `failed`. */
   failedCount = 0,
+  /** How many ran and passed. Only read when `status` is `passed`. */
+  passedCount = 0,
   className,
 }: {
   status: DeviceTestStatus;
   failedCount?: number;
+  passedCount?: number;
   className?: string;
 }) {
   const copy = useCopy();
@@ -92,7 +112,14 @@ export function TestVerdict({
   const verdict = {
     idle: { tone: "info" as const, title: t.idle, body: t.idleDetail },
     running: { tone: "info" as const, title: t.running, body: undefined },
-    passed: { tone: "success" as const, title: t.passed, body: t.passedDetail },
+    /* Counted, because the number of checks is the build's to decide: chapter
+       one runs two and the capstone runs three, and "All three checks passed"
+       was true of exactly one of them. */
+    passed: {
+      tone: "success" as const,
+      title: t.passed(passedCount),
+      body: t.passedDetail,
+    },
     failed: {
       tone: "error" as const,
       title: t.failed(failedCount),
@@ -119,11 +146,18 @@ export function TestOutput({
   status: DeviceTestStatus;
   failedCount?: number;
 }) {
+  /* Counted off the rows themselves rather than passed in: the verdict is a
+     statement about what this run did, and the rows are what it did. */
+  const passedCount = Object.values(states).filter((s) => s === "passed").length;
   return (
     <div className="w-full">
       <TestRunnerRows states={states} details={details} />
       <Divider />
-      <TestVerdict status={status} failedCount={failedCount} />
+      <TestVerdict
+        status={status}
+        failedCount={failedCount}
+        passedCount={passedCount}
+      />
     </div>
   );
 }

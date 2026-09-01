@@ -1,0 +1,480 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { PITCH } from "@/lib/circuit/geometry";
+import type { CircuitNode, NodeId } from "@/lib/circuit/graph";
+import { bench } from "@/components/illustration/spec";
+
+/** A press is a press, not a pan, until it has travelled this far in CSS px. */
+const PRESS_SLOP = 6;
+
+/**
+ * The targets as the rows they are drawn in.
+ *
+ * Chapter one offers fifteen holes in one line of header, and stepping them one
+ * at a time is the whole route. Chapter two offers a hundred and ninety-five:
+ * five rows of thirty, a thirty-hole ground rail, and the Uno's header. Walked
+ * flat that is about a hundred and fifty ArrowRight presses to cross the board
+ * — a keyboard route on paper, which is worse than none, because it is the
+ * route rule 14 says has to be as precise as the pointer's.
+ *
+ * So where a target knows its address, the arrows walk the grid instead: left
+ * and right along the row it is in, up and down to the same column of the row
+ * next to it. The rows are ordered by where they are on screen, so "down" is
+ * down — for chapter two that is `f` … `j`, then the ground rail, then the
+ * header, which is the order the eye crosses the bench in.
+ *
+ * A target with no address — every board pin, and a free lead hanging in the
+ * air off another part — goes in one family at the END rather than being filed
+ * into a row by its y alone: the header is below the whole breadboard on this
+ * bench, and a lead in the air is in no row by construction.
+ *
+ * Never empty, and the reduce below depends on that: a family exists only
+ * because something was put in it.
+ */
+function familiesOf(targets: readonly CircuitNode[]): CircuitNode[][] {
+  const rows = new Map<string, CircuitNode[]>();
+  const offGrid: CircuitNode[] = [];
+
+  for (const target of targets) {
+    if (target.row === undefined || target.col === undefined) {
+      offGrid.push(target);
+      continue;
+    }
+    const row = rows.get(target.row);
+    if (row) row.push(target);
+    else rows.set(target.row, [target]);
+  }
+
+  /* The same order the list itself is in — left to right, then down — so the
+     two ways of walking these marks never disagree about what "next" is. */
+  const reading = (a: CircuitNode, b: CircuitNode) => a.x - b.x || a.y - b.y;
+  const families = [...rows.values()]
+    .map((row) => [...row].sort(reading))
+    .sort((a, b) => a[0].y - b[0].y);
+
+  if (offGrid.length) families.push([...offGrid].sort(reading));
+  return families;
+}
+
+/** The target one step along the row, or one row across from this one. */
+function neighbourOf(
+  families: CircuitNode[][],
+  from: CircuitNode,
+  along: number,
+  across: number,
+): CircuitNode | undefined {
+  const here = families.findIndex((family) =>
+    family.some((member) => member.id === from.id),
+  );
+  if (here === -1) return undefined;
+
+  if (across === 0) {
+    const row = families[here];
+    const at = row.findIndex((member) => member.id === from.id);
+    return row[(at + along + row.length) % row.length];
+  }
+
+  /* Wrapping, like the flat walk it replaces: an arrow that does nothing at
+     the edge of the board reads as the bench ignoring the press, and there is
+     nothing else for those two keys to mean here. */
+  const next = families[(here + across + families.length) % families.length];
+  /* Straight down the column where there is one, and by distance where there
+     is not — the header has no columns, and its pins do not line up with the
+     breadboard's. */
+  return (
+    next.find((member) => member.col !== undefined && member.col === from.col) ??
+    next.reduce((best, member) =>
+      Math.abs(member.x - from.x) < Math.abs(best.x - from.x) ? member : best,
+    )
+  );
+}
+
+/**
+ * Choosing where the lead in your hand goes.
+ *
+ * ## The marks carry no words
+ *
+ * A candidate is a quiet hollow mark and nothing else. `uno-board.tsx` records
+ * why: the board prints all nineteen of its pin names itself, in the right
+ * places, and a second copy turns `3V3 5V GND GND VIN` into one illegible
+ * smear — which is exactly what fifteen labelled candidates one pitch apart
+ * would be. The name of the target under the cursor is said in the *accessible*
+ * name, where it costs the drawing nothing, and the sentence above the canvas
+ * says what you are doing.
+ *
+ * And it is deliberately **not** `TargetPinMark`. That mark already means "the
+ * pin this wire belongs on" — a claim the agent makes about a mistake. A
+ * candidate is a different fact: any of these is allowed, including the wrong
+ * one, because being able to choose the wrong hole is the entire point.
+ *
+ * ## Two kinds of target, two shapes
+ *
+ * A lead may go into a hole in the header, or onto a free lead of another part.
+ * Those are different acts with different sentences, so they are different
+ * shapes rather than two shades of the same one (rule 7): a ring for a hole, a
+ * diamond for a lead. Both are drawn at `aimAt`, which is where the target
+ * *offers* itself and not always where it is — a seated LED's free long leg is
+ * half a scene unit from `board.D13`, so marking it at its own node would put
+ * two roving-tabindex stops, with two different names, on one pixel.
+ *
+ * ## Rule 14's bill, paid here
+ *
+ * Dragging is the gesture this replaces for anybody who cannot drag, so it
+ * carries the full keyboard contract rather than a partial one: a roving
+ * tabindex over the targets in the order they read on screen, arrows to walk
+ * them — along the row and between rows where the targets have an address, see
+ * `familiesOf` — Home and End, Enter or Space to commit, Escape to put the lead
+ * back down without committing, and Delete to let go of whatever is holding it.
+ * Delete leaves the lead **loose**; the part goes back to the kit only when
+ * that was its last path to a board hole, which the placement decides and this
+ * overlay never has to know. Focus moves here when the lead is picked up and
+ * goes back to where the gesture started when it is committed, so the person is
+ * never left with the caret nowhere.
+ */
+export function SeatPicker({
+  targets,
+  blocked = [],
+  attached,
+  hover,
+  carried = false,
+  aimAt,
+  hitRadius,
+  nameFor,
+  onSeat,
+  onRelease,
+  releaseLabel,
+  onCancel,
+}: {
+  /** Every place this lead may go, in the order they read on screen. */
+  targets: CircuitNode[];
+  /**
+   * Leads of other parts that would be targets **if they were free**.
+   *
+   * Normally this overlay draws nothing it cannot receive — offering an
+   * occupied hole "would draw a mark the model refuses, which is a target you
+   * can aim at and cannot hit". A hole is one of fifteen identical things and
+   * nobody misses one; a *part's lead* is the specific thing somebody is
+   * reaching for, and its absence reads as the bench being broken. Chapter one
+   * reaches that state on its most likely wrong turn — both of the LED's legs
+   * pushed into the header — and then "connect the resistor to the LED" has no
+   * mark anywhere and no reason given.
+   *
+   * So these are drawn struck through and inert: not a target, an account of
+   * one. The words are in the sentence above the canvas.
+   */
+  blocked?: readonly CircuitNode[];
+  /** What this lead is attached to now, whichever side stored the edge. */
+  attached?: NodeId;
+  /**
+   * The target a lead being dragged would land on.
+   *
+   * The pointer is the only thing that knows this, and the pointer may be up in
+   * the kit strip — so it is told rather than worked out here. Drawn the same
+   * way the keyboard's own position is, because they are the same fact reached
+   * two ways: *this is the one you are about to choose*.
+   */
+  hover?: NodeId;
+  /**
+   * Whether the lead is being **carried by a pointer** right now, as opposed to
+   * simply being in hand while this owns the choice.
+   *
+   * The two states look identical from in here — `hover` is `undefined` in both
+   * — and they mean opposite things, so the dimming below asked the wrong
+   * question. A person who *clicked* a lead was shown fifteen candidates at a
+   * quarter opacity: a 1.2-wide hairline of `#C6D0D8` over a dark board, which
+   * is not a target anybody can see, let alone choose between. The one route in
+   * this product that is precise at every zoom and on every input device was
+   * being drawn as if it were not there.
+   *
+   * Dropping back is a thing to say about a **drag**, and only about a drag:
+   * it means *let go here and this lead comes loose*. Nothing is at stake when
+   * a pointer is merely resting, and the marks are what the person is looking
+   * for.
+   */
+  carried?: boolean;
+  /** Where each target offers itself — the same answer the drag uses. */
+  aimAt: (target: CircuitNode) => { x: number; y: number };
+  /**
+   * How wide a mark's invisible catcher may be, in scene units.
+   *
+   * Handed in rather than fixed here, because it depends on the zoom and on how
+   * close together these particular candidates are. A constant `PITCH * 0.7`
+   * made every catcher overlap its neighbours, and two overlapping catchers are
+   * resolved by SVG's last-painted-wins — so the right-hand one always owned
+   * the overlap and the boundary between two holes sat at 29% of the gap.
+   */
+  hitRadius: number;
+  /**
+   * The accessible name for one target — `Put the LED's long leg in D9`.
+   *
+   * The node, not its label: only the node knows a hole from a lead, and the
+   * two resistor leads print the identical `220Ω`, so a name built from the
+   * label alone would give two candidates one accessible name.
+   */
+  nameFor: (target: CircuitNode) => string;
+  onSeat: (id: NodeId) => void;
+  /** Delete and Backspace. Means "leave this lead loose", not "back in the kit". */
+  onRelease?: () => void;
+  /**
+   * What Delete does, said out loud — `Leave the LED's long leg loose`.
+   *
+   * The gesture had no name anywhere: not on screen, not in an accessible name,
+   * not in the live region, and it is the only route of any kind to undoing a
+   * join without dropping the lead on bare desk. It rides on every mark rather
+   * than on a control of its own because there is no control — the key is the
+   * affordance, so it is named where the key is pressed, beside the shortcut
+   * itself.
+   */
+  releaseLabel?: string;
+  onCancel: () => void;
+}) {
+  /**
+   * The selection is a target, not a position in a list.
+   *
+   * The list is rebuilt whenever the parent renders and it changes shape as the
+   * build does — a lead stops being a candidate the moment something joins onto
+   * it — so an index held in state would quietly come to mean a different hole.
+   * Held by id and re-derived, it clamps rather than resets: the selection
+   * survives every render that does not remove the thing it is on, and only
+   * falls home when that thing genuinely stops being on offer.
+   *
+   * It opens on whatever the lead is attached to, so moving one hole over
+   * starts from where the lead is rather than from the end of the board.
+   */
+  const [activeId, setActiveId] = useState<NodeId | undefined>(attached);
+  const at = targets.findIndex((target) => target.id === activeId);
+  const home = targets.findIndex((target) => target.id === attached);
+  const active = at !== -1 ? at : home !== -1 ? home : 0;
+
+  const refs = useRef<(SVGGElement | null)[]>([]);
+
+  useEffect(() => {
+    /* The list shrinks as well as grows — a lead stops being a candidate the
+       moment something joins onto it — and an entry left past the end of the
+       new list is a `<g>` that is no longer in the document, sitting at an
+       index the next render can hand to the `.focus()` below. Focusing a
+       detached node does nothing at all, so the caret stays wherever it was
+       with nothing on screen to say why. */
+    refs.current.length = targets.length;
+  }, [targets]);
+
+  useEffect(() => {
+    refs.current[active]?.focus();
+  }, [active]);
+
+  const move = (to: number) =>
+    setActiveId(targets[(to + targets.length) % targets.length]?.id);
+
+  /**
+   * The rows, where these targets are laid out in rows at all.
+   *
+   * Asked of the targets rather than of the build: a breadboard hole knows its
+   * own address and a header pin has none to know, which is exactly the
+   * distinction the walk needs. Chapter one's fifteen pins produce no grid, so
+   * it falls through to the flat walk below — which is its whole route and must
+   * not change under it.
+   */
+  const grid = targets.some((target) => target.col !== undefined)
+    ? familiesOf(targets)
+    : undefined;
+
+  /**
+   * One arrow press. `along` is left/right, `across` is up/down.
+   *
+   * Off the grid the two collapse back into a single step through the list,
+   * which is what the four arrows have always done here.
+   */
+  const step = (index: number, along: number, across: number) => {
+    const from = targets[index];
+    if (!grid || !from) return move(index + along + across);
+    setActiveId(neighbourOf(grid, from, along, across)?.id ?? from.id);
+  };
+
+  /**
+   * Where the press started, so a press that travelled cannot also commit.
+   *
+   * These marks tile the header edge to edge while a lead is in hand, and the
+   * press on one of them reaches the viewport underneath, which pans on any
+   * press that reaches it. Pointer capture then keeps the mark as the target of
+   * the release, so the bench panned *and* the lead was seated — in a hole
+   * however far away the pointer happened to be let go, which the person never
+   * chose. The press is still allowed through, because a header with no
+   * pannable pixel in it is the other half of the same trap: what is withheld
+   * is the commit.
+   */
+  const press = useRef<{ id: NodeId; x: number; y: number } | null>(null);
+
+  const commit = (target: NodeId, event: React.MouseEvent) => {
+    const from = press.current;
+    press.current = null;
+    /* No press at all is an activation from the accessibility tree — a screen
+       reader's own click, which has nothing to travel. */
+    if (
+      from &&
+      (from.id !== target ||
+        Math.hypot(event.clientX - from.x, event.clientY - from.y) >
+          PRESS_SLOP)
+    ) {
+      return;
+    }
+    onSeat(target);
+  };
+
+  const onKeyDown = (event: React.KeyboardEvent, index: number) => {
+    const keys: Record<string, () => void> = {
+      ArrowRight: () => step(index, 1, 0),
+      ArrowDown: () => step(index, 0, 1),
+      ArrowLeft: () => step(index, -1, 0),
+      ArrowUp: () => step(index, 0, -1),
+      /* Both ends of the LIST, not of the row: they are the one pair of keys
+         that is about the whole of what is on offer, and on a board they are
+         the way back to the far corner without crossing it. */
+      Home: () => move(0),
+      End: () => move(targets.length - 1),
+      Enter: () => onSeat(targets[index].id),
+      " ": () => onSeat(targets[index].id),
+      Escape: onCancel,
+      Delete: () => onRelease?.(),
+      Backspace: () => onRelease?.(),
+    };
+    const handler = keys[event.key];
+    if (!handler) return;
+    event.preventDefault();
+    event.stopPropagation();
+    handler();
+  };
+
+  return (
+    <g>
+      {/* Drawn first, under everything that *can* be chosen. */}
+      {blocked.map((lead) => {
+        const { x, y } = aimAt(lead);
+        const r = PITCH * 0.42;
+        return (
+          <g key={`blocked-${lead.id}`} aria-hidden style={{ pointerEvents: "none" }}>
+            <polygon
+              points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`}
+              fill="none"
+              stroke={bench.label}
+              strokeWidth={1.2}
+              opacity={0.3}
+            />
+            {/* The bar is what makes it a refusal rather than a faint target —
+                shape, not opacity alone (rule 7). */}
+            <line
+              x1={x - r * 1.15}
+              y1={y + r * 1.15}
+              x2={x + r * 1.15}
+              y2={y - r * 1.15}
+              stroke={bench.label}
+              strokeWidth={1.2}
+              strokeLinecap="round"
+              opacity={0.45}
+            />
+          </g>
+        );
+      })}
+      {targets.map((target, index) => {
+        const here = target.id === attached;
+        const aimed = target.id === hover;
+        const marked = aimed || index === active;
+        /* Something is being carried and nothing is under the aim: every
+           candidate drops back so the bench reads as "release here and this
+           lead comes loose" rather than as a row of equally-live targets none
+           of which is selected. Not while the choice is simply open — see
+           `carried`. */
+        const adrift = carried && hover === undefined && index !== active;
+        const { x, y } = aimAt(target);
+        const r = PITCH * 0.42;
+        return (
+          <g
+            key={target.id}
+            ref={(el) => {
+              refs.current[index] = el;
+            }}
+            role="button"
+            tabIndex={index === active ? 0 : -1}
+            aria-label={nameFor(target)}
+            aria-current={here ? "true" : undefined}
+            /* Only when letting go is actually on offer: a shortcut announced
+               on a lead that is holding nothing would name a key that does
+               nothing. */
+            aria-keyshortcuts={
+              onRelease && releaseLabel ? "Delete" : undefined
+            }
+            className="cursor-pointer outline-none"
+            onPointerDown={(event) => {
+              press.current = {
+                id: target.id,
+                x: event.clientX,
+                y: event.clientY,
+              };
+            }}
+            onClick={(event) => commit(target.id, event)}
+            onFocus={() => setActiveId(target.id)}
+            onKeyDown={(event) => onKeyDown(event, index)}
+          >
+            {/* SVG's own way of describing an element, so the sentence rides
+                on the mark being read rather than in a stray text node the
+                group would announce on its own. */}
+            {onRelease && releaseLabel ? <desc>{releaseLabel}</desc> : null}
+            {/* A generous invisible target that still cannot reach its
+                neighbour — see `hitRadius`. */}
+            <circle cx={x} cy={y} r={hitRadius} fill="transparent" />
+            {target.kind === "terminal" ? (
+              /* A lead, not a hole. Same radius, so the two read as one family
+                 at one size; a different shape, so which one you are on is
+                 legible without colour and at 40% zoom. */
+              <polygon
+                points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`}
+                fill="none"
+                stroke={bench.label}
+                strokeWidth={marked ? 2.2 : 1.6}
+                opacity={marked ? 1 : adrift ? 0.25 : 0.85}
+              />
+            ) : (
+              <circle
+                cx={x}
+                cy={y}
+                r={r}
+                fill="none"
+                stroke={bench.label}
+                /* Raised from 0.55/1.2. A hairline at half opacity on a dark
+                   board is a target you have to already know is there, and
+                   these are the whole answer to the question the header is
+                   asking. `adrift` — a pointer carrying a lead over nothing —
+                   is still the quiet state, so the two remain distinct. */
+                strokeWidth={marked ? 2.2 : 1.6}
+                opacity={marked ? 1 : adrift ? 0.25 : 0.85}
+              />
+            )}
+            {/* **Where it would land** — a filled dot, the mark of a choice
+                about to be made. */}
+            {aimed ? (
+              <circle cx={x} cy={y} r={PITCH * 0.16} fill={bench.label} />
+            ) : null}
+            {/* **Where it already is** — a small square, a different SHAPE and
+                not a different shade (rule 7).
+
+                These two were the same filled dot, so "you are over the hole
+                you are already in, and releasing does nothing" and "you are
+                over a new hole, and releasing moves it" were pixel-identical.
+                Two gestures with opposite outcomes are not allowed to look the
+                same, and the one that changes nothing is the one a person then
+                reports as the interface ignoring them. */}
+            {here && !aimed ? (
+              <rect
+                x={x - PITCH * 0.15}
+                y={y - PITCH * 0.15}
+                width={PITCH * 0.3}
+                height={PITCH * 0.3}
+                fill={bench.label}
+              />
+            ) : null}
+          </g>
+        );
+      })}
+    </g>
+  );
+}

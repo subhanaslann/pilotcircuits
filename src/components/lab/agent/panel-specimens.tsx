@@ -26,8 +26,8 @@ import type { PulseState } from "@/components/ui/feedback";
 import { useCopy } from "@/content/copy-provider";
 import { deriveFindings, isResolved, type Finding } from "@/lib/agent/findings";
 import type { CoachingLevel } from "@/lib/agent/model";
-import { stepAside, stepById, stepCount, stepWords } from "@/lib/agent/steps";
-import { applyExpected } from "@/lib/circuit/graph";
+import { stepAside, stepById, stepTotalFor, stepWords } from "@/lib/agent/steps";
+import { applyExpected, diff } from "@/lib/circuit/graph";
 import { smartParkingBarrier } from "@/lib/circuit/smart-parking-barrier";
 
 const step = stepById("sensor");
@@ -62,7 +62,11 @@ export function PanelSpecimens() {
 
   const open = known.filter((finding) => !isResolved(finding, scene));
   const inspected = known.length > 0;
-  const matched = step.connections.length - open.length;
+  /* The same derivation the live panel makes, for the same reason: a finding
+     count is not a match count once a finding can be about a join the sketch
+     never named. Identical numbers on this scene — the point is that the two
+     assemblies do not answer one question two ways. */
+  const matched = diff(scene, step.connections).matched;
 
   return (
     <>
@@ -99,7 +103,7 @@ export function PanelSpecimens() {
                 >
                   <GuidanceSummary
                     stepIndex={step.index}
-                    stepTotal={stepCount}
+                    stepTotal={stepTotalFor(step.id)}
                     stepName={stepWords(copy, step.id).name}
                     context={
                       !inspected
@@ -125,7 +129,9 @@ export function PanelSpecimens() {
                     value={level}
                     onValueChange={setLevel}
                   />
-                  {!open.length && inspected ? <KnowledgeCheck /> : null}
+                  {!open.length && inspected ? (
+                    <KnowledgeCheck projectId="smartParkingBarrier" />
+                  ) : null}
                 </TabPanel>
 
                 <TabPanel
@@ -147,7 +153,7 @@ export function PanelSpecimens() {
                               current === finding.id ? null : finding.id,
                             )
                           }
-                          onResolve={() => setFixed(true)}
+                          onCheck={() => setFixed(true)}
                         >
                           {openCorrection === finding.id ? (
                             <Correction

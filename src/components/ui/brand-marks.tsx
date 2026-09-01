@@ -66,6 +66,85 @@ export function Wordmark({
 }
 
 /**
+ * S-01 · The signal trace, drawn wide.
+ *
+ * The same idea as `LogoMark` — a route with junctions on it — in the
+ * proportion a workshop nameplate wants: a low, wide trace read at a glance
+ * from across a bench rather than a 24px glyph in a dense bar. The nodes are
+ * hollow because a junction on a schematic is a ring, not a dot; only the two
+ * ends of the run are filled, which is how a trace says where it starts and
+ * where it lands.
+ *
+ * It does not replace `LogoMark`. That one still holds the workbench's control
+ * bar, where 20px is all there is.
+ */
+export function WorkshopMark({
+  width = 48,
+  className,
+}: {
+  width?: number;
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 48 28"
+      width={width}
+      height={(width / 48) * 28}
+      fill="none"
+      aria-hidden="true"
+      className={cn("shrink-0", className)}
+    >
+      <polyline
+        points="4,20 14,9 24,17 34,7 44,14"
+        stroke="currentColor"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {[
+        [4, 20],
+        [14, 9],
+        [24, 17],
+        [34, 7],
+        [44, 14],
+      ].map(([cx, cy], index) => (
+        <circle
+          key={cx}
+          cx={cx}
+          cy={cy}
+          r={3.1}
+          fill={index === 0 || index === 4 ? "currentColor" : "var(--color-paper-soft)"}
+          stroke="currentColor"
+          strokeWidth="2.2"
+        />
+      ))}
+    </svg>
+  );
+}
+
+/**
+ * S-01 · The nameplate.
+ *
+ * `CIRCUITPILOT` set solid in the condensed face, because on this surface the
+ * product name is stencilled on the bench rather than typeset in a header. Same
+ * string as `Wordmark` — both read `brand.name`, so the two cannot drift —
+ * only cased and cut differently.
+ */
+export function WorkshopWordmark({ className }: { className?: string }) {
+  return (
+    <span className={cn("text-ink inline-flex items-center gap-3.5", className)}>
+      <WorkshopMark className="text-accent" />
+      {/* Below 640 the plate has room for the mark, the nav and the status
+          light but not for the name as well. The mark is the half that
+          survives; the link keeps its accessible name either way. */}
+      <span className="font-condensed hidden text-[28px] leading-none font-bold tracking-[0.005em] uppercase sm:inline">
+        {brand.name}
+      </span>
+    </span>
+  );
+}
+
+/**
  * A-22 · Agent mark
  *
  * Deliberately not a face, an orb, or a sparkle. The agent's job here is to

@@ -1,3 +1,5 @@
+import type { BuildSchemaFacts } from "@/lib/agent/builds";
+
 /**
  * Batch 8 · §9 · The browser side of WebMCP.
  *
@@ -154,14 +156,25 @@ const noInput = {
   additionalProperties: false,
 } as const;
 
-export const workbenchSchemas: Record<string, Record<string, unknown>> = {
+/**
+ * The workbench's schemas, for the build on the bench.
+ *
+ * A function rather than a constant: every enum below is a per-build set, and
+ * writing them once produced a page that offered an agent the capstone's tests,
+ * the capstone's steps and a mechanical scope on a build with no servo. The
+ * facts come from `schemaFactsFor`; this only shapes them.
+ */
+export function workbenchSchemasFor(
+  facts?: BuildSchemaFacts,
+): Record<string, Record<string, unknown>> {
+  return {
   get_build_context: noInput,
   inspect_build: {
     type: "object",
     properties: {
       scope: {
         type: "string",
-        enum: ["current_step", "wiring", "mechanical", "all"],
+        enum: facts?.scopes ?? ["current_step", "wiring", "all"],
         description: "How much of the build to compare. Defaults to the step.",
       },
     },
@@ -183,13 +196,40 @@ export const workbenchSchemas: Record<string, Record<string, unknown>> = {
     required: ["finding_id"],
     additionalProperties: false,
   },
+  /* Now that the schema knows which build it is describing, the two sets are
+     enumerated: an agent can read what it may move and where, without a call.
+     Left open on a build with no placement, where the tool refuses anyway. */
+  attach_lead: {
+    type: "object",
+    properties: {
+      lead: {
+        type: "string",
+        ...(facts?.leads.length ? { enum: facts.leads } : {}),
+        description: "A lead of a part in this build.",
+      },
+      target: {
+        type: ["string", "null"],
+        ...(facts && facts.holes.length
+          ? { enum: [...facts.holes, ...facts.leads, null] }
+          : {}),
+        description:
+          "A board hole, another part's free lead, or null to leave it loose.",
+      },
+    },
+    required: ["lead"],
+    additionalProperties: false,
+  },
   verify_current_step: noInput,
   navigate_build_step: {
     type: "object",
     properties: {
       step_id: {
         type: "string",
-        enum: ["kit", "place", "sensor", "servo", "leds", "upload", "test"],
+        /* This build's steps, not every step in the product. The list used to
+           be all eleven, so an agent could navigate chapter one's bench to a
+           step belonging to chapter six — and the rail obligingly redrew
+           itself as the other build's. */
+        enum: facts?.stepIds ?? [],
       },
     },
     required: ["step_id"],
@@ -200,13 +240,17 @@ export const workbenchSchemas: Record<string, Record<string, unknown>> = {
     properties: {
       test: {
         type: "string",
-        enum: ["sensor", "servo", "leds", "full_system"],
+        /* The checks this build actually makes. Chapter one runs `wiring` and
+           `breathing`; it has neither a sensor nor a servo to test. */
+        enum: facts?.tests ?? ["full_system"],
+        description: "One check by id, or full_system for all of them.",
       },
     },
     required: ["test"],
     additionalProperties: false,
   },
-};
+  };
+}
 
 export const librarySchemas: Record<string, Record<string, unknown>> = {
   find_projects: {
