@@ -9,9 +9,12 @@
  * already draws its own, in the product's typeface, from the scene graph.
  *
  * `light1`/`light2` are the two blur radii the glow is built from. They are
- * prefixed like every other id in this folder so a second LED in the same
- * document cannot capture the first one's filter.
+ * scoped like every other id in this folder — `useSvgPrefix()` first, then the
+ * caller's `uid` — so a second LED in the same document cannot capture the
+ * first one's filter.
  */
+
+import { useSvgPrefix } from "@/components/canvas/svg-ids";
 
 /** The colour the glow is painted in, per LED body colour. */
 const lightColors: Record<string, string> = {
@@ -40,8 +43,13 @@ export function LedArtwork({
   /** 0–1. Drives the glow's opacity, not the body colour. */
   brightness?: number;
   /**
-   * Distinguishes this LED's filters from the other one's. Two LEDs render in
-   * the same document, so the ids cannot be a constant.
+   * What this LED is called inside its own ids.
+   *
+   * It used to be the whole of their uniqueness, which was not enough: two
+   * lamps of the same colour — one on the bench, one on the kit shelf — were
+   * both `led-red`, and the shelf's smaller filter won for both. The copy's
+   * `useSvgPrefix()` is what keeps them apart now; this stays because it is
+   * what makes the id readable when you look at the DOM.
    */
   uid: string;
   /**
@@ -54,16 +62,18 @@ export function LedArtwork({
    */
   glowClass?: string;
 }) {
+  /* This copy's own id space — see `useSvgPrefix`. */
+  const scope = `${useSvgPrefix()}-${uid}`;
   const glow = lightColor ?? lightColors[color.toLowerCase()] ?? color;
   const opacity = brightness ? 0.3 + brightness * 0.7 : 0;
   const lit = value && brightness > Number.EPSILON;
 
   return (
     <g>
-      <filter id={`${uid}-light1`} x="-0.8" y="-0.8" height="2.2" width="2.8">
+      <filter id={`${scope}-light1`} x="-0.8" y="-0.8" height="2.2" width="2.8">
         <feGaussianBlur stdDeviation="2" />
       </filter>
-      <filter id={`${uid}-light2`} x="-0.8" y="-0.8" height="2.2" width="2.8">
+      <filter id={`${scope}-light2`} x="-0.8" y="-0.8" height="2.2" width="2.8">
         <feGaussianBlur stdDeviation="4" />
       </filter>
 
@@ -142,7 +152,7 @@ export function LedArtwork({
             rx="10"
             ry="10"
             fill={glow}
-            filter={`url(#${uid}-light2)`}
+            filter={`url(#${scope}-light2)`}
             style={{ opacity }}
           />
           <ellipse
@@ -151,7 +161,7 @@ export function LedArtwork({
             rx="2"
             ry="2"
             fill="white"
-            filter={`url(#${uid}-light1)`}
+            filter={`url(#${scope}-light1)`}
           />
           <ellipse
             cx="8"
@@ -159,7 +169,7 @@ export function LedArtwork({
             rx="3"
             ry="3"
             fill="white"
-            filter={`url(#${uid}-light1)`}
+            filter={`url(#${scope}-light1)`}
             style={{ opacity }}
           />
         </g>

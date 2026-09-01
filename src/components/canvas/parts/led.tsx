@@ -47,15 +47,14 @@ export function Led({
    */
   colour: "green" | "red" | "yellow";
   /**
-   * What makes this LED's blur filters its own.
+   * What this LED's blur filters are called.
    *
-   * `LedArtwork` builds two `<filter id>` out of it and SVG filter ids are
-   * document-global: two LEDs sharing one id share one glow, the later
-   * definition wins, and the first lamp lights with the second's radius. One
-   * per colour was enough while a build had one of each. It is not enough now
-   * — a red lamp on the bench and a red one being carried off the kit shelf
-   * are both `led-red` — so a caller with more than one of a colour on screen
-   * passes something that separates them, and the part id is what it has.
+   * `LedArtwork` builds two `<filter id>` out of it, and this used to be the
+   * whole of their uniqueness — which never quite worked: SVG filter ids are
+   * document-global, and a red lamp on the bench and a red one being carried
+   * off the kit shelf were both `led-red`, so one glow won for both. The id is
+   * scoped by the drawn copy's own `useSvgPrefix()` now, and this stays as the
+   * readable half of it.
    */
   uid?: string;
   lit?: boolean;
@@ -68,7 +67,7 @@ export function Led({
   return (
     <g>
       <g transform={artTransform(frame.led, { x, y })}>
-        {/* `uid` keeps this LED's blur filters out of the other ones' reach. */}
+        {/* `uid` names this LED's blur filters; the drawing scopes them. */}
         <LedArtwork
           color={colour}
           value={lit || breathing}

@@ -33,12 +33,24 @@ export const scene = {
  * of the bench, and a frame that reaches past it shows a strip of bare oak. The
  * briefing film's frame is the caller that needs the number, so the number
  * belongs where both of them can read it rather than in the drawing.
+ *
+ * The top inset is 30 and the bottom one is 46, which is not a typo. Chapter
+ * five's HC-SR04 sits at y=40 and stood six units off the top of a mat that
+ * began at 46 — and it could not simply be pushed down, because the
+ * breadboard's plastic starts at 143.701 and the sensor's case ends at
+ * 138.425, five and a quarter units of clearance for a part that needed six.
+ * So the mat grew instead of the bench moving. It grew upwards only: chapter
+ * four's soil probe reaches y=772.827 and the bottom edge is at 774, so
+ * lowering that edge to keep the inset symmetric would have moved a frame
+ * nothing was wrong with. The asymmetry is not visible in any case — the oak
+ * bleeds 900 units past the scene on every side, so there is no drawn scene
+ * edge for the two insets to be compared against.
  */
 export const mat = {
   x: 70,
-  y: 46,
+  y: 30,
   width: scene.width - 140,
-  height: scene.height - 92,
+  height: scene.height - 76,
 } as const;
 
 interface Rect {
@@ -57,8 +69,8 @@ interface Rect {
  * `stage` is the same box with the padding **clipped to the mat**, which is
  * what the briefing film needs: the film's viewBox is this box exactly, so four
  * pitches of unconditional padding put bare oak in the frame on three chapters
- * — 21 units to the left of the mat on chapters three, four and five, 36 above
- * chapter three and 56 above chapter five, 39 below chapter four. The clip
+ * — 21 units to the left of the mat on chapters three, four and five, 20 above
+ * chapter three and 40 above chapter five, 39 below chapter four. The clip
  * never crops: where the content itself is already past the mat's edge the
  * stage follows the content, because a frame that cut a part in half to avoid
  * showing oak would be the worse of the two mistakes.

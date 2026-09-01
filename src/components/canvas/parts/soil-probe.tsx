@@ -1,4 +1,5 @@
 import { artTransform, frame } from "@/lib/circuit/wokwi";
+import { useSvgPrefix } from "@/components/canvas/svg-ids";
 import { bench, material as m } from "@/components/illustration/spec";
 
 /**
@@ -168,14 +169,15 @@ const PASSIVES = [
 const WATER_LINE = 113;
 
 export function SoilProbeArtwork() {
+  /* Chapter four draws this probe twice — once on the bench and once on the
+     kit shelf, at a fifth of the size — and a clip path is resolved by id
+     across the whole document, not inside the <svg> it is written in. */
+  const uid = useSvgPrefix();
+
   return (
     <g style={NOT_A_CONTROL} fontFamily="monospace">
       <defs>
-        {/* The id is prefixed, for the reason stated at the top of
-            `wokwi/pir-motion-sensor-artwork.tsx`: several parts share one
-            document, and two <defs> under the same name resolve to whichever
-            rendered last. */}
-        <clipPath id="soil-outline">
+        <clipPath id={`${uid}-soil-outline`}>
           <path d={OUTLINE} />
         </clipPath>
       </defs>
@@ -296,7 +298,7 @@ export function SoilProbeArtwork() {
 
       {/* Clipped to the board, so the two blade marks cannot creep past the
           taper the day either of their ends is nudged. */}
-      <g clipPath="url(#soil-outline)">
+      <g clipPath={`url(#${uid}-soil-outline)`}>
         <line
           x1={7}
           y1={WATER_LINE}

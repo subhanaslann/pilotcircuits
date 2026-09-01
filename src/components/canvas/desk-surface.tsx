@@ -1,4 +1,5 @@
-import { scene } from "@/lib/circuit/geometry";
+import { mat, scene } from "@/lib/circuit/geometry";
+import { useSvgPrefix } from "@/components/canvas/svg-ids";
 import { bench } from "@/components/illustration/spec";
 
 /**
@@ -13,14 +14,16 @@ import { bench } from "@/components/illustration/spec";
  * The wood extends well past the scene so zooming out never reveals an edge.
  */
 
-/** Mat inset from the scene box. */
-const MAT = {
-  x: 70,
-  y: 46,
-  width: scene.width - 140,
-  height: scene.height - 92,
-  radius: 22,
-};
+/**
+ * The mat, plus the one thing only the drawing needs.
+ *
+ * The box itself is `geometry.mat`, because the briefing film frames against it
+ * and this file used to be the only place the number existed. It was copied
+ * here for a while and the copies agreed, which is exactly how a later change
+ * to one of them gets half-applied — so there is one number now and a corner
+ * radius on top of it.
+ */
+const MAT = { ...mat, radius: 22 };
 
 /** Mat grid spacing — 40 units ≈ 1 cm, the pitch a real cutting mat prints. */
 const MAT_GRID = 40;
@@ -29,13 +32,18 @@ const MAT_GRID = 40;
 const BLEED = 900;
 
 export function DeskSurface() {
+  /* Two benches can stand in one document — the workbench canvas and the
+     inspection camera's, side by side — and a pattern id is document-global, so
+     the second desk's grid would be drawn with the first desk's definitions. */
+  const uid = useSvgPrefix();
+
   return (
     <g aria-hidden="true">
       <defs>
         {/* Oak: warm base, plank seams, and a few long grain lines. Kept low
             contrast on purpose — the desk is context, not the subject. */}
         <pattern
-          id="cp-oak"
+          id={`${uid}-cp-oak`}
           width={520}
           height={210}
           patternUnits="userSpaceOnUse"
@@ -97,7 +105,7 @@ export function DeskSurface() {
 
         {/* Mat grid: a fine line every centimetre, a stronger one every five. */}
         <pattern
-          id="cp-mat-grid"
+          id={`${uid}-cp-mat-grid`}
           width={MAT_GRID}
           height={MAT_GRID}
           patternUnits="userSpaceOnUse"
@@ -110,7 +118,7 @@ export function DeskSurface() {
           />
         </pattern>
         <pattern
-          id="cp-mat-grid-major"
+          id={`${uid}-cp-mat-grid-major`}
           width={MAT_GRID * 5}
           height={MAT_GRID * 5}
           patternUnits="userSpaceOnUse"
@@ -124,7 +132,7 @@ export function DeskSurface() {
         </pattern>
 
         {/* Soft contact shadow under the mat. */}
-        <filter id="cp-mat-shadow" x="-10%" y="-10%" width="120%" height="130%">
+        <filter id={`${uid}-cp-mat-shadow`} x="-10%" y="-10%" width="120%" height="130%">
           <feDropShadow
             dx="0"
             dy="5"
@@ -141,11 +149,11 @@ export function DeskSurface() {
         y={-BLEED}
         width={scene.width + BLEED * 2}
         height={scene.height + BLEED * 2}
-        fill="url(#cp-oak)"
+        fill={`url(#${uid}-cp-oak)`}
       />
 
       {/* Cutting mat. */}
-      <g filter="url(#cp-mat-shadow)">
+      <g filter={`url(#${uid}-cp-mat-shadow)`}>
         <rect
           x={MAT.x}
           y={MAT.y}
@@ -157,7 +165,7 @@ export function DeskSurface() {
       </g>
 
       {/* Mat grid, clipped to the mat. */}
-      <clipPath id="cp-mat-clip">
+      <clipPath id={`${uid}-cp-mat-clip`}>
         <rect
           x={MAT.x}
           y={MAT.y}
@@ -166,20 +174,20 @@ export function DeskSurface() {
           rx={MAT.radius}
         />
       </clipPath>
-      <g clipPath="url(#cp-mat-clip)" opacity={0.5}>
+      <g clipPath={`url(#${uid}-cp-mat-clip)`} opacity={0.5}>
         <rect
           x={MAT.x}
           y={MAT.y}
           width={MAT.width}
           height={MAT.height}
-          fill="url(#cp-mat-grid)"
+          fill={`url(#${uid}-cp-mat-grid)`}
         />
         <rect
           x={MAT.x}
           y={MAT.y}
           width={MAT.width}
           height={MAT.height}
-          fill="url(#cp-mat-grid-major)"
+          fill={`url(#${uid}-cp-mat-grid-major)`}
         />
       </g>
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { framing, mat } from "@/lib/circuit/geometry";
-import { lampFitBox, lampStageBox } from "@/lib/circuit/breathing-lamp";
-import { lightFitBox, lightStageBox } from "@/lib/circuit/traffic-light";
+import { PITCH, framing, mat, partBox } from "@/lib/circuit/geometry";
+import { lampFitBox, lampPartBox, lampStageBox } from "@/lib/circuit/breathing-lamp";
+import { lightFitBox, lightPartBox, lightStageBox } from "@/lib/circuit/traffic-light";
 import { nightFitBox, nightPartBox, nightStageBox } from "@/lib/circuit/motion-night-light";
 import { plantFitBox, plantPartBox, plantStageBox } from "@/lib/circuit/plant-guardian";
 import { soapFitBox, soapPartBox, soapStageBox } from "@/lib/circuit/touchless-soap";
@@ -23,7 +23,7 @@ const bottom = (b: Rect) => b.y + b.height;
  * a box padded by four pitches on all four sides whatever is out there. On
  * three chapters that padding reaches past the mat, so the assembly film opened
  * on a strip of bare oak: 21 units to the left on chapters three, four and
- * five, 36 above chapter three, 56 above chapter five, 39 below chapter four.
+ * five, 20 above chapter three, 40 above chapter five, 39 below chapter four.
  * The parts were on the mat the whole time; only the frame was wrong.
  */
 describe("framing", () => {
@@ -45,10 +45,10 @@ describe("framing", () => {
   });
 
   /**
-   * And it never crops. Chapter five's sensor stands six units above the mat's
-   * top edge — a separate, still-open fault of the DESK — and a stage clamped
-   * to the mat would cut the case in half to avoid showing oak, which is the
-   * worse of the two mistakes.
+   * And it never crops. Nothing on any of the six benches stands off the mat
+   * today — the one part that did, chapter five's HC-SR04, is why the mat's
+   * top edge is at 30 — but a stage clamped to the mat would cut a case in
+   * half to avoid showing oak, which is the worse of the two mistakes.
    */
   it("follows the content where the content is already past the mat", () => {
     const { stage } = framing([{ x: 40, y: 20, width: 100, height: 100 }], 40);
@@ -100,5 +100,59 @@ describe("every chapter's stage box", () => {
     expect(nightStageBox.x).toBe(mat.x);
     expect(plantStageBox.x).toBe(mat.x);
     expect(soapStageBox.x).toBe(mat.x);
+  });
+});
+
+/**
+ * The mat is the bench, so everything the bench holds has to be on it.
+ *
+ * Chapter five's HC-SR04 was not: `soapSensorAt` is y=40 and the mat began at
+ * 46, so six units of the module's case stood on bare oak, and the case could
+ * not be pushed down — the breadboard's plastic starts at 143.701 and the case
+ * ends at 138.425, five and a quarter units of room for a part that needed
+ * six. The mat grew instead. These are the two edges that grew and the one
+ * that could not.
+ */
+describe("every part stands on the mat", () => {
+  const benches = [
+    ["capstone · smart parking barrier", partBox],
+    ["chapter one · breathing lamp", lampPartBox],
+    ["chapter two · traffic light", lightPartBox],
+    ["chapter three · motion night light", nightPartBox],
+    ["chapter four · plant guardian", plantPartBox],
+    ["chapter five · touchless soap", soapPartBox],
+  ] as const;
+
+  it.each(benches)("%s", (_name, boxes) => {
+    for (const [id, box] of Object.entries(boxes as Record<string, Rect>)) {
+      expect(box.x, `${id} · left`).toBeGreaterThanOrEqual(mat.x);
+      expect(box.y, `${id} · top`).toBeGreaterThanOrEqual(mat.y);
+      expect(right(box), `${id} · right`).toBeLessThanOrEqual(right(mat));
+      expect(bottom(box), `${id} · bottom`).toBeLessThanOrEqual(bottom(mat));
+    }
+  });
+
+  /**
+   * Why the mat grew upwards only.
+   *
+   * Chapter four's soil probe hangs to 772.827 and the bottom edge is at 774,
+   * so there is a little over a unit of margin down there — lowering the edge
+   * to keep the inset symmetric would have moved a frame nothing was wrong
+   * with, and raising it crops the probe. This is the number that says so.
+   */
+  it("keeps its bottom edge just under chapter four's soil probe", () => {
+    expect(bottom(mat) - bottom(plantPartBox.probe)).toBeCloseTo(1.173, 3);
+  });
+
+  /**
+   * And the part that moved the top edge in the first place.
+   *
+   * `soapPartBox.sensor` is the case padded by a pitch, so its top is 30 and
+   * the case itself is at 40: the mat now begins exactly where the annotation
+   * box does, ten units above the module.
+   */
+  it("takes chapter five's sensor in, box and all", () => {
+    expect(soapPartBox.sensor.y).toBe(mat.y);
+    expect(soapPartBox.sensor.y + PITCH - mat.y).toBe(10);
   });
 });

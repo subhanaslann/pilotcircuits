@@ -122,6 +122,24 @@ export interface AimTarget {
  * neighbour: two candidates one pitch apart give a 4.95-unit catch, and the
  * boundary between them lands at exactly 50% of the gap rather than at the 29%
  * an overlapping pair of hit circles produced.
+ *
+ * **This number is set by a part's leg length, and nothing declares it.**
+ * A build's `grabPoint` lifts every free lead by one constant — half a pitch
+ * diagonally on the four breadboard chapters — so where a lifted mark lands
+ * depends on how far the free lead is from its seated sibling, which is the
+ * part's pin span. Measured on the benches we have: 6.783 (see
+ * `drag-math.test.ts`, which pins it), because the LED's 10 art-px span is
+ * 10.4167 scene units and lands 0.4167 off the grid.
+ *
+ * A part whose span is an odd multiple of half a pitch is the worst case:
+ * span 15 puts the mark 5 units from a hole, `hitRadius(1, 5)` at 2.25 and
+ * `zoomToAim(1, 5)` at 4.8 — 1.6x `zoom.max`, so the bench would be asking for
+ * a zoom the viewport cannot give at every pick-up. `grabPoint` is per build,
+ * not per part, so there is nowhere to say "this part's legs are longer"; if
+ * that day comes the smallest shape is `grabPoint(node, part?)` on the spec,
+ * defaulting to the build's constant. Left as a note on purpose — the tripwire
+ * is the pinned number in the test, which moves the moment a new part changes
+ * the spacing.
  */
 export function minSpacing(targets: readonly AimTarget[]): number {
   let best = Infinity;

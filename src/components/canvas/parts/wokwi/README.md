@@ -49,8 +49,19 @@ python scripts/port-wokwi.py --dest src/components/canvas/parts/wokwi
 ```
 
 It converts each element's Lit template into JSX: attributes to camelCase, lit
-bindings dropped, `<defs>` ids prefixed per part so two parts in one document
-cannot capture each other's gradients and filters.
+bindings dropped, and every `<defs>` id scoped to the drawn copy — the
+component's own `useSvgPrefix()` first, then the part's name — so neither two
+parts nor two copies of one part can capture each other's gradients, patterns,
+filters and clip paths.
+
+That second half was missing until the ids were audited, and it was not
+theoretical: chapter two's bench draws three resistors, so `res-a`, `res-body`
+and `res-g` were each defined three times and all 23 `url(#…)` references on the
+page resolved to the first resistor. Worse, chapter one's briefing draws the
+resistor at two scales in two `<svg>` roots, and there the shared `clipPath`
+dropped two of the four colour bands outright — a 220 Ω resistor came out red ·
+brown. If you re-port, keep the scoping: a fixed id is a fixed id however many
+parts share the name.
 
 Three things it does **not** carry, because they are TypeScript rather than
 SVG, and so are maintained by hand here:

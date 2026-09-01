@@ -64,8 +64,8 @@ export const nightBench: BenchSpec<NightLive> = {
                hands over. Red is what that drawing has always been. */
             colour="red"
             lit={live ?? false}
-            /* `uid` prefixes two document-global blur filter ids, and the shelf
-               keeps a ghost of this same part while it is still in the box. */
+            /* What this lamp's two blur filters are called. Uniqueness is the
+               copy's own `useSvgPrefix()`; this is the readable half. */
             uid="ledNight"
           />
         ),

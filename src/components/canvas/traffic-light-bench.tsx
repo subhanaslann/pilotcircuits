@@ -80,9 +80,8 @@ export const lightBench: BenchSpec<TrafficLive> = {
             y={pos.y}
             colour={colour}
             lit={live?.[colour] ?? false}
-            /* The part id, because `uid` prefixes two document-global blur
-               filter ids: three lamps and a shelf ghost sharing one would light
-               each other up. */
+            /* The part id, so each lamp's two blur filters say which lamp they
+               belong to. Keeping them apart is the copy's `useSvgPrefix()`. */
             uid={part}
           />
         ),

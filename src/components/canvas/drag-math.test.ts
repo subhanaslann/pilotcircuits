@@ -13,7 +13,7 @@ import {
   zoomToAim,
   type AimTarget,
 } from "@/components/canvas/drag-math";
-import { PITCH } from "@/lib/circuit/geometry";
+import { PITCH, zoom } from "@/lib/circuit/geometry";
 import { HEADER_PITCH } from "@/lib/circuit/wokwi";
 import {
   breathingLamp,
@@ -23,6 +23,12 @@ import {
   lampPlacement,
   lampSceneFrom,
 } from "@/lib/circuit/breathing-lamp";
+import {
+  lightEmpty,
+  lightGrabPoint,
+  lightPlacement,
+  lightSceneFrom,
+} from "@/lib/circuit/traffic-light";
 import {
   candidatesFor,
   tryAttach,
@@ -466,5 +472,86 @@ describe("the aim survives the canvas moving under the gesture", () => {
     expect(race(stale, header, snapRadius(k, minSpacing(header)))).toEqual({
       kind: "away",
     });
+  });
+});
+
+/**
+ * What the diagonal lift really costs, on a breadboard.
+ *
+ * Chapter two lifts a free lead half a pitch up and half a pitch right, and the
+ * paragraph beside that constant says the mark then sits 7.071 = hypot(5, 5)
+ * from every neighbouring hole. That is the number for a lead sitting ON the
+ * grid, and a free lead never is: `candidatesFor` offers only free leads, and a
+ * free lead stands one pin span from its seated sibling's hole. The LED's two
+ * pins are 10 art px apart, which is 10.4167 scene units at `PX = 25/24`, so
+ * the free anode is 0.4167 off the lattice and its mark lands 6.783 from the
+ * nearest hole — not 7.071. Every figure downstream moves with it: the catch
+ * radius is 3.052 rather than 3.18, and the pick-up zoom asks for 3.538 rather
+ * than 3.39.
+ *
+ * The conclusions the paragraph drew all survive — the catchers still do not
+ * overlap, and the pick-up zoom is still over `zoom.max` and still clamped
+ * there — but the file says the numbers were "computed rather than guessed, so
+ * nobody 'fixes' the offset", and they were not. These are the measurements.
+ */
+describe("the mark a free lead offers on a breadboard", () => {
+  const seated = (() => {
+    const r = tryAttach(lightPlacement, lightEmpty, "led.red.cathode", "bb.f7");
+    return r.kind === "attached" ? r.placement : lightEmpty;
+  })();
+
+  /** Carrying the red resistor's first lead, with the red LED half seated. */
+  const offered: AimTarget[] = candidatesFor(
+    lightPlacement,
+    seated,
+    "res.red.in",
+  )
+    .map((id) => lightSceneFrom(seated).nodes[id])
+    .filter((n) => n !== undefined)
+    .map((n) => ({ id: n.id, at: lightGrabPoint(n) }));
+
+  const spacing = minSpacing(offered);
+
+  it("stands 6.783 from its nearest hole, not the lattice's 7.071", () => {
+    expect(offered.some((t) => t.id === "led.red.anode")).toBe(true);
+    expect(spacing).toBeCloseTo(6.783, 3);
+  });
+
+  it("which is what the catch radius and the pick-up zoom come out of", () => {
+    expect(hitRadius(1, spacing)).toBeCloseTo(3.052, 3);
+    expect(zoomToAim(1, spacing)).toBeCloseTo(3.538, 3);
+  });
+
+  it("and the catchers still cannot touch, which is the point of the cap", () => {
+    for (const k of ZOOMS) {
+      expect(hitRadius(k, spacing) * 2, `k=${k}`).toBeLessThan(spacing);
+    }
+  });
+
+  /**
+   * The tripwire for the still-open half of this.
+   *
+   * `grabPoint` is one constant per build rather than per part, so the spacing
+   * above is decided by whichever part has the most awkward pin span. A span
+   * that is an odd multiple of half a pitch is the worst case: it puts the
+   * lifted mark exactly half a pitch from a hole, and the zoom the bench would
+   * have to ask for goes past `zoom.max`. Nothing in the kit does that today —
+   * this records what would, so the arithmetic is on the record before a part
+   * arrives that hits it.
+   */
+  it("would be half a pitch for a part with a 15-unit pin span", () => {
+    /* Hole at the origin, sibling free lead one span to the right, mark lifted
+       half a pitch up and half a pitch right. Rows above and below are the same
+       distance away, so only the column offset varies. */
+    const lifted = (span: number) => {
+      const x = span + PITCH / 2;
+      return Math.hypot(Math.abs(x - Math.round(x / PITCH) * PITCH), PITCH / 2);
+    };
+    expect(lifted(PITCH)).toBeCloseTo(7.071, 3);
+    expect(lifted(10.4167)).toBeCloseTo(spacing, 3);
+    expect(lifted(15)).toBeCloseTo(5, 6);
+    expect(hitRadius(1, lifted(15))).toBeCloseTo(2.25, 6);
+    expect(zoomToAim(1, lifted(15))).toBeCloseTo(4.8, 6);
+    expect(zoomToAim(1, lifted(15))!).toBeGreaterThan(zoom.max);
   });
 });

@@ -1114,13 +1114,20 @@ export const trafficLight: CircuitScene = lightSceneFrom(lightComplete);
  * neighbours, which is the farthest any point on a square grid can be from all
  * of them.
  *
- * What that costs, computed rather than guessed, so nobody "fixes" the offset:
- * `minSpacing` over a mixed candidate set is 7.071 where chapter one's is
- * 9.896; `hitRadius(1, 7.071)` is `min(12, 3.18)` = 3.18 against chapter one's
- * 4.45 — smaller catchers, still strictly non-overlapping, which is what the
- * `spacing * 0.45` cap exists for; and `zoomToAim(k, 7.071)` = 24 / 7.071 =
- * 3.39, above `zoom.max`, so every pick-up asks for the ceiling and is clamped
- * there.
+ * What that costs, measured rather than guessed, so nobody "fixes" the offset:
+ * `minSpacing` over a mixed candidate set is 6.783 where chapter one's is
+ * 9.896; `hitRadius(1, 6.783)` is `min(12, 3.052)` = 3.052 against chapter
+ * one's 4.45 — smaller catchers, still strictly non-overlapping, which is what
+ * the `spacing * 0.45` cap exists for; and `zoomToAim(k, 6.783)` = 24 / 6.783
+ * = 3.538, above `zoom.max`, so every pick-up asks for the ceiling and is
+ * clamped there.
+ *
+ * 6.783 and not the lattice's 7.071, because a free lead is never on the
+ * lattice: `candidatesFor` offers only free leads, and a free lead stands one
+ * pin span from its seated sibling's hole. The LED's two pins are 10 art px
+ * apart, which is 10.4167 scene units at `PX = 25/24`, so the free anode is
+ * 0.4167 off the grid and its lifted mark lands hypot(4.583, 5) = 6.783 from
+ * the nearest hole. `drag-math.test.ts` pins the number.
  *
  * `aimOrigin` in the scene view stays the RAW node and never this point: the
  * lifted mark would put a seated lead 7 units from its own hole at rest and

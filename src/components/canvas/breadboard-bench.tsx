@@ -1149,7 +1149,20 @@ function PartHandle({
     >
       {children(at)}
       {/* A grabbable target over the whole part: an LED is two legs a pitch
-          wide and a lens, and nobody catches a leg with a pointer. */}
+          wide and a lens, and nobody catches a leg with a pointer.
+
+          It does not yield to the holes underneath it, and that is deliberate.
+          On chapters three, four and five the LED's 41.7 × 52.1 box covers
+          twelve holes — ten of them named by no step — and the dome itself
+          hides two. None of the twelve is unreachable: `inert` turns every
+          handle off the moment a lead is in hand, and `SeatPicker` paints after
+          every part, so the marks sit on top of the dome exactly when they can
+          be used. Shrinking the rect to the dome would cost the LED its grip —
+          18 × 28 scene units, under 24 CSS px in one axis at the opening fit,
+          on the part people pick up most — to fix nothing that is blocked. The
+          honest lever is the model's: stop offering top-bank columns the
+          sensor's leads never reach, the way chapter two avoided the whole
+          question by not offering that bank at all. */}
       <rect
         x={at.x}
         y={at.y}
