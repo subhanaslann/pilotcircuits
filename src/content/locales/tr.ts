@@ -1315,6 +1315,13 @@ export const tr: Copy = {
     },
 
     activity: {
+      /* Kendi cümlesi kurulamayan bir çağrının başlığı. `attach_lead` ve
+         `run_functional_test` özneyi zorunlu bir argümanda taşıyor, tarayıcı
+         ise ikisini de o argüman olmadan çağırabiliyor — ekrana "Ajan taşıdı"
+         ve "Ajan şu kontrolü çalıştırdı: " düşüyordu, özne yok, noktalama
+         yerinde. İçinde boşluk olan bir cümle zaman çizelgesinin hatası gibi
+         okunuyor; bu, olan şey gibi okunuyor. */
+      calledTool: "Ajan bir araç çağırdı",
       readContext: "Ajan mevcut yapım bağlamını okudu",
       contextRead: "Yapım bağlamı okundu",
       inspecting: (step: number) =>
@@ -1524,10 +1531,33 @@ export const tr: Copy = {
       note: "Atölye açıkken tarayıcıya kaydediliyor.",
       get_build_context: "Projeyi, aktif adımı ve her bağlantıyı okur.",
       inspect_build: "Yapımı programla karşılaştırır ve bulguları bildirir.",
-      show_correction: "Bir bulguyu atölyede işaret eder.",
+      /* `focused` dizisinin sırası çağıranın bilmesi gereken ama hiçbir yerden
+         öğrenemediği bir gerçek: [olması gereken yer, şu anki yer]. Ters
+         okuyan bir ajan doğru ucu zaten içinde olduğu deliğe yolluyor. */
+      show_correction:
+        "Bir bulguyu atölyede işaret eder. focused bakılacak pinleri sıralar — önce olması gereken yer, sonra şu anki yeri.",
+      /* İki yarı da, ve her birinin bedeli.
+
+         Bu cümle yalnızca takan yarıyı anıyordu, oysa aracın varsayılanı söken
+         yarı: `target` verilmediğinde uç boşa çıkıyor, ve ölçülen tek bir çağrı
+         kite iki parça geri gönderip adını hiç anmadığı bir uçtaki bağlantıyı
+         kopardı. `name` ve `description`dan kurulan bir araç listesi — bugün
+         bir host'un kurabileceği tek liste, çünkü WebMCP tanımlayıcısında sonuç
+         şeklini taşıyacak bir `outputSchema` yok — modele bunun izini bile
+         göstermiyordu.
+
+         Zararı bildiren üç alan bu yüzden burada anılıyor: host'a ulaşan tek
+         kanal bu metin. `Yapımı değiştiren tek araç` kalıyor — §9'un kendi
+         nitelemesi, ve `toolKind`a değil yapım grafiğine bakınca doğru: bir
+         bağlantıyı yerinden oynatan başka araç yok. */
       attach_lead:
-        "Bir parçanın ucunu bir deliğe ya da başka bir uca takar. Yapımı değiştiren tek araç.",
-      verify_current_step: "Mevcut adımı kontrol eder ve tamamlandı işaretler.",
+        "Bir parçanın ucunu bir deliğe ya da başka bir uca takar; hedef verilmezse ucu geri boşa çıkarır ve bu, o parçayı — bazen başkalarını da — kite geri gönderebilir. Yapımı değiştiren tek araç; bunun bedelini sonuçtaki loosened, brokeJoins ve leftBench alanları söyler.",
+      /* Bütün bağlantılar eşleşse bile bir adım doğrulanmayabilir, ve nedenini
+         nereden öğreneceğini şimdiye kadar hiçbir yer söylemiyordu: çeyrek tur
+         kaymış bir kol da, programın istemediği bir bağlantı da `matched ===
+         expected` bırakıyor. */
+      verify_current_step:
+        "Mevcut adımı kontrol eder ve tamamlandı işaretler. Bütün bağlantılar eşleşse bile bir adım doğrulanmayabilir: mechanicalOk servo kolunu, strays ise programın istemediği bağlantıları sayar.",
       navigate_build_step: "Başka bir adıma geçer.",
       /* Araç açıklaması her yapım için tarayıcıya olduğu gibi veriliyor, yani
          tek bir yapımın kontrollerini adlandıramaz. Eskiden capstone'un
@@ -1540,6 +1570,35 @@ export const tr: Copy = {
       get_project_requirements:
         "Bir projenin parçalarını, süresini, seviyesini ve hedeflerini okur.",
       start_project: "Bir yapımı başlatır ve atölyesini açar.",
+    },
+
+    /* Aracın id'si yerine host'un ekrana bastığı ad. Araç adlarının kendisi
+       çevrilmiyor (kural 13) — `attach_lead` her iki dilde de `attach_lead`;
+       ama `title` alanı okunmak için var, ve okuyan kişi Türkçe okuyor. İkişer
+       kelime, ürünün kendi isimleriyle: zaman çizelgesi zaten "Yapım bağlamı
+       okundu" ve "Ajan ${lead} taşıdı" diyor, yanındaki araç listesinin başka
+       kelimeler kullanması öğrenilecek ikinci bir sözlük olurdu.
+
+       `tools` tablosunun kısası değil. O tablo aracın NE İŞE YARADIĞINI
+       söylüyor ve bir cümle; bu, aracın ADININ ne olduğunu söylüyor ve bir
+       etiket. İkisinin aynı şeyi söyleyeceği yerde etiket bilerek daha az
+       söylüyor.
+
+       `attach_lead` bilerek `Uç yerleştirme` değil `Uç taşıma`: bu araç ucu
+       taktığı kadar geri de çıkarıyor, ve yalnızca ekleyen yarısını anan bir
+       başlık, açıklamasında düzeltilen eksiği bir alan yukarıda tekrarlardı. */
+    toolTitles: {
+      get_build_context: "Yapım bağlamı",
+      inspect_build: "Yapım incelemesi",
+      show_correction: "Düzeltme",
+      attach_lead: "Uç taşıma",
+      verify_current_step: "Adım kontrolü",
+      navigate_build_step: "Adım geçişi",
+      run_functional_test: "Yapım testi",
+      find_projects: "Proje arama",
+      open_project: "Proje ekranı",
+      get_project_requirements: "Proje ihtiyaçları",
+      start_project: "Yapım başlatma",
     },
 
     knowledge: {

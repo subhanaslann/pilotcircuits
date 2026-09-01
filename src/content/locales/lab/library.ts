@@ -98,7 +98,7 @@ const en = {
       "The toolbar that narrows seven to one, the card for a build already under way, and the blocks a project detail page is made of.",
     toolbarTitle: "Search and five filters",
     toolbarNote:
-      "It filters for real. The narrowing lives in lib/projects/filter.ts as pure functions with no React in them, because in Batch 7 an agent asked to find a build that uses a servo I already own has to call the same code this toolbar calls. Nothing here is a new control either: the field is A-09, the popovers M-05, the checkboxes A-11's compact sibling, the ready toggle A-14. A filter button turns secondary once it is holding something back — the count alone would be one signal, and rule 7 asks for two.",
+      "It filters for real. The narrowing lives in lib/projects/filter.ts as pure functions with no React in them, because an agent asked to find a build that uses a servo I already own calls the same code this toolbar calls. Nothing here is a new control either: the field is A-09, the popovers M-05, the checkboxes A-11's compact sibling, the ready toggle A-14. A filter button turns secondary once it is holding something back — the count alone would be one signal, and rule 7 asks for two.",
     unfilteredNote:
       "Try it: narrow by a component you do not own, or ask for something under 30 minutes. The count in the toolbar is the answer to the toolbar, so it sits inside it.",
     filteredNote:
@@ -208,7 +208,7 @@ const tr: Section = {
       "Yediyi bire indiren araç çubuğu, süregelen bir yapımın kartı, ve bir proje detay sayfasını oluşturan bloklar.",
     toolbarTitle: "Arama ve beş filtre",
     toolbarNote:
-      "Gerçekten filtreliyor. Daraltma, içinde React olmayan saf fonksiyonlar olarak lib/projects/filter.ts'te yaşıyor; çünkü Batch 7'de sende zaten olan bir servoyu kullanan bir yapım bul denen bir ajanın, bu araç çubuğunun çağırdığı kodun aynısını çağırması gerekiyor. Burada yeni bir kontrol de yok: alan A-09, popover'lar M-05, kutucuklar A-11'in kompakt kardeşi, hazır anahtarı A-14. Bir filtre düğmesi bir şeyi tuttuğu anda secondary'ye geçiyor — sayaç tek başına tek sinyal olurdu, kural 7 iki istiyor.",
+      "Gerçekten filtreliyor. Daraltma, içinde React olmayan saf fonksiyonlar olarak lib/projects/filter.ts'te yaşıyor; çünkü sende zaten olan bir servoyu kullanan bir yapım bul denen bir ajan, bu araç çubuğunun çağırdığı kodun aynısını çağırıyor. Burada yeni bir kontrol de yok: alan A-09, popover'lar M-05, kutucuklar A-11'in kompakt kardeşi, hazır anahtarı A-14. Bir filtre düğmesi bir şeyi tuttuğu anda secondary'ye geçiyor — sayaç tek başına tek sinyal olurdu, kural 7 iki istiyor.",
     unfilteredNote:
       "Dene: sende olmayan bir komponente göre daralt, ya da 30 dakikanın altını iste. Araç çubuğundaki sayaç, araç çubuğunun kendi cevabı; o yüzden onun içinde duruyor.",
     filteredNote:

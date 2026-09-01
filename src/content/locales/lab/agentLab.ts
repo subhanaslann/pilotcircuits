@@ -35,8 +35,15 @@ const en = {
   live: {
     title: "Drive the agent",
     description:
-      "Every material in its real place, with the agent actually working. The same run(tool, input) a WebMCP callback will call in Batch 7 — same payload, same commit, same canvas move.",
-    note: "Press Inspect my build and watch: the pulse goes to its lattice, the tool name shimmers, each phase names itself, the timeline fills in order, the tab slides to Findings and the canvas glides to the two pins. Then it stops — because the next thing that has to happen is you moving a wire, and that is the one thing the agent cannot do.",
+      "Every material in its real place, with the agent actually working. The same run(tool, input) a WebMCP callback calls — same payload, same commit, same canvas move.",
+    /* The closing sentence used to read `…and that is the one thing the agent
+       cannot do`. It is true of the bench above — chapter six is laid out by
+       its author, and `attach_lead` refuses all eleven calls there — and it
+       was written as a fact about the agent, which measured four tools and 27
+       calls building chapter two end to end with every check green. A page
+       whose whole argument is that a count nobody can check is a badge cannot
+       close on a claim nobody checked. */
+    note: "Press Inspect my build and watch: the pulse goes to its lattice, the tool name shimmers, each phase names itself, the timeline fills in order, the tab slides to Findings and the canvas glides to the two pins. Then it stops — because the next thing that has to happen is you moving a wire, and on this bench the agent cannot: chapter six is laid out by its author, so attach_lead refuses every call here. On the five chapters you assemble yourself it does not refuse; it moves the lead. What keeps that honest is not that the agent has no hands — it is that the move lands as a commit Ctrl+Z takes back, that the timeline says the agent made it rather than you, and that the finished build counts how many it made.",
     canvasLabel: "Smart Parking Barrier circuit",
   },
 
@@ -111,8 +118,13 @@ const en = {
     description:
       "Every tool call, in human language, on a copper trace — with the machinery folded underneath each sentence and the raw result shut until asked for.",
     spineTitle: "The spine",
+    /* `— the half of the work the agent cannot do` used to close the pad
+       sentence, one clause after `blue where it changed the workbench`, which
+       is the same claim the live note above was corrected for and it sat
+       beside its own counter-example. What the three colours are actually for
+       is the distinction, so that is what the clause says now. */
     spineNote:
-      "Not a generic dot-and-line timeline. The spine is a copper trace and every entry is a plated pad: hollow where the agent only looked, blue where it changed the workbench, dark where you did — the half of the work the agent cannot do. The running entry's marker is the activity pulse itself, so there is no second in-progress animation to invent; above it the trace runs blue because that is the segment being laid, and below it there is none, because that route does not exist yet.",
+      "Not a generic dot-and-line timeline. The spine is a copper trace and every entry is a plated pad: hollow where the agent only looked, blue where it changed the workbench, dark where you did — the record says which of you moved it, at a glance. The running entry's marker is the activity pulse itself, so there is no second in-progress animation to invent; above it the trace runs blue because that is the segment being laid, and below it there is none, because that route does not exist yet.",
     timelineColumn: "Reading, finding, fixing, verifying",
     failedColumn: "A call that failed",
     detailsTitle: "Developer details",
@@ -147,8 +159,16 @@ const tr: Section = {
   live: {
     title: "Ajanı çalıştır",
     description:
-      "Her materyal gerçek yerinde, ajan da gerçekten çalışıyor. Batch 7'de bir WebMCP geri çağrısının çağıracağı run(tool, input) ile aynı — aynı payload, aynı commit, aynı kanvas hareketi.",
-    note: "Yapımımı incele'ye bas ve izle: nabız kafes desenine geçer, araç adı parlar, her evre kendi adını söyler, zaman çizelgesi sırayla dolar, sekme Bulgular'a kayar, kanvas iki pine süzülür. Sonra durur — çünkü sırada senin bir kabloyu taşıman var, ve ajanın yapamadığı tek şey bu.",
+      "Her materyal gerçek yerinde, ajan da gerçekten çalışıyor. Bir WebMCP geri çağrısının çağırdığı run(tool, input) ile aynı — aynı payload, aynı commit, aynı kanvas hareketi.",
+    /* Kapanış cümlesi eskiden `…ve ajanın yapamadığı tek şey bu` diyordu.
+       Yukarıdaki tezgah için doğru — altıncı bölümü yazarı yerleştirdi ve
+       `attach_lead` orada on bir çağrının on birini de geri çeviriyor — ama
+       ajan hakkında bir gerçek gibi yazılmıştı; oysa ölçüm, dört araç ve 27
+       çağrıyla ikinci bölümün baştan sona kurulduğunu, bütün kontrollerin
+       yeşile döndüğünü gösteriyor. Bütün derdi "kimsenin kontrol edemediği bir
+       sayı rozettir" olan bir sayfa, kimsenin kontrol etmediği bir iddiayla
+       kapanamaz. */
+    note: "Yapımımı incele'ye bas ve izle: nabız kafes desenine geçer, araç adı parlar, her evre kendi adını söyler, zaman çizelgesi sırayla dolar, sekme Bulgular'a kayar, kanvas iki pine süzülür. Sonra durur — çünkü sırada senin bir kabloyu taşıman var ve bu tezgahta ajan bunu yapamıyor: altıncı bölümün tezgahını yazarı kurdu, burada yerleştirilecek parça yok, attach_lead her çağrıyı geri çeviriyor. Kendi kurduğun beş bölümde geri çevirmiyor; ucu gerçekten taşıyor. Bunu dürüst tutan şey ajanın eli olmaması değil — hareketin Ctrl+Z'nin geri alabileceği bir commit olarak düşmesi, zaman çizelgesinin onu senin değil ajanın yaptığını yazması, ve biten yapımın ajanın kaç tane yaptığını sayması.",
     canvasLabel: "Akıllı Otopark Bariyeri devresi",
   },
 
@@ -224,7 +244,7 @@ const tr: Section = {
       "Her araç çağrısı, insan dilinde, bir bakır yol üzerinde — makine tarafı her cümlenin altına katlanmış, ham sonuç ise istenene kadar kapalı.",
     spineTitle: "Omurga",
     spineNote:
-      "Sıradan bir nokta-ve-çizgi zaman çizelgesi değil. Omurga bir bakır yol, her kayıt da kaplanmış bir ped: ajan yalnızca baktıysa içi boş, atölyede bir şey değiştirdiyse mavi, değiştiren sensen koyu — işin ajanın yapamadığı yarısı. Çalışan kaydın işareti etkinlik nabzının kendisi, yani uydurulacak ikinci bir 'devam ediyor' animasyonu yok; üstünde yol mavi akar, çünkü döşenmekte olan parça odur, altında ise yol yoktur, çünkü o güzergâh henüz mevcut değil.",
+      "Sıradan bir nokta-ve-çizgi zaman çizelgesi değil. Omurga bir bakır yol, her kayıt da kaplanmış bir ped: ajan yalnızca baktıysa içi boş, atölyede bir şey değiştirdiyse mavi, değiştiren sensen koyu — kayıt, hangisinin taşıdığını tek bakışta söylüyor. Çalışan kaydın işareti etkinlik nabzının kendisi, yani uydurulacak ikinci bir 'devam ediyor' animasyonu yok; üstünde yol mavi akar, çünkü döşenmekte olan parça odur, altında ise yol yoktur, çünkü o güzergâh henüz mevcut değil.",
     timelineColumn: "Okuma, bulma, düzeltme, doğrulama",
     failedColumn: "Başarısız olan bir çağrı",
     detailsTitle: "Geliştirici ayrıntıları",

@@ -1694,6 +1694,13 @@ export const en = {
     /* Timeline sentences. Human language first; the tool name lives in the
        developer details underneath. */
     activity: {
+      /* The headline for a call whose own sentence cannot be built.
+         `attach_lead` and `run_functional_test` name their subject in a
+         required argument, and a browser can call either without it — which
+         printed "Agent moved " and "Agent ran the check: " with the subject
+         missing and the punctuation still there. A sentence with a hole in it
+         reads as a bug in the timeline; this reads as what happened. */
+      calledTool: "Agent called a tool",
       readContext: "Agent read the current build context",
       contextRead: "Build context read",
       inspecting: (step: number) => `Agent inspected wiring for Step ${step}`,
@@ -1895,8 +1902,11 @@ export const en = {
       projectNotReady: "That project is a preview and has no workbench yet.",
     },
 
-    /* The other half of the timeline: what the person did. The agent can read,
-       compare and explain, but it cannot pick up a jumper wire. */
+    /* The other half of the timeline: what the person did. Written when the
+       agent could only read, compare and explain; `attach_lead` has since
+       given it hands, so the halves are no longer divided by what is possible
+       — they are divided by who did it, which is the whole reason both voices
+       exist. */
     user: {
       /* Named for what it says rather than for the happy outcome: the demo
          controls move the wire the other way and want the same sentence. */
@@ -1966,10 +1976,33 @@ export const en = {
         "Read the project, the active step and every connection.",
       inspect_build:
         "Compare the build against the sketch and report findings.",
-      show_correction: "Points at a finding on the workbench.",
+      /* The order in `focused` is a fact a caller has to have and could not
+         get: it is [where it belongs, where it is now], and reading it the
+         other way round sends the correct lead to the hole it is already in. */
+      show_correction:
+        "Points at a finding on the workbench. focused lists the pins to look at — where it belongs before where it is now.",
+      /* Both halves, and what each one costs.
+
+         This sentence named only the additive half while the tool's default is
+         the destructive one: omitting `target` pulls the lead loose, and one
+         such call was measured returning two parts to the kit and breaking a
+         join on a lead it never named. A tool list built from `name` and
+         `description` — which is every list a host can build today, since
+         WebMCP's descriptor has no `outputSchema` to carry a result shape —
+         showed a model no trace of that.
+
+         So the three fields that report the damage are named here, because
+         this string is the only channel that reaches a host. `The only tool
+         that changes the build` stays: it is §9's own characterisation, and
+         measured against the build graph rather than against `toolKind` it is
+         true — no other tool moves a connection. */
       attach_lead:
-        "Puts a part's lead in a hole or onto another lead. The only tool that changes the build.",
-      verify_current_step: "Check the current step and mark it complete.",
+        "Puts a part's lead in a hole or onto another lead — or, with no target, pulls it loose again, which can send that part and others back to the kit. The only tool that changes the build; the result reports what that cost in loosened, brokeJoins and leftBench.",
+      /* A step can fail with every connection matched, and until now nothing
+         said how to find out why: a horn a quarter turn out and a join the
+         sketch never asked for both leave `matched === expected`. */
+      verify_current_step:
+        "Check the current step and mark it complete. A step can fail with every connection matched: mechanicalOk is the servo horn, strays counts joins the sketch never asked for.",
       navigate_build_step: "Move to another step.",
       /* The tool description is handed to the browser verbatim for every
          build, so it cannot name one build's checks. It listed the capstone's
@@ -1984,6 +2017,40 @@ export const en = {
       get_project_requirements:
         "Read a project's parts, length, level and learning goals.",
       start_project: "Start a build and open its workbench.",
+    },
+
+    /**
+     * The display name a host prints in place of the tool's id.
+     *
+     * MCP's `title` is the one field on a descriptor whose whole job is to be
+     * read by a person: a browser listing what this page offers has otherwise
+     * nothing to show but `get_build_context`, which is a name for a function
+     * rather than for a thing. Two words each, in the product's own nouns —
+     * the timeline already calls a context read `Build context read` and a
+     * lead move `Agent moved …`, and a tool list that used different words
+     * from the log beside it would be a second vocabulary to learn.
+     *
+     * Not a shorter `tools` entry. That table says what a tool is *for* and is
+     * a sentence; this one says what it is *called* and is a label. Where the
+     * two would say the same thing the label says less, deliberately.
+     *
+     * `attach_lead` is `Lead move` and not `Lead placement` on purpose: it
+     * takes a lead out as readily as it puts one in, and a title naming only
+     * the additive half would repeat, one field higher up, the exact omission
+     * its description was corrected for.
+     */
+    toolTitles: {
+      get_build_context: "Build context",
+      inspect_build: "Build inspection",
+      show_correction: "Correction",
+      attach_lead: "Lead move",
+      verify_current_step: "Step check",
+      navigate_build_step: "Step navigation",
+      run_functional_test: "Build test",
+      find_projects: "Project search",
+      open_project: "Project screen",
+      get_project_requirements: "Project requirements",
+      start_project: "Build start",
     },
 
     knowledge: {

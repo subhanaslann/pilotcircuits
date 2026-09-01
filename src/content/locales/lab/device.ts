@@ -90,7 +90,7 @@ const en = {
   live: {
     title: "One run, read twice",
     description:
-      "The dock and the canvas driven by the same run_functional_test call — the same tool a WebMCP callback invokes in Batch 7, with no second demo path behind it.",
+      "The dock and the canvas driven by the same run_functional_test call — the same tool a WebMCP callback invokes, with no second demo path behind it.",
     note: "Press Run full test and watch both halves at once: the car rolls up, the readings fall in the monitor as the sonar pings, the three rows settle in order. Then the contradiction — the light goes green, the log says Barrier: opening, and the arm does not move. The horn is fitted a quarter turn out, so the sketch is obeyed and the room disagrees. Fix the servo and run it again: the same clock, the same list of readings, a gate that answers.",
     canvasLabel: "Smart Parking Barrier circuit",
     fixWiring: "Fix the Echo wire",
@@ -179,7 +179,7 @@ const tr: Section = {
   live: {
     title: "Tek koşu, iki okuma",
     description:
-      "Dock ve kanvas aynı run_functional_test çağrısıyla sürülüyor — Batch 7'de bir WebMCP geri çağrısının çağıracağı araçla aynısı, arkasında ikinci bir demo yolu olmadan.",
+      "Dock ve kanvas aynı run_functional_test çağrısıyla sürülüyor — bir WebMCP geri çağrısının çağırdığı araçla aynısı, arkasında ikinci bir demo yolu olmadan.",
     note: "Tam testi çalıştır'a bas ve iki yarıyı aynı anda izle: araba yaklaşır, sonar ses gönderirken okumalar monitöre düşer, üç satır sırayla oturur. Sonra çelişki — ışık yeşile döner, kayıt Barrier: opening yazar, ve kol kıpırdamaz. Kol çeyrek tur yanlış takılı, yani programa uyuluyor ve oda aynı fikirde değil. Servoyu düzelt ve yeniden çalıştır: aynı saat, aynı okuma listesi, cevap veren bir bariyer.",
     canvasLabel: "Akıllı Otopark Bariyeri devresi",
     fixWiring: "Echo kablosunu düzelt",

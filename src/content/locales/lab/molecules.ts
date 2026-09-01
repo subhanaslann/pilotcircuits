@@ -188,7 +188,7 @@ const en = {
     },
     drive: {
       title: "Drive it",
-      note: "The same state changes the WebMCP tools will make in Batch 7: show_correction focuses the canvas and marks both pins, verify_current_step compares the observed graph against the expected one.",
+      note: "The same state changes the WebMCP tools make: show_correction focuses the canvas and marks both pins, verify_current_step compares the observed graph against the expected one.",
     },
     hideAngle: "Hide expected angle",
   },
@@ -377,7 +377,7 @@ const tr: Section = {
     },
     drive: {
       title: "Çalıştır",
-      note: "Batch 7'de WebMCP araçlarının yapacağı durum değişikliklerinin aynısı: show_correction kanvası odaklar ve iki pini de işaretler, verify_current_step gözlenen grafiği beklenenle karşılaştırır.",
+      note: "WebMCP araçlarının yaptığı durum değişikliklerinin aynısı: show_correction kanvası odaklar ve iki pini de işaretler, verify_current_step gözlenen grafiği beklenenle karşılaştırır.",
     },
     hideAngle: "Beklenen açıyı gizle",
   },
