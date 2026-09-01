@@ -42,20 +42,6 @@ const LITERAL_URL = /="url\(#([^)"]+)\)"/g;
 const LITERAL_HREF =
   /(?:\bxlinkHref="#|<(?:use|textPath|mpath|feImage)\b[^>]*?\bhref="#)([^"]+)"/g;
 
-/**
- * Drawings outside `canvas/` that still name their ids, and why they are here
- * rather than fixed: `/workspace` draws exactly one kit case, so `cp-case-bb`
- * and `cp-case-shadow` have no second copy to collide with today. They are the
- * same latent fault — a second case on that page, or a second case anywhere in
- * the same document, resolves both to the first — and they are not this
- * agent's files. Remove a line the day its file scopes its ids; the test does
- * not check that these are still broken, only that no new one appears.
- */
-const TOLERATED = new Set([
-  "components/workspace/case-parts.tsx",
-  "components/workspace/kit-case.tsx",
-]);
-
 function tsxFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
@@ -65,12 +51,14 @@ function tsxFiles(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-const files = tsxFiles(ROOT)
-  .map((path) => ({
-    id: path.slice(ROOT.length + 1).split(sep).join(posix.sep),
-    source: readFileSync(path, "utf8"),
-  }))
-  .filter((file) => !TOLERATED.has(file.id));
+/* Every `.tsx` in `src/`, with no exceptions. There were two — the kit case's
+   `cp-case-bb` and `cp-case-shadow`, latent because `/workspace` draws exactly
+   one case — and both now scope their ids through `useSvgPrefix()`. An
+   exception list is how the next one would hide. */
+const files = tsxFiles(ROOT).map((path) => ({
+  id: path.slice(ROOT.length + 1).split(sep).join(posix.sep),
+  source: readFileSync(path, "utf8"),
+}));
 
 function matches(source: string, pattern: RegExp): string[] {
   return [...source.matchAll(new RegExp(pattern))].map((m) => m[0]);

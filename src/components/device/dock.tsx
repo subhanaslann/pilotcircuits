@@ -129,7 +129,12 @@ export function DeviceDock({
         </TabPanel>
       </div>
 
-      {announcement ? <LiveRegion message={announcement} /> : null}
+      {/* Mounted empty, not on first announcement: a screen reader watches a
+          live region for MUTATIONS, and a region inserted with its text
+          already in it is inserted, not changed — so the first thing the dock
+          ever has to say is the one thing it cannot say. Same fault, same fix,
+          as the agent panel's. */}
+      <LiveRegion message={announcement ?? ""} />
     </section>
   );
 }

@@ -336,11 +336,18 @@ function WireLabel({
   const width = wireLabelWidth(text);
   const height = WIRE_LABEL_HEIGHT;
 
+  /* The `-edge` tokens, not the cable's own colour. A pill sits on its own
+     white capsule rather than on the cable, and `--color-wire-error` on
+     `--color-surface` is 2.90:1 while `--color-wire-target` is 2.96:1 — both
+     under §18's 3:1 floor for UI. The edge tokens are the same hue a shade
+     down (4.9:1 and 5.1:1), so the pill still reads as belonging to its cable.
+     The CABLE keeps the bright token; darkening that would change what the
+     bench looks like, and the bench is not what fails here. */
   const ink =
     tone === "mismatch"
-      ? "var(--color-wire-error)"
+      ? "var(--color-wire-error-edge)"
       : tone === "target"
-        ? "var(--color-wire-target)"
+        ? "var(--color-wire-target-edge)"
         : "var(--color-ink-secondary)";
 
   return (

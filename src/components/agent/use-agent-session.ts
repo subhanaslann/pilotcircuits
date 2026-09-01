@@ -283,6 +283,29 @@ export function useAgentSession(options?: {
   const [testAngle, setTestAngle] = useState<number | null>(null);
   const [announcement, setAnnouncement] = useState("");
   /**
+   * Say it even when it is the same sentence twice.
+   *
+   * `setAnnouncement(sameString)` is a React state bail-out: no re-render, no
+   * DOM mutation — and a live region is announced when its contents CHANGE, so
+   * the second of two identical announcements was silent. Seating two leads
+   * into the same hole in a row, or refusing the same drop twice, said nothing
+   * the second time, which is exactly when a person most needs to hear that
+   * the thing they just did did the same thing again.
+   *
+   * A zero-width space, alternated, is the smallest change that is a change:
+   * the text node differs, the reader announces, and there is nothing to see
+   * or to select. A counter would work too, but it would have to live in state
+   * beside the sentence and this does not.
+   */
+  const announce = (text: string) =>
+    setAnnouncement((prev) =>
+      text === "" || prev.replace(/​$/, "") !== text
+        ? text
+        : prev.endsWith("​")
+          ? text
+          : `${text}​`,
+    );
+  /**
    * The last thing the model said no to.
    *
    * Ephemeral, and deliberately not session state: it is about a gesture that
@@ -617,7 +640,7 @@ export function useAgentSession(options?: {
          missed toast loses nothing because it is not a separate fact. */
     const spoken =
       outcome.note?.headline ?? outcome.outcome ?? outcome.errorMessage;
-    setAnnouncement(spoken ? say(copy, spoken) : "");
+    announce(spoken ? say(copy, spoken) : "");
 
     /**
      * A call that failed says so on screen.
@@ -671,7 +694,7 @@ export function useAgentSession(options?: {
           : current.history.future;
       if (!stack.length) {
         const nothing: Line = { ns: "user", k: "nothingToUndo" };
-        setAnnouncement(say(copy, nothing));
+        announce(say(copy, nothing));
         return;
       }
       apply({ type: action.kind });
@@ -747,7 +770,7 @@ export function useAgentSession(options?: {
           time: clockOf(Date.now()),
         },
       });
-      setAnnouncement(say(copy, headline));
+      announce(say(copy, headline));
       return;
     }
 
@@ -787,7 +810,7 @@ export function useAgentSession(options?: {
           time: clockOf(Date.now()),
         },
       });
-      setAnnouncement(say(copy, headline));
+      announce(say(copy, headline));
       return;
     }
 
@@ -835,7 +858,7 @@ export function useAgentSession(options?: {
                 ? { ns: "errors", k: "wireEnd" }
                 : { ns: "errors", k: "sameCircuitPart" };
         setRefusal(say(copy, reason));
-        setAnnouncement(say(copy, reason));
+        announce(say(copy, reason));
         return;
       }
 
@@ -942,7 +965,7 @@ export function useAgentSession(options?: {
         });
       }
       if (lines.length) {
-        setAnnouncement(lines.map((line) => say(copy, line)).join(" "));
+        announce(lines.map((line) => say(copy, line)).join(" "));
       }
       return;
     }
@@ -1076,7 +1099,7 @@ export function useAgentSession(options?: {
           time: clockOf(Date.now()),
         },
       });
-      setAnnouncement(say(copy, headline));
+      announce(say(copy, headline));
       return;
     }
 
@@ -1192,7 +1215,7 @@ export function useAgentSession(options?: {
           time: clockOf(Date.now()),
         },
       });
-      setAnnouncement(say(copy, headline));
+      announce(say(copy, headline));
       return;
     }
   };
@@ -1288,7 +1311,7 @@ export function useAgentSession(options?: {
     setSerial([]);
     setReadings([]);
     setTestRun(idleRun);
-    setAnnouncement(say(copy, { ns: "activity", k: "reset" }));
+    announce(say(copy, { ns: "activity", k: "reset" }));
     for (const view of views()) view.fitView();
     apply({
       type: "log",

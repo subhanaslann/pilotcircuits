@@ -22,7 +22,7 @@ const PRESS_SLOP = 6;
  * marks land on white breadboard plastic, on a blue PCB and on the dark mat
  * within one gesture, and no single light colour clears 3:1 on all three.
  */
-const MARK_GROUND = "#10161C";
+export const MARK_GROUND = "#10161C";
 
 /**
  * The caret asking to be looked at — the SVG equivalent of `scrollIntoView`.

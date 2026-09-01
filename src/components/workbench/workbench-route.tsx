@@ -141,6 +141,12 @@ export function WorkbenchRoute({
         session={session}
         canvas={canvasRef}
         camera={cameraRef}
+        /* The same ternary as `useWebMcpTools` above, and it has to be: the
+           panel's `N tools available` is a claim about THIS page, and the
+           narrow bench registers four because the canvas is not mounted and
+           the panel is inside a closed drawer. Counting seven there would
+           print a number for tools no host was ever handed. */
+        panelTools={wide ? workbenchTools : narrowTools}
         /**
          * Back goes to the picker, not to the chapter's page.
          *

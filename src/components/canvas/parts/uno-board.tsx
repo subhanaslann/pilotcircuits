@@ -30,7 +30,10 @@ export function UnoBoard({
   at?: { x: number; y: number };
 }) {
   return (
-    <g transform={artTransform(frame.uno, at)}>
+    /* Hidden from assistive tech: the silkscreen — DIGITAL (PWM ~), ANALOG IN,
+       the pin numbers, ARDUINO UNO — is a picture of the board. The pins a
+       person needs are named in the step rail and in every finding sentence. */
+    <g transform={artTransform(frame.uno, at)} aria-hidden="true">
       {/* The board is powered for the whole demo; L is not modelled. */}
       <UnoArtwork ledPower />
     </g>

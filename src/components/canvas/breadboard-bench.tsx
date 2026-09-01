@@ -27,7 +27,10 @@ import {
   TargetPinMark,
   WrongPinMark,
 } from "@/components/canvas/overlays/pin-rings";
-import { SeatPicker } from "@/components/canvas/overlays/seat-picker";
+import {
+  MARK_GROUND,
+  SeatPicker,
+} from "@/components/canvas/overlays/seat-picker";
 import {
   CarriedLeadMark,
   LeadPicker,
@@ -989,23 +992,49 @@ export function BreadboardBenchView<Live = void>({
                     so. Gone entirely while the picker is up, because every free
                     lead it offers has a diamond at exactly this point and a
                     ring drawn under one is two marks at one radius. */}
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={PITCH * 0.42}
-                  fill="none"
-                  stroke={bench.label}
-                  strokeWidth={1.2}
-                  opacity={
-                    handling.free.has(n.id) &&
-                    !asking &&
-                    !(picking && onSeat) &&
-                    heldLead !== n.id
-                      ? 0.55
-                      : 0
-                  }
-                  className="group-focus-visible:opacity-100 group-focus-visible:[stroke-width:2.2]"
-                />
+                {/* Dark under light, the same pair the picker's candidates
+                    use, and for the same measurement: `bench.label` alone at
+                    0.55 is 1.21:1 on breadboard plastic — an open ring nobody
+                    can see is not an affordance. The halo is drawn first and
+                    slightly wider, so the light ring reads on white plastic and
+                    on the board's blue alike. */}
+                {[
+                  /* Written out rather than built from a value: Tailwind reads
+                     the SOURCE for class names, so an interpolated
+                     `[stroke-width:${n}]` is a class it never generates — the
+                     exact shape of the `ring-focus` bug this batch fixed. */
+                  {
+                    paint: MARK_GROUND,
+                    width: 3,
+                    focus:
+                      "group-focus-visible:opacity-100 group-focus-visible:[stroke-width:4]",
+                  },
+                  {
+                    paint: bench.label,
+                    width: 1.2,
+                    focus:
+                      "group-focus-visible:opacity-100 group-focus-visible:[stroke-width:2.2]",
+                  },
+                ].map((ring) => (
+                  <circle
+                    key={ring.paint}
+                    cx={x}
+                    cy={y}
+                    r={PITCH * 0.42}
+                    fill="none"
+                    stroke={ring.paint}
+                    strokeWidth={ring.width}
+                    opacity={
+                      handling.free.has(n.id) &&
+                      !asking &&
+                      !(picking && onSeat) &&
+                      heldLead !== n.id
+                        ? 0.55
+                        : 0
+                    }
+                    className={ring.focus}
+                  />
+                ))}
                 {/* **This is the one in your hand**, whichever way it got there
                     — dragged, or picked out of the part with the chooser. It
                     stays marked until it lands, or the holes that appear next

@@ -130,7 +130,13 @@ export function Breadboard({
   }
 
   return (
-    <g style={NOT_A_CONTROL}>
+    /* `aria-hidden` for the same reason as `NOT_A_CONTROL`, one sense over.
+       The address gutter is 26 <text> and 38 <tspan> nodes of silkscreen — A
+       through J, 5 to 30 — and it is a picture of a breadboard, not a list of
+       things. A screen reader reading it aloud reads the furniture; what the
+       leads are actually joined to is said in the step rail and the findings,
+       in sentences. */
+    <g style={NOT_A_CONTROL} aria-hidden="true">
       <rect
         x={x}
         y={bodyTop}
