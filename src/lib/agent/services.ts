@@ -272,30 +272,33 @@ function placementOf(state: AgentSessionState) {
 /**
  * An argument this tool cannot honour, refused where the caller can read it.
  *
- * §9's rule 3 asks a tool for *success or a comprehensible error*, and four of
+ * §9's rule 3 asks a tool for *success or a comprehensible error*, and five of
  * these calls used to answer a nonsense argument with success: a step id from
  * another chapter moved the bench onto it, a scope that is not a scope was
  * echoed back as if honoured, a detail level outside the ladder was written
- * into session state and closed all three rungs of the teaching panel, and a
- * finding id nothing ever minted was told the finding had expired.
+ * into session state and closed all three rungs of the teaching panel, a
+ * finding id nothing ever minted was told the finding had expired, and a
+ * malformed filter was written into the library toolbar the person is looking
+ * at.
  *
- * **The sentence is the unfinished half.** `agentPanel.errors` has no line for
- * any of the four, and this batch does not own the dictionary — so every one of
- * them shows the declared backstop, which is at least true and is what that key
- * exists for ("a tool reached through the browser can be handed arguments no
- * button would produce"). What the caller actually needs is here, structured, in
- * `result`: which argument was refused, what arrived, and what would have been
- * accepted. When the four lines land, each site's `errorMessage` is the only
- * thing that changes.
+ * Two halves, and both are needed. The **sentence** is what the person watching
+ * reads in the error toast, so it names the thing that was wrong rather than
+ * saying a call failed. The **structure** is what the caller can act on — which
+ * argument was refused, what arrived, and what would have been accepted — and it
+ * goes in `result`, because a rendered sentence cannot carry a list of step ids
+ * an agent is supposed to choose from.
+ *
+ * `refused` is the key, so `result.refused` and the dictionary line can never
+ * drift apart: one object decides both.
  */
 export function refused(
-  reason: string,
+  message: Line,
   detail: Record<string, unknown>,
 ): ToolOutcome {
   return {
     status: "error",
-    result: { refused: reason, ...detail, source: "demo" },
-    errorMessage: { ns: "errors", k: "toolFailed" },
+    result: { refused: message.k, ...detail, source: "demo" },
+    errorMessage: message,
   };
 }
 
@@ -404,11 +407,14 @@ export const handlers: ToolHandlers = {
      */
     const asked: unknown = input.scope;
     if (asked !== undefined && !isInspectionScope(asked)) {
-      return refused("unknownScope", {
-        argument: "scope",
-        value: asked ?? null,
-        valid: [...inspectionScopes],
-      });
+      return refused(
+        {
+          ns: "errors",
+          k: "unknownScope",
+          args: [[...inspectionScopes].join(", ")],
+        },
+        { argument: "scope", value: asked ?? null, valid: [...inspectionScopes] },
+      );
     }
     const scope: InspectionScope = asked ?? "current_step";
 
@@ -519,7 +525,22 @@ export const handlers: ToolHandlers = {
       },
       note: found.length
         ? { headline: foundLine(found), tone: "found" as const }
-        : { headline: { ns: "activity" as const, k: "nothingFound" as const } },
+        : {
+            /* The clean sentence has to be about what was looked at. One
+               sentence said "in this step" whatever the scope was, so a
+               whole-build inspection that came back clean reported on a
+               narrower thing than it had read — and on chapters 1-5 that is
+               the line a `wiring` scope prints while the entire build is still
+               in the box. `current_step` is the only scope that is about a
+               step; the other four read the build. */
+            headline: {
+              ns: "activity" as const,
+              k:
+                scope === "current_step"
+                  ? ("nothingFound" as const)
+                  : ("nothingFoundInBuild" as const),
+            },
+          },
       /* A toast is read once and gone, so it is words, not a `Line`. */
       effects: found.length
         ? [
@@ -550,11 +571,18 @@ export const handlers: ToolHandlers = {
      */
     const askedLevel: unknown = detail_level;
     if (askedLevel !== undefined && !isCoachingLevel(askedLevel)) {
-      return refused("unknownDetailLevel", {
-        argument: "detail_level",
-        value: askedLevel ?? null,
-        valid: [...coachingOrder],
-      });
+      return refused(
+        {
+          ns: "errors",
+          k: "unknownDetailLevel",
+          args: [[...coachingOrder].join(", ")],
+        },
+        {
+          argument: "detail_level",
+          value: askedLevel ?? null,
+          valid: [...coachingOrder],
+        },
+      );
     }
     const level: CoachingLevel = askedLevel ?? state.coaching;
 
@@ -567,18 +595,25 @@ export const handlers: ToolHandlers = {
      * id of a finding the person had already put right returned `status: "ok"`,
      * opened the findings tab and swung both cameras onto the now-correct hole.
      * The product owned the right sentence and had attached it to the one case
-     * it does not describe, with no branch at all for the case it names.
+     * it does not describe, with no branch at all for the case it names. There
+     * are two sentences now and the pair is the point: `noSuchFinding` says
+     * nothing ever carried that id, `unknownFinding` says an id the panel really
+     * minted has since been put right.
      */
     const finding = state.findings.find((f) => f.id === finding_id);
     if (!finding) {
-      return refused("noSuchFinding", {
-        argument: "finding_id",
-        value: finding_id ?? null,
-        /* What a caller can do about it, without a sentence to say it in. */
-        open: state.findings
-          .filter((f) => !isResolved(f, state.scene))
-          .map((f) => f.id),
-      });
+      return refused(
+        { ns: "errors", k: "noSuchFinding" },
+        {
+          argument: "finding_id",
+          value: finding_id ?? null,
+          /* The ids the sentence sends the caller back to `inspect_build` for,
+             handed over directly — a rendered sentence cannot carry a list. */
+          open: state.findings
+            .filter((f) => !isResolved(f, state.scene))
+            .map((f) => f.id),
+        },
+      );
     }
     if (isResolved(finding, state.scene)) {
       return {
@@ -1005,11 +1040,22 @@ export const handlers: ToolHandlers = {
     );
     const step = rail.find((s) => s.id === step_id);
     if (!step) {
-      return refused("unknownStep", {
-        argument: "step_id",
-        value: step_id ?? null,
-        valid: rail.map((s) => s.id),
-      });
+      /* The sentence says how many steps this build has; `result.valid` says
+         which. Deliberately not the ids: `mnlPower` is a graph address that
+         appears nowhere a person can see, and this campaign has just spent a
+         commit taking those out of rendered sentences. Their translated NAMES
+         cannot go there either — joining them at the call site would freeze a
+         translated argument in the language it was built in, which is the one
+         thing `line.ts` exists to prevent. The agent gets the ids below, where
+         a list belongs. */
+      return refused(
+        { ns: "errors", k: "unknownStep", args: [rail.length] },
+        {
+          argument: "step_id",
+          value: step_id ?? null,
+          valid: rail.map((s) => s.id),
+        },
+      );
     }
 
     if (step.id === state.activeStepId) {
@@ -1211,10 +1257,31 @@ export function headlineFor<K extends keyof ToolInputs>(
         return { ns: "activity", k: "inspectingMechanical", args: [step.index] };
       if (scope === "all" || scope === "wiring")
         return { ns: "activity", k: "inspectingAll" };
+      /* `placement` is the one scope that explicitly excludes wiring —
+         `scopeKinds("placement")` admits placement findings and nothing else —
+         and it fell through to the sentence naming wiring, on five of the six
+         chapters. The timeline announced the one thing the call did not do. */
+      if (scope === "placement")
+        return { ns: "activity", k: "inspectingPlacement", args: [step.index] };
       return { ns: "activity", k: "inspecting", args: [step.index] };
     }
-    case "show_correction":
+    case "show_correction": {
+      /* Three sentences, chosen by what is actually being pointed at. This was
+         unconditional, so on a fresh chapters 1-5 bench — where every finding is
+         a part still in the box — every `show_correction` in the opening of five
+         chapters was described as pointing at a connection that does not exist,
+         and on the capstone the servo horn got the same line. The dictionary
+         already knew the distinction: `mismatchFound`'s note says a servo "is
+         not a connection mismatch, and saying so would be the interface telling
+         the user something it knows to be untrue." */
+      const id = (input as ToolInputs["show_correction"]).finding_id;
+      const finding = state.findings.find((f) => f.id === id);
+      if (finding?.type === "part-not-placed")
+        return { ns: "activity", k: "showingCorrectionPart" };
+      if (finding?.type === "mechanical-alignment")
+        return { ns: "activity", k: "showingCorrectionAlignment" };
       return { ns: "activity", k: "showingCorrection" };
+    }
     case "attach_lead":
       return {
         ns: "activity",
@@ -1247,25 +1314,28 @@ export function headlineFor<K extends keyof ToolInputs>(
         ns: "activity",
         k: "testing",
         /**
-         * Still the raw id, and that is a defect this batch could only half
-         * close. The Turkish timeline reads *"Ajan wiring testini çalıştırdı"*
-         * beside a device row reading `Bağlantılar okunuyor` — one screen
-         * naming one check twice, in two languages. `line.ts` has the `check`
-         * ref that fixes it and a test that proves it resolves; what it cannot
-         * fix on its own is the sentence around it. `copy.test` holds the row's
+         * A `Ref`, not the raw id.
+         *
+         * `copy.test.<id>` is the product's own translated word for a check and
+         * the device dock beside the panel renders exactly that — so carrying
+         * the id as text put *"Ajan wiring testini çalıştırdı"* in the Turkish
+         * timeline next to a row reading `Bağlantılar okunuyor`: one screen
+         * naming one check twice, in two languages.
+         *
+         * The sentence had to move with it. `copy.test` holds the row's
          * *activity* — "Reading the connections", "Can the lamp breathe" — and
-         * `activity.testing` is written as `Agent ran the ${test} test`, so
-         * substituting one into the other gives "Agent ran the Can the lamp
-         * breathe test". The template has to change with the argument, and the
-         * dictionary is not this batch's to write. Coerced, at least, so a call
-         * with no `test` reaches the handler's own refusal instead of throwing
-         * before the activity entry exists.
+         * the template used to read `Agent ran the ${test} test`, which would
+         * have produced "Agent ran the Can the lamp breathe test". It is an
+         * apposition now, so a phrase reads correctly where an id did.
+         *
+         * Coerced, so a call with no `test` reaches the handler's own refusal
+         * instead of throwing before the activity entry exists.
          */
         args: [
-          String((input as ToolInputs["run_functional_test"]).test ?? "").replace(
-            /_/g,
-            " ",
-          ),
+          {
+            ref: "check",
+            id: String((input as ToolInputs["run_functional_test"]).test ?? ""),
+          },
         ],
       };
     /* `get_build_context` and anything a later batch adds. */

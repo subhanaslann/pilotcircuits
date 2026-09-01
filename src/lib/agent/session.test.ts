@@ -212,7 +212,11 @@ async function call<K extends keyof AllToolInputs>(
   return { outcome, next: live };
 }
 
-/** What a refusal put in `result` — the half the sentence cannot carry yet. */
+/**
+ * What a refusal put in `result` — the structured half, which is what a caller
+ * that cannot see the toast has to act on. `refused` is the dictionary key, so
+ * asserting it also asserts which sentence the person read.
+ */
 const refusal = (outcome: ToolOutcome) =>
   (outcome.result as { refused?: string } | undefined)?.refused;
 
@@ -537,28 +541,34 @@ describe("part names come from one authority", () => {
 /**
  * A check id is translated too — the dock beside the panel already says so.
  *
- * The `check` ref resolves; the timeline does not use it yet, because
- * `activity.testing` is written for an id (`Agent ran the ${test} test`) and
- * `copy.test` holds the row's activity rather than its name. Both halves have
- * to move together; this pins the half that is here.
+ * The timeline carried the raw id, so the Turkish activity row read *"Ajan
+ * wiring testini çalıştırdı"* beside a device row reading `Bağlantılar
+ * okunuyor`: one screen naming one check twice, in two languages.
  */
 describe("a check ref resolves in the reader's language", () => {
-  const line: Line = {
+  const testing = (id: string): Line => ({
     ns: "activity",
     k: "testing",
-    args: [{ ref: "check", id: "wiring" }],
-  };
+    args: [{ ref: "check", id }],
+  });
 
-  it("in both, and falls back to the id where there is no word", () => {
-    expect(say(en, line)).toContain(en.test.wiring);
-    expect(say(tr, line)).toContain(tr.test.wiring);
-    expect(
-      say(tr, {
-        ns: "activity",
-        k: "testing",
-        args: [{ ref: "check", id: "full_system" }],
-      }),
-    ).toContain("full system");
+  it("names the check the way the device dock names it", () => {
+    expect(say(en, testing("wiring"))).toContain(en.test.wiring);
+    expect(say(tr, testing("wiring"))).toContain(tr.test.wiring);
+    expect(say(tr, testing("wiring"))).not.toContain("wiring");
+  });
+
+  /**
+   * `no_such_check` is deliberately undeclared — no `RunSpec` has it and no
+   * locale names it — because the fallback needs an id the dictionary will
+   * never learn. It used to be demonstrated with `full_system`, which is a real
+   * argument of `run_functional_test` and is exactly the row that ought to
+   * acquire a name; pinning the fallback to it would have made naming it a test
+   * failure.
+   */
+  it("falls back to the id itself where there is no word for it", () => {
+    expect(say(en, testing("no_such_check"))).toContain("no such check");
+    expect(say(tr, testing("no_such_check"))).toContain("no such check");
   });
 });
 
@@ -636,4 +646,180 @@ describe("a correctly built bench still verifies to the end", () => {
       expect(state.completedAt).not.toBeNull();
     });
   }
+});
+
+/**
+ * Every refusal says what was wrong, in the reader's own language.
+ *
+ * The structure landed a batch before the sentences did, so for one commit all
+ * five of these showed `errors.toolFailed` — "That call could not be completed."
+ * — which is true and tells a person nothing. §9's rule 3 asks for a
+ * comprehensible error, and a generic one shared by five different mistakes is
+ * the defect this campaign is about, one level up.
+ */
+describe("a refused call names what was refused", () => {
+  const cases: {
+    name: string;
+    key: string;
+    run: () => Promise<ToolOutcome>;
+  }[] = [
+    {
+      name: "a step from another chapter",
+      key: "unknownStep",
+      run: async () =>
+        (
+          await call(open(), "navigate_build_step", {
+            step_id: "sensor",
+          } as unknown as ToolInputs["navigate_build_step"])
+        ).outcome,
+    },
+    {
+      name: "a scope that is not a scope",
+      key: "unknownScope",
+      run: async () =>
+        (
+          await call(open(), "inspect_build", {
+            scope: "banana",
+          } as unknown as ToolInputs["inspect_build"])
+        ).outcome,
+    },
+    {
+      name: "a detail level outside the ladder",
+      key: "unknownDetailLevel",
+      run: async () =>
+        (
+          await call(open(), "show_correction", {
+            finding_id: "anything",
+            detail_level: "loud",
+          } as unknown as ToolInputs["show_correction"])
+        ).outcome,
+    },
+    {
+      name: "an id nothing minted",
+      key: "noSuchFinding",
+      run: async () =>
+        (await call(open(), "show_correction", { finding_id: "nope" })).outcome,
+    },
+    {
+      name: "a filter of the wrong shape",
+      key: "unknownFilter",
+      run: async () =>
+        (
+          await call(open(), "find_projects", {
+            max_minutes: "twenty",
+          } as never)
+        ).outcome,
+    },
+  ];
+
+  for (const { name, key, run } of cases) {
+    it(name, async () => {
+      const outcome = await run();
+      expect(outcome.status).toBe("error");
+      expect(refusal(outcome)).toBe(key);
+      /* The key the payload reports and the key the toast renders are one
+         object, so they cannot name two different mistakes. */
+      expect(outcome.errorMessage?.k).toBe(key);
+      for (const copy of [en, tr]) {
+        const sentence = say(copy, outcome.errorMessage!);
+        expect(sentence.length, `${key} ${copy === en ? "en" : "tr"}`)
+          .toBeGreaterThan(0);
+        expect(sentence).not.toBe(copy.agentPanel.errors.toolFailed);
+      }
+    });
+  }
+
+  /**
+   * The refusal for a step names a count, not the ids.
+   *
+   * `mnlPower` is a graph address that appears nowhere a person can see, and
+   * the campaign that produced this guard spent a commit taking exactly that
+   * class of string out of rendered sentences. The ids an agent needs are in
+   * `result.valid`, where a list belongs.
+   */
+  it("counts the steps rather than listing them", async () => {
+    const { outcome } = await call(open(), "navigate_build_step", {
+      step_id: "sensor",
+    } as unknown as ToolInputs["navigate_build_step"]);
+    const sentence = say(en, outcome.errorMessage!);
+    expect(sentence).toContain("4");
+    for (const id of ["lampKit", "lampSeat", "lampResistor", "lampUpload"]) {
+      expect(sentence).not.toContain(id);
+      expect(
+        (outcome.result as { valid: string[] }).valid,
+      ).toContain(id);
+    }
+  });
+});
+
+/**
+ * The timeline says what the call actually did.
+ *
+ * `headlineFor` had one sentence for every `show_correction` — "Agent pointed
+ * at the connection" — so every correction in the opening of five chapters
+ * described pointing at a connection that does not exist, because on a fresh
+ * bench every finding is a part still in the box. `placement` had the same
+ * shape one tool along: the one scope that excludes wiring was announced as
+ * having inspected wiring.
+ */
+describe("the timeline headline matches the call", () => {
+  it("names a placement inspection as one", () => {
+    const line = headlineFor("inspect_build", { scope: "placement" }, open());
+    expect(line).toEqual({
+      ns: "activity",
+      k: "inspectingPlacement",
+      args: [1],
+    });
+  });
+
+  it("points at a part, a horn or a connection, by what the finding is", async () => {
+    const seat: AgentSessionState = { ...open(), activeStepId: "lampSeat" };
+    const { next } = await call(seat, "inspect_build", { scope: "all" });
+    const part = next.findings.find((f) => f.type === "part-not-placed")!;
+    expect(
+      headlineFor("show_correction", { finding_id: part.id }, next).k,
+    ).toBe("showingCorrectionPart");
+
+    const barrier = initialSession(builds.smartParkingBarrier!);
+    const { next: capstone } = await call(barrier, "inspect_build", {
+      scope: "all",
+    });
+    const horn = capstone.findings.find(
+      (f) => f.type === "mechanical-alignment",
+    )!;
+    const wire = capstone.findings.find((f) => f.type !== "mechanical-alignment")!;
+    expect(
+      headlineFor("show_correction", { finding_id: horn.id }, capstone).k,
+    ).toBe("showingCorrectionAlignment");
+    expect(
+      headlineFor("show_correction", { finding_id: wire.id }, capstone).k,
+    ).toBe("showingCorrection");
+  });
+
+  /**
+   * The clean sentence is about what was looked at. One line said "in this
+   * step" whatever the scope was, so a whole-build inspection that came back
+   * clean reported on something narrower than it had read.
+   */
+  it("says `in this build` for a scope that read the build", async () => {
+    const clean: AgentSessionState = {
+      ...open(),
+      placement: spec.complete,
+      scene: lampSceneFrom(spec.complete),
+    };
+    const { outcome: whole } = await call(clean, "inspect_build", {
+      scope: "all",
+    });
+    expect(whole.note?.headline).toEqual({
+      ns: "activity",
+      k: "nothingFoundInBuild",
+    });
+    const { outcome: here } = await call(clean, "inspect_build", {
+      scope: "current_step",
+    });
+    expect(here.note?.headline).toEqual({
+      ns: "activity",
+      k: "nothingFound",
+    });
+  });
 });

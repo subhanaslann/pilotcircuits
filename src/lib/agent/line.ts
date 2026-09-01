@@ -79,17 +79,14 @@ export type Ref =
    *
    * A check id is not hardware. `copy.test.<id>` is the product's translated
    * word for it and the device dock renders exactly that — so passing the raw
-   * id as text puts *"Ajan wiring testini çalıştırdı"* in the Turkish timeline
+   * id as text put *"Ajan wiring testini çalıştırdı"* in the Turkish timeline
    * next to a row reading `Bağlantılar okunuyor`: one screen naming one check
    * twice, in two languages.
    *
-   * **Nothing passes one yet, and that is deliberate.** The only sentence that
-   * wants it is `activity.testing`, written as `Agent ran the ${test} test` for
-   * an id — and `copy.test` holds the row's *activity* rather than its name, so
-   * feeding one into the other produces "Agent ran the Can the lamp breathe
-   * test". The template has to change in the same move, and the dictionary
-   * belongs to another batch. This is the half that can be written and tested
-   * now; `services.ts:headlineFor` says what the other half is.
+   * `activity.testing` moved with it, from `Agent ran the ${test} test` to an
+   * apposition — `copy.test` holds the row's *activity* rather than a noun, and
+   * the old template would have produced "Agent ran the Can the lamp breathe
+   * test". A ref that needs a different sentence around it is half a fix.
    */
   | { ref: "check"; id: string }
   /**

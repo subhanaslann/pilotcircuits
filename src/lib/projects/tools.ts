@@ -98,6 +98,21 @@ function isRefusal(value: unknown): value is Refusal {
   );
 }
 
+/**
+ * The refusal, said and structured from one argument name.
+ *
+ * Six call sites, and the sentence names the filter that was wrong — so the
+ * name has to be the same one the payload reports or the toast and the tool
+ * result would send a reader to two different controls. One function, one
+ * `argument`, both halves.
+ */
+function badFilter(refusal: Refusal): ToolOutcome {
+  return refused(
+    { ns: "errors", k: "unknownFilter", args: [refusal.argument] },
+    { ...refusal },
+  );
+}
+
 /** What a project looks like to a caller that cannot see the screen. */
 function describe(project: ProjectDef, copy: Copy) {
   const words = copy.projects[project.id];
@@ -166,7 +181,7 @@ export const libraryHandlers: LibraryHandlers = {
 
     const search = raw.search ?? "";
     if (typeof search !== "string") {
-      return refused("unknownFilter", { argument: "search", value: search });
+      return badFilter({ argument: "search", value: search });
     }
 
     const maxMinutes = raw.max_minutes ?? null;
@@ -176,32 +191,20 @@ export const libraryHandlers: LibraryHandlers = {
         !Number.isFinite(maxMinutes) ||
         maxMinutes < 0)
     ) {
-      return refused("unknownFilter", {
-        argument: "max_minutes",
-        value: maxMinutes,
-      });
+      return badFilter({ argument: "max_minutes", value: maxMinutes });
     }
 
     const readyOnly = raw.ready_only ?? false;
     if (typeof readyOnly !== "boolean") {
-      return refused("unknownFilter", {
-        argument: "ready_only",
-        value: readyOnly,
-      });
+      return badFilter({ argument: "ready_only", value: readyOnly });
     }
 
     const difficulty = wordList("difficulty", raw.difficulty, difficulties);
-    if (isRefusal(difficulty)) {
-      return refused("unknownFilter", { ...difficulty });
-    }
+    if (isRefusal(difficulty)) return badFilter(difficulty);
     const components = wordList("components", raw.components, componentIds);
-    if (isRefusal(components)) {
-      return refused("unknownFilter", { ...components });
-    }
+    if (isRefusal(components)) return badFilter(components);
     const concepts = wordList("concepts", raw.concepts, conceptIds);
-    if (isRefusal(concepts)) {
-      return refused("unknownFilter", { ...concepts });
-    }
+    if (isRefusal(concepts)) return badFilter(concepts);
 
     await ctx.phase({ ns: "phases", k: "searchingProjects" }, 340);
 
