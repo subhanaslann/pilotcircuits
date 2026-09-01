@@ -1700,6 +1700,11 @@ export const en = {
       inspectingMechanical: (step: number) =>
         `Agent checked the mechanical alignment for Step ${step}`,
       inspectingAll: "Agent inspected the whole build",
+      /* The fourth scope. Without a line of its own a `placement` inspection
+         was announced as "inspected wiring for Step 3" — which is the one
+         thing it does not look at. */
+      inspectingPlacement: (step: number) =>
+        `Agent checked which parts are on the bench for Step ${step}`,
       /* Only for wiring. A servo mounted a quarter turn out is not a
          connection mismatch, and saying so would be the interface telling the
          user something it knows to be untrue. */
@@ -1722,7 +1727,18 @@ export const en = {
       issuesFound: (n: number) =>
         n === 1 ? "1 issue found" : `${n} issues found`,
       nothingFound: "Nothing to correct in this step",
+      /* The same answer about a wider question. `current_step` is the only
+         scope narrowed to the step you are standing on; the other four read
+         the whole build, and saying "in this step" about them understates a
+         clean inspection into a much smaller claim. */
+      nothingFoundInBuild: "Nothing to correct in this build",
       showingCorrection: "Agent pointed at the connection",
+      /* Two findings have no connection to point at. A part still in its box
+         has a hole waiting for it and nothing in that hole; a horn a quarter
+         turn out is not a join at all. Saying "pointed at the connection" for
+         either is the timeline describing a different act. */
+      showingCorrectionPart: "Agent pointed at where the part goes",
+      showingCorrectionAlignment: "Agent pointed at the servo horn",
 
       /* The one thing the agent does with hands. Same shape as the person's
          own four sentences, in the agent's voice — the timeline has to say
@@ -1744,7 +1760,18 @@ export const en = {
          agent-built chapter comes to look like one somebody worked through. */
       skippedSteps: (n: number) =>
         n === 1 ? "1 step passed unfinished" : `${n} steps passed unfinished`,
-      testing: (test: string) => `Agent ran the ${test} test`,
+      /**
+       * The name after a colon, not inside the phrase.
+       *
+       * `copy.test` holds what a check DOES — "Can the lamp breathe", "Reading
+       * the connections" — because those words are the device dock's row
+       * labels. Dropped into `the ${test} test` that reads "Agent ran the Can
+       * the lamp breathe test". An apposition takes any of them, including the
+       * ones phrased as a question, and it is also what lets the argument be a
+       * translated `{ ref: "check" }` rather than the raw id the timeline used
+       * to print into a Turkish sentence.
+       */
+      testing: (test: string) => `Agent ran the check: ${test}`,
       testPassed: "All checks passed",
       testFailed: (n: number) =>
         n === 1 ? "1 check failed" : `${n} checks failed`,
@@ -1782,6 +1809,43 @@ export const en = {
 
     errors: {
       unknownFinding: "That finding is no longer open.",
+
+      /**
+       * Five arguments the model cannot honour, each with its own sentence.
+       *
+       * They were all showing `toolFailed` — true, and the reason that key
+       * exists, but it is the backstop rather than an answer. §9 asks a tool
+       * for success or a *comprehensible* error, and "that call could not be
+       * completed" is comprehensible only as a fact about the call.
+       *
+       * What each of them may print, and what it may not: a scope, a detail
+       * level and a filter name are the tool's OWN argument vocabulary — the
+       * same untranslated words the tools panel lists beside `inspect_build` —
+       * so a sentence may name them. A step id is not: the rail shows a name
+       * and a number, `mnlPower` appears nowhere a person can see, and putting
+       * it here would be the graph address leak this batch spent its time
+       * removing. So the step refusal counts instead of enumerating, and the
+       * ids stay in `result.valid`, where the caller that needs them is.
+       *
+       * A count rather than a joined list of names for a second reason: a step
+       * name is translated, and `line.ts` is explicit that a translated
+       * argument passed as text freezes in the language it was built in. A
+       * number cannot.
+       */
+      unknownStep: (count: number) =>
+        `No such step in this build — it has ${count}.`,
+      unknownScope: (scopes: string) =>
+        `No such inspection scope. Valid scopes: ${scopes}.`,
+      unknownDetailLevel: (levels: string) =>
+        `No such detail level. The ladder is: ${levels}.`,
+      /* Distinct from `unknownFinding` directly above, and the pair is the
+         point: that one says an id the panel really minted has since been put
+         right, this one says nothing ever carried that id. They used to be one
+         sentence, attached to the case it does not describe. */
+      noSuchFinding:
+        "No finding has that id — the ids come from inspect_build.",
+      unknownFilter: (filter: string) =>
+        `That is not a value the ${filter} filter accepts.`,
 
       /* What the model said no to, said out loud.
 
@@ -1823,7 +1887,11 @@ export const en = {
       /* Batch 8 · the library tools answer for projects that do not exist, and
          refuse to start one that has no workbench — honestly, rather than by
          opening a route that would 404. */
-      unknownProject: "There is no project with that id.",
+      /* Either handle: `open_project` and its siblings accept the catalogue id
+         and the URL slug, so naming only one of them sent a caller looking for
+         a mistake it had not made. Both are schema words and neither is
+         translated. */
+      unknownProject: "No project has that id or slug.",
       projectNotReady: "That project is a preview and has no workbench yet.",
     },
 
@@ -2399,6 +2467,7 @@ export const en = {
        which is a different question from whether the servo is wired. */
     distance: "Reading the distance",
     sweep: "Can the pump be told an angle",
+
     /* `barrierDirection` used to sit here. `copy.test` is one entry per check
        id (`run-spec.ts`) and it was no build's — the only live one of that name
        is `agentPanel.errors.barrierDirection`, which a lab specimen reads. It

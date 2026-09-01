@@ -1176,8 +1176,28 @@ export function verifyStep(scene: CircuitScene, stepId: StepId) {
 
   return {
     stepId,
+    /**
+     * Four clauses, and the fourth is the one that was missing.
+     *
+     * `diff` filters `scene.expected` down to the step's ids, so a scene that
+     * has never heard of them yields zero mismatches — and `verified: true`
+     * then sat beside `matched: 0, expected: 6`, a record contradicting itself
+     * in two adjacent fields. `verify_current_step` trusted the boolean,
+     * ticked the step and advanced; six calls turned an untouched bench into a
+     * finished build. The tool layer re-derives this through `fullyVerified`
+     * and so the product was safe, but the model still answered a direct
+     * caller with the contradiction, and the model is what an agent asking
+     * twice is entitled to trust.
+     *
+     * No-op on every real step of all six builds — `matched === expected`
+     * there by construction — and it deliberately leaves a step that owns no
+     * connections verified, because zero of zero is matched.
+     */
     verified:
-      result.mismatches.length === 0 && mechanicalOk && strays.length === 0,
+      result.mismatches.length === 0 &&
+      result.matched === step.connections.length &&
+      mechanicalOk &&
+      strays.length === 0,
     matched: result.matched,
     expected: step.connections.length,
     mechanicalOk,

@@ -1322,12 +1322,28 @@ export const tr: Copy = {
       inspectingMechanical: (step: number) =>
         `Ajan ${step}. adımın mekanik hizalamasını kontrol etti`,
       inspectingAll: "Ajan yapımın tamamını inceledi",
+      /* Dördüncü kapsam. Kendi cümlesi olmayınca bir `placement` incelemesi
+         "3. adımın kablolamasını inceledi" diye duyuruluyordu — bakmadığı tek
+         şey oyken. */
+      inspectingPlacement: (step: number) =>
+        `Ajan ${step}. adım için tezgahtaki parçaları kontrol etti`,
       mismatchFound: (n: number) => `${n} bağlantı uyuşmazlığı bulundu`,
       extrasFound: (n: number) => `Programda olmayan ${n} bağlantı`,
       partsMissing: (n: number) => `${n} parça hâlâ kitte`,
       issuesFound: (n: number) => `${n} sorun bulundu`,
       nothingFound: "Bu adımda düzeltilecek bir şey yok",
+      /* Aynı cevap, daha geniş bir soruya. Üstünde durulan adıma daralan tek
+         kapsam `current_step`; diğer dördü yapımın tamamını okuyor, ve onlar
+         için "bu adımda" demek temiz bir incelemeyi olduğundan çok daha küçük
+         bir iddiaya indiriyor. */
+      nothingFoundInBuild: "Bu yapımda düzeltilecek bir şey yok",
       showingCorrection: "Ajan bağlantıyı işaret etti",
+      /* İki bulgunun işaret edeceği bir bağlantı yok. Kutudaki bir parçanın
+         onu bekleyen bir deliği var, o delikte hiçbir şey yok; çeyrek tur
+         kaymış bir kol ise zaten bir bağlantı değil. İkisine de "bağlantıyı
+         işaret etti" demek, zaman çizelgesinin başka bir eylemi anlatması. */
+      showingCorrectionPart: "Ajan parçanın gireceği yeri işaret etti",
+      showingCorrectionAlignment: "Ajan servo kolunu işaret etti",
 
       /* Ajanın elleriyle yaptığı tek şey. Cümleler kişinin kendi
          hareketlerininkiyle aynı yapıda ama ajanın ağzından — kim yaptıysa
@@ -1348,7 +1364,17 @@ export const tr: Copy = {
       /* İleri atlanan ve bitmemiş adımlar. Sessiz kalmak, ajanın kurduğu bir
          yapımın kendiliğinden bitmiş görünmesi demek. */
       skippedSteps: (n: number) => `${n} adım tamamlanmadan geçildi`,
-      testing: (test: string) => `Ajan ${test} testini çalıştırdı`,
+      /**
+       * Ad, cümlenin içinde değil, iki nokta üst üsteden sonra.
+       *
+       * `copy.test` bir kontrolün NE YAPTIĞINI tutuyor — "Lamba nefes alıyor
+       * mu", "Bağlantılar okunuyor" — çünkü o kelimeler cihaz panelindeki
+       * satır etiketleri. `${test} testini` kalıbına konunca "Ajan Lamba nefes
+       * alıyor mu testini çalıştırdı" çıkıyordu. Ek yerine apozisyon, soru
+       * biçiminde olanlar dahil hepsini taşıyor — ve argümanın ham id yerine
+       * çevrilmiş bir `{ ref: "check" }` olabilmesini de bu sağlıyor.
+       */
+      testing: (test: string) => `Ajan şu kontrolü çalıştırdı: ${test}`,
       testPassed: "Bütün kontroller geçti",
       testFailed: (n: number) => `${n} kontrol başarısız`,
       reset: "Demo sıfırlandı",
@@ -1381,10 +1407,50 @@ export const tr: Copy = {
 
     errors: {
       unknownFinding: "O bulgu artık açık değil.",
+
+      /**
+       * Modelin kabul edemediği beş argüman, her birine bir cümle.
+       *
+       * Beşi de `toolFailed` gösteriyordu — doğru, ve o anahtar zaten bunun
+       * için var; ama o son çare, cevap değil. §9 bir araçtan ya başarı ya da
+       * ANLAŞILIR bir hata istiyor, "bu çağrı tamamlanamadı" ise yalnızca
+       * çağrı hakkında bir bilgi.
+       *
+       * Hangisi ne yazabilir: kapsam, ayrıntı seviyesi ve filtre adı aracın
+       * KENDİ argüman sözcükleri — araç listesinde `inspect_build` yanında
+       * duran, çevrilmeyen kelimelerin aynısı — yani cümle onları anabilir.
+       * Adım id'si öyle değil: rayda ad ve numara yazıyor, `mnlPower` kişinin
+       * göreceği hiçbir yerde geçmiyor, ve burada geçmesi bu partinin
+       * temizlemekle uğraştığı graf adresi sızıntısı olurdu. O yüzden adım
+       * reddi saymakla yetiniyor; id'ler `result.valid` içinde, onlara
+       * ihtiyacı olan çağıranın elinde kalıyor.
+       *
+       * Adları birleştirip yazmak yerine sayı olmasının ikinci sebebi: adım
+       * adı çevrilmiş bir metin, ve `line.ts` çevrilmiş bir argümanın metin
+       * olarak geçirilirse yazıldığı dilde donacağını açıkça söylüyor. Sayı
+       * donmaz.
+       */
+      unknownStep: (count: number) =>
+        `Bu yapımda öyle bir adım yok — burada ${count} adım var.`,
+      unknownScope: (scopes: string) =>
+        `Öyle bir inceleme kapsamı yok. Geçerli kapsamlar: ${scopes}.`,
+      unknownDetailLevel: (levels: string) =>
+        `Öyle bir ayrıntı seviyesi yok. Merdiven şu: ${levels}.`,
+      /* Hemen yukarıdaki `unknownFinding`den ayrı, ve ayrım tam da mesele:
+         o, panelin gerçekten ürettiği bir id'nin artık düzeltilmiş olduğunu
+         söylüyor; bu ise öyle bir id'yi hiçbir şeyin taşımadığını. Eskiden
+         ikisi tek cümleydi — hem de anlatmadığı duruma iliştirilmiş. */
+      noSuchFinding: "Bu id'de bir bulgu yok — id'leri inspect_build veriyor.",
+      unknownFilter: (filter: string) =>
+        `Bu, ${filter} filtresinin kabul ettiği bir değer değil.`,
       toolFailed: "Bu çağrı tamamlanamadı.",
       stepNotReady: "Bu adımda henüz doğrulanacak bir şey yok.",
       barrierDirection: "Bariyer AÇIK konumunda ters yöne hareket etti.",
-      unknownProject: "Bu id'ye sahip bir proje yok.",
+      /* İki tutamağın ikisi de geçerli: `open_project` ve kardeşleri hem
+         katalog id'sini hem URL slug'ını kabul ediyor, yani yalnızca birini
+         anmak çağıranı yapmadığı bir hatayı aramaya yolluyordu. İkisi de şema
+         kelimesi, ikisi de çevrilmiyor. */
+      unknownProject: "Bu id ya da slug ile eşleşen bir proje yok.",
       projectNotReady: "O proje bir önizleme, henüz atölyesi yok.",
 
       /* Modelin neye hayır dediği, sesli olarak. Reddedilen bir yazma

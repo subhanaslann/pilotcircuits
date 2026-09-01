@@ -15,7 +15,12 @@ import {
 } from "@/lib/circuit/breathing-lamp";
 import { prune, tryAttach, type Placement } from "@/lib/circuit/placement";
 import { builds } from "@/lib/agent/builds";
-import { stepById, stepOwning, type StepId } from "@/lib/agent/steps";
+import {
+  stepById,
+  stepOwning,
+  stepsOwning,
+  type StepId,
+} from "@/lib/agent/steps";
 import type { CircuitScene } from "@/lib/circuit/graph";
 import { en } from "@/content/locales/en";
 import { tr } from "@/content/locales/tr";
@@ -464,6 +469,92 @@ describe("two different parts never share a lead label", () => {
     for (const [, copy] of LOCALES) {
       const labels = ends.map((id) => copy.build.leads[id]);
       expect(new Set(labels).size).toBe(ends.length);
+    }
+  });
+});
+
+describe("a step is verified only when it matched what it looked for", () => {
+  /**
+   * `verified` used to be computed from mismatches, strays and the horn, while
+   * `expected` came from a different source — the step's own connection count —
+   * with no clause tying the two together. `diff` filters `scene.expected` down
+   * to the step's ids, so a step whose ids the scene has never heard of yields
+   * zero mismatches and returns `verified: true` beside `matched: 0,
+   * expected: 6`: a record contradicting itself in two adjacent fields.
+   *
+   * `services.ts` re-derives the boolean through `fullyVerified` and so the
+   * product is safe, but the model still answered a direct caller with the
+   * contradiction — and the model is what an agent asking the same question
+   * twice is entitled to trust. The clause belongs here, where the claim is
+   * made.
+   */
+  it.each(rows)("%s verifies every step of its finished bench", (id, build) => {
+    for (const step of stepsOwning(build.activeStepId)) {
+      const report = verifyStep(build.reference, step.id);
+      expect(report, `${id} ${step.id}`).toMatchObject({ verified: true });
+      /* The clause itself, stated as its own assertion: a step that verifies
+         has matched every connection it names. Steps owning none — `Check your
+         kit`, `Upload and watch it breathe` — match zero of zero and are
+         verified, which is the right answer and the one the clause must not
+         take away. */
+      expect(report.matched, `${id} ${step.id}`).toBe(report.expected);
+    }
+  });
+
+  it.each(rows)("%s verifies nothing on a bench with no joins made", (id, build) => {
+    const bare: CircuitScene = { ...build.reference, observed: [] };
+    for (const step of stepsOwning(build.activeStepId)) {
+      const report = verifyStep(bare, step.id);
+      if (report.expected === 0) continue;
+      expect(report.verified, `${id} ${step.id} verified an empty bench`).toBe(
+        false,
+      );
+    }
+  });
+
+  it("a step whose ids the scene has never heard of cannot verify", () => {
+    /* The shape the tool layer found: `diff` filters `expected` by id, so a
+       scene that names none of the step's connections yields zero mismatches.
+       Nothing is wrong with it — there is simply nothing of the step in it. */
+    const build = builds.trafficLight!;
+    const step = stepsOwning(build.activeStepId).find(
+      (s) => s.connections.length > 0,
+    )!;
+    const foreign: CircuitScene = {
+      ...build.reference,
+      expected: [],
+      observed: [],
+    };
+    const report = verifyStep(foreign, step.id);
+    expect(report.expected).toBeGreaterThan(0);
+    expect(report.matched).toBe(0);
+    expect(report.verified).toBe(false);
+  });
+});
+
+describe("every check a build can run has a name", () => {
+  /**
+   * The gap that made the timeline print an identifier mid-sentence.
+   *
+   * `copy.test` is one entry per check id, and `line.ts`'s `{ ref: "check" }`
+   * falls back to the id with its underscores opened out when there is none —
+   * legible, and not a name. A build that grows a check nobody has named puts
+   * that identifier in the middle of a sentence in both languages.
+   *
+   * Scoped to the ids a build DECLARES. `full_system` is the one argument
+   * `run_functional_test` accepts that no build declares, and its fallback is
+   * pinned as deliberate in `session.test.ts`; naming it is a two-file change
+   * and is reported rather than made here.
+   */
+  it.each(rows)("%s, both locales", (id, build) => {
+    for (const [locale, copy] of LOCALES) {
+      const table = copy.test as Record<string, unknown>;
+      for (const check of build.run.checks.map((c) => c.id)) {
+        expect(
+          typeof table[check],
+          `${id} ${locale}: copy.test.${check}`,
+        ).toBe("string");
+      }
     }
   });
 });
