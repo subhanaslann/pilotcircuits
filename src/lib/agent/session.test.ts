@@ -14,6 +14,7 @@ import { stepsOwning } from "@/lib/agent/steps";
 import { headlineFor, type ToolInputs, type ToolOutcome } from "@/lib/agent/services";
 import { allHandlers, type AllToolInputs } from "@/lib/agent/tools";
 import { say, type Line } from "@/lib/agent/line";
+import { toolErrorKeys, type ToolErrorKey } from "@/lib/agent/model";
 import { en } from "@/content/locales/en";
 import { tr } from "@/content/locales/tr";
 
@@ -658,9 +659,16 @@ describe("a correctly built bench still verifies to the end", () => {
  * the defect this campaign is about, one level up.
  */
 describe("a refused call names what was refused", () => {
+  /** A bench with findings on it, so a `finding_id` can be resolved. */
+  const withFindings = async () => {
+    const seat: AgentSessionState = { ...open(), activeStepId: "lampSeat" };
+    const { next } = await call(seat, "inspect_build", { scope: "all" });
+    return next;
+  };
+
   const cases: {
     name: string;
-    key: string;
+    key: ToolErrorKey;
     run: () => Promise<ToolOutcome>;
   }[] = [
     {
@@ -701,6 +709,124 @@ describe("a refused call names what was refused", () => {
         (await call(open(), "show_correction", { finding_id: "nope" })).outcome,
     },
     {
+      name: "an id the build has already put right",
+      key: "unknownFinding",
+      run: async () => {
+        const state = await withFindings();
+        const fixed = {
+          ...state,
+          placement: spec.complete,
+          scene: lampSceneFrom(spec.complete),
+        };
+        return (
+          await call(fixed, "show_correction", {
+            finding_id: state.findings[0]!.id,
+          })
+        ).outcome;
+      },
+    },
+    {
+      name: "a write on a bench the author laid out",
+      key: "noPlacement",
+      run: async () =>
+        (
+          await call(initialSession(builds.smartParkingBarrier!), "attach_lead", {
+            lead: "sensor.echo",
+          })
+        ).outcome,
+    },
+    {
+      name: "a lead this build does not have",
+      key: "unknownLead",
+      run: async () =>
+        (await call(open(), "attach_lead", { lead: "nope" })).outcome,
+    },
+    {
+      name: "a target that is neither a hole nor a lead",
+      key: "unknownTarget",
+      run: async () =>
+        (
+          await call(open(), "attach_lead", {
+            lead: "led.cathode",
+            target: "nope",
+          })
+        ).outcome,
+    },
+    {
+      name: "a hole with someone else's lead in it",
+      key: "holeTaken",
+      run: async () => {
+        const { next } = await call(open(), "attach_lead", {
+          lead: "led.cathode",
+          target: "board.GND",
+        });
+        return (
+          await call(next, "attach_lead", {
+            lead: "led.anode",
+            target: "board.GND",
+          })
+        ).outcome;
+      },
+    },
+    {
+      name: "a lead that already has something clipped to it",
+      key: "leadNotFree",
+      run: async () => {
+        /* The LED is seated first on purpose: `prune` drops a join between two
+           parts that both have no path to a hole, so clipping the resistor to
+           a floating LED changes nothing and answers `leadAlreadyThere`. */
+        const { next: seated } = await call(open(), "attach_lead", {
+          lead: "led.cathode",
+          target: "board.GND",
+        });
+        const { next } = await call(seated, "attach_lead", {
+          lead: "res.in",
+          target: "led.anode",
+        });
+        return (
+          await call(next, "attach_lead", {
+            lead: "res.out",
+            target: "led.anode",
+          })
+        ).outcome;
+      },
+    },
+    {
+      name: "both ends of one part asked to meet",
+      key: "sameCircuitPart",
+      run: async () =>
+        (
+          await call(open(), "attach_lead", {
+            lead: "led.anode",
+            target: "led.cathode",
+          })
+        ).outcome,
+    },
+    {
+      name: "a cable end asked to clip onto a leg",
+      key: "wireEnd",
+      run: async () =>
+        (
+          await call(initialSession(builds.trafficLight!), "attach_lead", {
+            lead: "wire.gnd.pin",
+            target: "led.red.anode",
+          })
+        ).outcome,
+    },
+    {
+      name: "a lead asked for the seat it is already in",
+      key: "leadAlreadyThere",
+      run: async () =>
+        (await call(open(), "attach_lead", { lead: "led.cathode", target: null }))
+          .outcome,
+    },
+    {
+      name: "a check this build does not run",
+      key: "unknownCheck",
+      run: async () =>
+        (await call(open(), "run_functional_test", { test: "nope" })).outcome,
+    },
+    {
       name: "a filter of the wrong shape",
       key: "unknownFilter",
       run: async () =>
@@ -709,6 +835,13 @@ describe("a refused call names what was refused", () => {
             max_minutes: "twenty",
           } as never)
         ).outcome,
+    },
+    {
+      name: "a project the catalogue does not name",
+      key: "unknownProject",
+      run: async () =>
+        (await call(open(), "open_project", { project: "Traffic Light" }))
+          .outcome,
     },
   ];
 
@@ -728,6 +861,31 @@ describe("a refused call names what was refused", () => {
       }
     });
   }
+
+  /**
+   * Both directions, or the guard is half a guard.
+   *
+   * A key added to the vocabulary and never provoked is a wire value nothing
+   * checks; a key provoked and not in the vocabulary is a list that has stopped
+   * describing the layer. This is what makes the fifteen-of-fifteen claim
+   * checkable rather than asserted.
+   */
+  it("covers every refusal the layer can reach, and no others", () => {
+    expect([...cases.map((c) => c.key)].sort()).toEqual([...toolErrorKeys].sort());
+
+    /**
+     * And every key in the vocabulary is a key the dictionary has.
+     *
+     * A compile-time check, written here because `model.ts` keeps the list
+     * without importing anything. It is the half of the guard that catches a
+     * key `en.ts` has *deleted*; the sixteen provocations above are the half
+     * that catches one that has been *renamed*, which fixes both sides at once
+     * and would otherwise pass in silence.
+     */
+    type ErrorKey = Extract<Line, { ns: "errors" }>["k"];
+    const inDictionary: readonly ErrorKey[] = toolErrorKeys;
+    expect(inDictionary).toHaveLength(toolErrorKeys.length);
+  });
 
   /**
    * The refusal for a step names a count, not the ids.

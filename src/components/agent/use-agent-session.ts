@@ -350,7 +350,7 @@ export function useAgentSession(options?: {
     const spec = buildFor(latest.current.projectId)?.run;
     if (!spec) return;
 
-    const byId = new Map(results.map((check) => [check.subject, check]));
+    const byId = new Map(results.map((check) => [check.check, check]));
     const failedCount = results.filter((check) => !check.passed).length;
     const last = spec.checks[spec.checks.length - 1];
 

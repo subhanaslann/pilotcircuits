@@ -97,6 +97,158 @@ export const toolKind: Record<AgentTool, ToolKind> = {
 };
 
 /**
+ * What a host is told about a tool before it decides to call it.
+ *
+ * The MCP hints, in MCP's own names. `readOnlyHint` and `untrustedContentHint`
+ * are the two a conforming WebMCP host reads today — they are the only two
+ * declared in `ToolAnnotations` (`index.bs:1068-1071`) and read by the
+ * registration algorithm (`index.bs:754-759`). The other three are dropped in
+ * silence: WebIDL dictionary conversion discards an undeclared member without
+ * an error, so publishing them costs nothing and reaches nobody **yet**.
+ *
+ * They are written anyway, for two reasons. One vocabulary is right — a bridge
+ * to a real MCP client forwards all five, and the day one exists it should not
+ * have to re-derive three of them from behaviour. And a hint stated is a hint
+ * that can be checked: every cell below was measured, and two of them are
+ * corrections to a table three separate readings got wrong.
+ *
+ * `destructiveHint` and `idempotentHint` are optional because MCP defines them
+ * as *"meaningful only when `readOnlyHint == false`"*. Omitted, not set to
+ * `false`, on the two tools that read.
+ */
+export interface McpToolAnnotations {
+  readOnlyHint: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint: boolean;
+  untrustedContentHint: boolean;
+}
+
+/**
+ * The eleven rows, measured rather than reasoned about.
+ *
+ * **Not derived from `toolKind`, and the two cannot be merged.** `toolKind` is
+ * a drawing hint — it says which pad the timeline fills — and `inspect_build`
+ * is the row where the two answers differ: it is a `read` to a person watching
+ * and it is *not* read-only, because it patches four session keys and raises a
+ * toast. Deriving one from the other would tell a host it is safe to call that
+ * tool unattended. Two questions, two tables, one comment saying so.
+ *
+ * The rule applied to all eleven: **a page tool's environment is the page.** A
+ * tool that writes no session key but leaves a verdict on the device panel for
+ * the life of the page has modified its environment.
+ *
+ * The three rows worth reading the reasoning for:
+ *
+ * - `attach_lead` is **idempotent**. The second identical call writes nothing
+ *   on all five placement builds — seat, seat again, detach, detach again. MCP's
+ *   test is about the environment and not about the status code, so the
+ *   deliberate no-op the handler answers with `leadAlreadyThere` is documented
+ *   here rather than left to surprise a caller. It is also the only
+ *   `destructiveHint: true` in the product: one omitted `target` has been
+ *   measured returning **two** parts to the kit and breaking a join on a lead
+ *   the call never named.
+ * - `verify_current_step` is **not** idempotent, and this is the row that must
+ *   not be flipped back. It patches `activeStepId`, so four identical `{}`
+ *   calls walk the rail; re-verifying a step already ticked still writes six
+ *   keys, and on the last step it re-stamps `completedAt`. `true` here would
+ *   tell a host it may retry a timed-out call, which would tick and advance a
+ *   second step.
+ * - `run_functional_test` writes no session key at all, and is still not
+ *   read-only: its `runTest` effect reaches `playTest`, which sets the device
+ *   panel's leds, lamps, serial, readings and verdict — none of them reverted
+ *   by a timer, unlike `trace`. The pass/fail sits there for the life of the
+ *   page.
+ *
+ * `openWorldHint` is `false` on all eleven and that is a claim, not a default
+ * restated: there is no network call anywhere in `services.ts` or `tools.ts`,
+ * and MCP's default is `true`. `untrustedContentHint` is `false` for the same
+ * kind of reason — every payload is built here, from the product's own model,
+ * with no attacker-controlled text in it.
+ */
+export const toolAnnotations: Record<AgentTool, McpToolAnnotations> = {
+  /* Reads the session and returns it. Byte-identical state before and after,
+     on all six builds. */
+  get_build_context: {
+    readOnlyHint: true,
+    openWorldHint: false,
+    untrustedContentHint: false,
+  },
+  inspect_build: {
+    readOnlyHint: false,
+    destructiveHint: false,
+    /* The whole difference between two calls is `foundAt`, by a millisecond. */
+    idempotentHint: true,
+    openWorldHint: false,
+    untrustedContentHint: false,
+  },
+  show_correction: {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+    untrustedContentHint: false,
+  },
+  attach_lead: {
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: true,
+    openWorldHint: false,
+    untrustedContentHint: false,
+  },
+  verify_current_step: {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: false,
+    untrustedContentHint: false,
+  },
+  navigate_build_step: {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+    untrustedContentHint: false,
+  },
+  run_functional_test: {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+    untrustedContentHint: false,
+  },
+  find_projects: {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+    untrustedContentHint: false,
+  },
+  open_project: {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+    untrustedContentHint: false,
+  },
+  /* No patch, no effects, no note, on all six projects — the one library tool
+     that genuinely leaves the page as it found it. */
+  get_project_requirements: {
+    readOnlyHint: true,
+    openWorldHint: false,
+    untrustedContentHint: false,
+  },
+  start_project: {
+    readOnlyHint: false,
+    destructiveHint: false,
+    /* The second call withholds the patch — hand-guarded at `tools.ts:317`. */
+    idempotentHint: true,
+    openWorldHint: false,
+    untrustedContentHint: false,
+  },
+};
+
+/**
  * `inspect_build`'s argument — which connections `diff()` sees, **and which
  * kinds of finding come back**.
  *
@@ -118,6 +270,56 @@ export const inspectionScopes = [
 ] as const;
 
 export type InspectionScope = (typeof inspectionScopes)[number];
+
+/**
+ * Every way a tool can refuse, named once.
+ *
+ * These are **wire values**: `refused()` takes the refusal's key straight off
+ * the `Line` it renders, so `result.refused` is a dictionary key travelling to
+ * a caller as an identifier. That makes a copy edit into a protocol change —
+ * rename `holeTaken` in `en.ts` and the sentence improves while every client
+ * branching on it silently stops matching, with nothing anywhere to catch it.
+ * `Line.k` is derived from the dictionary, so the compiler stops a key that has
+ * been *deleted*; only a list like this one stops a key that has been *moved*.
+ *
+ * The reachable set, so the assertion in `session.test.ts` can be total: it
+ * provokes all sixteen and checks each against this list, both directions. The
+ * two unreachable refusals are deliberately out — `noBench` (a ready project
+ * with no build row, which `builds.ts` throws at boot to prevent) and
+ * `projectNotReady` (all six are `ready`) — because a list nothing can reach is
+ * a list nothing can check.
+ *
+ * A plain array of literals, and not typed against `Line` here: `model.ts` has
+ * no imports behind it on purpose, so the dictionary cross-check is done where
+ * `Line` already is.
+ */
+export const toolErrorKeys = [
+  /* inspect_build */
+  "unknownScope",
+  /* show_correction */
+  "noSuchFinding",
+  "unknownDetailLevel",
+  "unknownFinding",
+  /* attach_lead — eight, the largest refusal surface in the product */
+  "noPlacement",
+  "unknownLead",
+  "unknownTarget",
+  "holeTaken",
+  "leadNotFree",
+  "sameCircuitPart",
+  "wireEnd",
+  "leadAlreadyThere",
+  /* navigate_build_step */
+  "unknownStep",
+  /* run_functional_test */
+  "unknownCheck",
+  /* find_projects */
+  "unknownFilter",
+  /* open_project · get_project_requirements · start_project */
+  "unknownProject",
+] as const;
+
+export type ToolErrorKey = (typeof toolErrorKeys)[number];
 
 /**
  * Whether a value a caller handed us is one of the five names at all.

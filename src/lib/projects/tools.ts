@@ -154,10 +154,34 @@ type LibraryHandlers = {
   ) => Promise<ToolOutcome>;
 };
 
-const notFound: ToolOutcome = {
-  status: "error",
-  errorMessage: { ns: "errors", k: "unknownProject" },
-};
+/**
+ * A reference that names no project, refused with the six that do.
+ *
+ * Three tools answered this with `{error, message, tool}` and nothing else, so
+ * a caller that guessed `Traffic Light` — which is what `get_build_context`
+ * calls `project` — was told only that it was wrong. Six ids is a list a
+ * sentence cannot carry and a payload can.
+ *
+ * A function rather than the constant it was, because the value that was
+ * refused is half of what a refusal is for: `refused()`'s own docstring asks
+ * for *which argument, what arrived, and what would have been accepted*, and a
+ * shared object can only ever supply the third.
+ */
+const notFound = (reference: string): ToolOutcome =>
+  refused(
+    { ns: "errors", k: "unknownProject" },
+    {
+      argument: "project",
+      /* An absent argument reports `null`, a wrong one reports itself — the
+         same distinction the bench tools make, and the only thing that tells a
+         host that dropped a required argument apart from a typo. */
+      value: reference ?? null,
+      /* The ids. `resolve` folds case and takes a slug as well, so publishing
+         both would be twelve entries naming six things; the slug is one
+         `open_project` result away and the schema's description says so. */
+      valid: projects.map((project) => project.id),
+    },
+  );
 
 export const libraryHandlers: LibraryHandlers = {
   /**
@@ -227,7 +251,31 @@ export const libraryHandlers: LibraryHandlers = {
     return {
       status: "ok",
       result: {
-        filters: next,
+        /**
+         * The narrowing that was applied, in the **argument's** own names.
+         *
+         * `next` is `ProjectFilters` — the toolbar's shape, and camelCase — and
+         * echoing it raw made this result invalid as its own input: the schema
+         * declares `max_minutes` and `ready_only` with
+         * `additionalProperties: false`, so a strict host rejects the echo and
+         * a lenient one drops the two keys and defaults them. Measured, that
+         * turned `find_projects(result.filters)` after a `max_minutes: 20`
+         * search into every project in the catalogue — and the effect below
+         * writes the widened filter into the toolbar the person is looking at,
+         * so the duration button they set disappears off their screen.
+         *
+         * `max_minutes` is omitted rather than sent as `null`, because the
+         * schema types it `number` and *no upper bound* is said by leaving the
+         * argument out. The other five are legal at their empty values.
+         */
+        filters: {
+          search,
+          difficulty,
+          ...(maxMinutes === null ? {} : { max_minutes: maxMinutes }),
+          components,
+          concepts,
+          ready_only: readyOnly,
+        },
         count: found.length,
         projects: found.map((project) => describe(project, copy)),
         source: "demo",
@@ -248,7 +296,7 @@ export const libraryHandlers: LibraryHandlers = {
 
   async open_project({ project: reference }, ctx) {
     const project = resolve(reference);
-    if (!project) return notFound;
+    if (!project) return notFound(reference);
 
     await ctx.phase({ ns: "phases", k: "readingProject" }, 220);
 
@@ -265,7 +313,7 @@ export const libraryHandlers: LibraryHandlers = {
    */
   async get_project_requirements({ project: reference }, ctx) {
     const project = resolve(reference);
-    if (!project) return notFound;
+    if (!project) return notFound(reference);
 
     await ctx.phase({ ns: "phases", k: "readingProject" }, 320);
 
@@ -293,7 +341,7 @@ export const libraryHandlers: LibraryHandlers = {
    */
   async start_project({ project: reference }, ctx) {
     const project = resolve(reference);
-    if (!project) return notFound;
+    if (!project) return notFound(reference);
 
     if (project.status !== "ready") {
       return {

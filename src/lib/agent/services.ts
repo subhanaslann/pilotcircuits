@@ -27,9 +27,12 @@ import {
 } from "@/lib/agent/steps";
 import { isServoAligned, maybeNode, type NodeId } from "@/lib/circuit/graph";
 import { buildFor } from "@/lib/agent/builds";
+import { projectById } from "@/lib/projects/catalog";
 import { placeIn } from "@/lib/agent/placement";
 import { GRIP_AT, SEAT_AT } from "@/lib/agent/mascot";
 import {
+  attachmentOf,
+  inbound,
   isHole,
   partOf,
   partsInKit,
@@ -72,8 +75,13 @@ export interface TestCheck {
    * A string rather than the capstone's three, because the set is per build:
    * chapter one checks its wiring and whether the lamp can breathe, and it has
    * neither a sensor nor a servo to report on.
+   *
+   * Named `check`, not `subject`. `subject` already means three other things in
+   * this layer — a finding's silkscreen glyph, its lead id, and the printed pin
+   * name — and this is none of them: it is the id the `test` argument takes,
+   * and `run_functional_test({test: results[0].check})` is a legal call.
    */
-  subject: string;
+  check: string;
   passed: boolean;
   detail: string;
 }
@@ -185,7 +193,7 @@ export interface ToolInputs {
    In the reader's language: an agent asked to explain the build to the person
    in front of it should be handed the same words they can see.              */
 
-function summarise(state: AgentSessionState, copy: Copy) {
+function summarise(state: AgentSessionState, copy: Copy, locale: string) {
   const step = stepById(state.activeStepId);
   const words = stepWords(copy, step.id);
   return {
@@ -197,9 +205,34 @@ function summarise(state: AgentSessionState, copy: Copy) {
      * every connection it read belonged to a breathing lamp. A per-build fact
      * in a global place, the same mistake this file has now made three times;
      * the catalogue names every chapter and is the only thing that should.
+     *
+     * **All three names, in one object.** `project` used to be the display name
+     * alone, while the same word is the id-or-slug *argument* of four library
+     * tools — so a model that carried this result across a navigation fed
+     * `"Traffic Light"` into `open_project` and was refused, six times out of
+     * six. It is the triple `describe()` already ships, so the two read tools
+     * now speak one shape, and every one of the three is something a caller can
+     * use: `id` and `slug` are both accepted by those four tools, and `name` is
+     * the only one a person recognises.
+     *
+     * `projectId` is gone from beside it, not kept as well: it was `project.id`
+     * under another name, and a fact with two copies is a fact that can drift.
      */
-    projectId: state.projectId,
-    project: copy.projects[state.projectId].name,
+    project: {
+      id: state.projectId,
+      slug: projectById(state.projectId).slug,
+      name: copy.projects[state.projectId].name,
+    },
+    /**
+     * Which language everything above is in.
+     *
+     * Every translated field already answers it — a Turkish session hands back
+     * a Turkish `name` and a Turkish `instruction` — so nothing here was
+     * unknowable. What was missing is a field a client can *branch* on without
+     * guessing a language from a proper noun. One line, and it is the only tool
+     * that reports it because it is the only one whose whole job is context.
+     */
+    locale,
     /**
      * How many gestures on this bench the agent made.
      *
@@ -258,14 +291,34 @@ function placementOf(state: AgentSessionState) {
       id: part,
       component: spec.componentOf[part],
       onBench: !inKit.includes(part),
+      /**
+       * The part's own leads — the mapping that did not exist anywhere.
+       *
+       * `parts[].id` and `attach_lead.lead` are two vocabularies with no
+       * published bridge between them, and the one an agent would invent —
+       * lower the camelCase id and add a dot — is wrong on two of the five
+       * chapters, silently: chapter one's `resistor` is `res.in` / `res.out`,
+       * and `plantGuardian`'s `probe` is `soil.vcc` / `soil.aout` /
+       * `soil.gnd`. So a caller holding a `part-not-placed` finding's `part`
+       * had a name it could do nothing with. Here it is, from the spec's own
+       * table, in priority order — the first one is the lead that anchors the
+       * part when it is seated.
+       */
+      leads: spec.terminalsOf[part] ?? [],
     })),
     /* Every lead and what it is holding on to — a hole, another lead, or
        nothing. This is the map `attach_lead` is read against. */
     leads: Object.fromEntries(
       spec.terminals.map((id) => [id, state.placement[id] ?? null]),
     ),
-    /** Every hole a lead may go into, in the order they read on the board. */
-    holes: spec.holes,
+    /* `holes` used to be here: every hole on the board, re-sent on every call,
+       55-56% of this result's bytes on chapters three to five and identical on
+       every one of them. It is board geometry, not build state — and every id
+       in it is already in `attach_lead`'s published `target` enum, which the
+       host holds for the life of the registration. Paid once there instead of
+       once per call. **The enum is not to be shrunk to match**: it is what lets
+       a model name a hole it has not been handed, including a wrong one, and
+       the refusals are only useful because it can. */
   };
 }
 
@@ -379,7 +432,7 @@ type ToolHandlers = {
 export const handlers: ToolHandlers = {
   async get_build_context(_input, ctx) {
     await ctx.phase({ ns: "phases", k: "readingContext" }, 420);
-    return { status: "ok", result: summarise(ctx.read(), ctx.copy) };
+    return { status: "ok", result: summarise(ctx.read(), ctx.copy, ctx.locale) };
   },
 
   async inspect_build(input, ctx) {
@@ -447,10 +500,31 @@ export const handlers: ToolHandlers = {
       status: "ok",
       result: {
         scope,
-        /* Structure, not sentences: what a caller — and Batch 7's WebMCP
-           consumer — needs is the finding's type and the pins it names, not
-           a rendering of them in whichever language the panel happens to be
-           showing. `Raw result` prints exactly what the tool returned. */
+        /**
+         * Structure, not sentences: what a caller — and the WebMCP consumer —
+         * needs is the finding's type and the pins it names, not a rendering of
+         * them in whichever language the panel happens to be showing. `Raw
+         * result` prints exactly what the tool returned.
+         *
+         * **Two vocabularies, in pairs.** `subject` / `expected` / `observed`
+         * are what the hardware *prints* — `−`, `220Ω`, `F7`, `D6` — which is
+         * what a person reading over the agent's shoulder can find on the board.
+         * `subjectLead` / `expectedNode` / `observedNode` are the graph ids of
+         * those same three things, which is what `attach_lead` takes. Both are
+         * needed and neither substitutes for the other.
+         *
+         * The ids were on the `Finding` the whole time and were dropped here, so
+         * a wiring finding named a silkscreen glyph and nothing else: a caller
+         * holding one could say what was wrong and had no argument with which to
+         * put it right. The only route to the write ran through
+         * `show_correction` — a tool that moves the camera and raises a toast —
+         * for values this projection was already holding. It is one hop now:
+         * `attach_lead(subjectLead, expectedNode)`.
+         *
+         * The mechanical arm has neither pair, deliberately. A servo a quarter
+         * turn out is not fixed by moving a lead, and publishing `servo.signal`
+         * as a `subjectLead` would invite exactly that call.
+         */
         findings: found.map((f) => ({
           id: f.id,
           type: f.type,
@@ -459,35 +533,74 @@ export const handlers: ToolHandlers = {
             ? { expected: f.expectedAngle, observed: f.observedAngle }
             : f.type === "unexpected-connection"
               ? /* `expected: null` rather than an omitted key: a caller reading
-                   the three arms wants the same field names, and a stray's
-                   answer to "where does it belong" is that there is nowhere. */
+                   the arms wants the same field names, and a stray's answer to
+                   "where does it belong" is that there is nowhere. The fix for
+                   one is the other call `attach_lead` makes —
+                   `attach_lead(subjectLead, null)` takes the join back out.
+                   `subjectLead` before the affected node because it is the
+                   declared field; it is only set where the part prints nothing
+                   beside the lead, and the first affected node is the same end
+                   either way (`extraFinding`, `findings.ts`). */
                 {
                   subject: f.subject,
+                  subjectLead: f.subjectLead ?? f.affectedNodes[0]?.id ?? null,
                   expected: null,
+                  expectedNode: null,
                   observed: f.otherTerminal,
+                  observedNode: f.otherLead ?? f.affectedNodes[1]?.id ?? null,
                 }
               : f.type === "part-not-placed"
                 ? /* The lead the step names, and the part it belongs to in the
                      spec's own id — the same `id` `get_build_context` lists
-                     under `placement.parts`, and a name `attach_lead` takes.
-                     This was `f.component`, which is the COUNTED kind:
+                     under `placement.parts`. It is **not** a name `attach_lead`
+                     takes: measured, `attach_lead({lead: part})` is refused on
+                     all 33 of these findings across the five assembled chapters,
+                     and `part` is in the `target` enum on none of them either.
+                     The name `attach_lead` takes is `subject` — repeated as
+                     `subjectLead`, because one field name that always holds a
+                     lead is the point of the pairing above.
+                     `part` was `f.component`, which is the COUNTED kind:
                      `componentOf` collapses every `led.*` to `led`, every
                      `res.*` to `resistor` and every `wire.*` to `jumper`, so
                      chapter two answered ten findings with three names and the
                      two read tools described the same parts in two different
                      vocabularies. The finding's own sentence still says what is
                      printed on the part in your hand; this is what the tool
-                     returns to a caller that cannot see the bench. */
+                     returns to a caller that cannot see the bench.
+
+                     `expected` was the sentinel `"on-bench"` and `observed` the
+                     sentinel `"in-kit"` — two invented English tokens in fields
+                     that carry silkscreen everywhere else, and neither of them
+                     an answer to *where does this part go*. The seat was on the
+                     finding all along: `highlight.targetPin` is the hole the
+                     target ring is drawn on, and the first affected node is that
+                     same hole with its printed label already read off the scene.
+                     `observed` is empty because the part is nowhere on the
+                     board, and the type is what says it is in the kit. */
                   {
                     subject: f.terminal,
+                    subjectLead: f.terminal,
                     part: (spec && partOf(spec, f.terminal)) ?? null,
-                    expected: "on-bench",
-                    observed: "in-kit",
+                    expected: f.affectedNodes[0]?.terminal ?? null,
+                    expectedNode: f.highlight.targetPin ?? null,
+                    observed: null,
+                    observedNode: null,
                   }
-                : {
+                : /* The wiring pair. `target` is where the sketch wants this
+                     lead — the exact value `attach_lead` takes as its `target` —
+                     and `highlight.errorPin` is the hole it is in instead,
+                     absent on a `missing-connection` because it is in nothing.
+                     Both were dropped while `expectedTerminal` and
+                     `observedTerminal`, the printed labels of those same two
+                     holes, went out alone. */
+                  {
                     subject: f.subject,
+                    subjectLead:
+                      f.subjectLead ?? f.affectedNodes[0]?.id ?? null,
                     expected: f.expectedTerminal,
+                    expectedNode: f.target,
                     observed: f.observedTerminal ?? null,
+                    observedNode: f.highlight.errorPin ?? null,
                   }),
           confidence: f.evidence.confidence,
         })),
@@ -607,8 +720,23 @@ export const handlers: ToolHandlers = {
         {
           argument: "finding_id",
           value: finding_id ?? null,
-          /* The ids the sentence sends the caller back to `inspect_build` for,
-             handed over directly — a rendered sentence cannot carry a list. */
+          /**
+           * Two lists, because they are two facts, and one shared key so a
+           * client does not have to know which refusal it is reading.
+           *
+           * `valid` means the same thing on all four `refused()` paths — what
+           * this argument accepts — and here that is every id the panel has
+           * minted and still holds, resolved ones included: a resolved id IS
+           * recognised, and is answered with `unknownFinding` rather than this.
+           * `open` is the strict subset that would succeed right now. Naming
+           * the subset `valid` instead, which is the tidy-looking fix, would
+           * assert that a resolved id is not a valid `finding_id` — and the
+           * branch directly below is the proof that it is.
+           *
+           * The sentence sends the caller back to `inspect_build`; a rendered
+           * sentence cannot carry a list, so both lists go here.
+           */
+          valid: state.findings.map((f) => f.id),
           open: state.findings
             .filter((f) => !isResolved(f, state.scene))
             .map((f) => f.id),
@@ -616,20 +744,18 @@ export const handlers: ToolHandlers = {
       );
     }
     if (isResolved(finding, state.scene)) {
-      return {
-        status: "error",
-        /* The level the caller asked for, echoed with the answer: an agent that
-           asked for `exact` on a fault that is already fixed has learned
-           something about the build, and the reply says which question it is
-           the answer to. */
-        result: {
-          findingId: finding.id,
-          detailLevel: level,
-          resolved: true,
-          source: "demo",
-        },
-        errorMessage: { ns: "errors", k: "unknownFinding" },
-      };
+      /* Through `refused()` like every other refusal in the layer. This was the
+         one error whose body was success-shaped — four keys, an `error` beside
+         them and no `refused` at all — so a client branching on
+         `"refused" in body` read it as a success. The echo survives unchanged:
+         the level the caller asked for, returned with the answer, because an
+         agent that asked for `exact` on a fault that is already fixed has
+         learned something about the build and the reply says which question it
+         is the answer to. */
+      return refused(
+        { ns: "errors", k: "unknownFinding" },
+        { findingId: finding.id, detailLevel: level, resolved: true },
+      );
     }
 
     await ctx.phase({ ns: "phases", k: "locating" }, 260);
@@ -643,6 +769,21 @@ export const handlers: ToolHandlers = {
         findingId: finding.id,
         detailLevel: level,
         focused: finding.focus.nodes,
+        /**
+         * Whether this call moved anything, said out loud.
+         *
+         * The handler has always known — `alreadyShown` is right here and the
+         * timeline prints two different sentences off it — and the caller was
+         * the one reader never told: two `show_correction` calls with the same
+         * arguments returned byte-identical bodies. The layer had three
+         * different answers to *nothing happened* — a refusal, a key that goes
+         * missing, and silence — and this makes one of them explicit.
+         *
+         * Not the same claim as "the screen did not move": the patch lands
+         * either way, so a person who had switched to another tab is brought
+         * back by the second call too. This is about the highlight.
+         */
+        changed: !alreadyShown,
         source: "demo",
       },
       patch: {
@@ -701,26 +842,55 @@ export const handlers: ToolHandlers = {
     const spec = buildFor(state.projectId)?.placement;
 
     if (!spec) {
-      return {
-        status: "error",
-        errorMessage: { ns: "errors", k: "noPlacement" },
-      };
+      /* Not an argument error — `lead` may be perfectly well formed and there
+         is still nothing here to write. Chapter six is laid out by its author:
+         no kit, nothing to place, and every call refuses. `reason` is what says
+         so, so an agent learns on call #1 rather than call #12 that this bench
+         takes no writes. */
+      return refused(
+        { ns: "errors", k: "noPlacement" },
+        { argument: "lead", value: lead ?? null, reason: "authorPlaced" },
+      );
     }
     if (!spec.terminals.includes(lead)) {
-      return {
-        status: "error",
-        errorMessage: { ns: "errors", k: "unknownLead" },
-      };
+      /* The whole domain, because it fits: a build's leads are the ends of the
+         parts in its kit — four on chapter one, twenty at the widest — and a
+         caller that misspelt one can read the right spelling straight out of
+         the refusal. An ABSENT `lead` and a misspelt one used to be
+         byte-identical; `value: null` is what tells them apart. The schema
+         marks the argument `required`, for the hosts that enforce it. */
+      return refused(
+        { ns: "errors", k: "unknownLead" },
+        { argument: "lead", value: lead ?? null, valid: [...spec.terminals] },
+      );
     }
     if (
       target !== null &&
       !isHole(spec, target) &&
       !spec.terminals.includes(target)
     ) {
-      return {
-        status: "error",
-        errorMessage: { ns: "errors", k: "unknownTarget" },
-      };
+      /* The one refusal a sentence genuinely cannot carry. The set this is
+         answered out of is every hole plus every lead plus `null` — the
+         published `target` enum, 398, 404 and 400 entries on chapters three to
+         five — so listing it here would spend more on one mistake than the
+         registration spends on the tool. A sample of each family and the count
+         instead: the sample shows the two address schemes (`bb.f7`, a
+         breadboard hole; `led.cathode`, a part's lead) and `count` says how
+         large the set it came from is. `count` is the named ids; `null` is
+         legal too and takes the lead back out, which is what the enum's extra
+         entry is. */
+      return refused(
+        { ns: "errors", k: "unknownTarget" },
+        {
+          argument: "target",
+          value: target,
+          validSample: [
+            ...spec.holes.slice(0, 6),
+            ...spec.terminals.slice(0, 6),
+          ],
+          count: spec.holes.length + spec.terminals.length,
+        },
+      );
     }
 
     await ctx.phase({ ns: "phases", k: "reaching" }, GRIP_AT);
@@ -730,41 +900,68 @@ export const handlers: ToolHandlers = {
     const outcome = placeIn(live, spec, lead, target);
 
     if (!outcome.changed) {
-      return {
-        status: "error",
-        errorMessage:
-          outcome.refusal === "holeTaken"
-            ? {
-                ns: "errors" as const,
-                k: "holeTaken" as const,
-                args: [
-                  (target ? maybeNode(live.scene, target)?.label : undefined) ??
-                    target ??
-                    "",
-                ] as [string],
-              }
+      /**
+       * The five ways the bench says no, and not one of them is an argument
+       * error: `lead` and `target` both named something real and the model is
+       * what refused. So the payload is not `{argument, value, valid}` — it is
+       * the gesture and the thing standing in its way.
+       *
+       * `occupant` is the one fact the sentences could not carry and the one a
+       * caller needs to get past the refusal: `holeTaken` names the hole and not
+       * the lead sitting in it, and `leadNotFree` names neither. With it,
+       * `attach_lead(occupant, null)` is the call that clears the way. Always a
+       * node id, and `null` where nothing is in the way at all — a part cannot
+       * meet its own other end (`sameCircuitPart`), a jumper only ever lives in
+       * a hole (`wireEnd`), and `leadAlreadyThere` is the seat already holding
+       * the very lead that asked for it.
+       */
+      const occupant =
+        target === null
+          ? null
+          : outcome.refusal === "holeTaken"
+            ? /* Whose lead is in that hole, ignoring this one — the same test
+                 `tryAttach` refused on. */
+              (inbound(spec, live.placement, target).find((u) => u !== lead) ??
+              null)
             : outcome.refusal === "leadNotFree"
-              ? { ns: "errors" as const, k: "leadNotFree" as const }
-              : outcome.refusal === "sameCircuitPart"
-                ? { ns: "errors" as const, k: "sameCircuitPart" as const }
-                : /* A cable end asked to clip onto a leg. It gets its own rung
-                     rather than sharing `sameCircuitPart`, because the two
-                     refusals teach opposite things: that one says a part
-                     cannot meet itself, this one says a jumper only ever lives
-                     in a hole — and an agent told the wrong one will retry the
-                     same gesture with a different part and be refused again.
-                     A rung missed here is not a compile error either: every
-                     arm below falls through to `leadAlreadyThere`, which is
-                     the one sentence in this ladder that claims the write
-                     succeeded. */
-                  outcome.refusal === "wireEnd"
-                    ? { ns: "errors" as const, k: "wireEnd" as const }
-                    : /* Changed nothing and refused nothing: the lead is
-                         already exactly where it was asked to go. Not a
-                         failure, but not a write either, and the caller has to
-                         be able to tell. */
-                      { ns: "errors" as const, k: "leadAlreadyThere" as const },
-      };
+              ? /* What the target lead is engaged with, whichever side stored
+                   the edge: the hole it sits in, or the lead clipped onto it.
+                   `attach_lead(target, null)` frees it either way. */
+                (attachmentOf(spec, live.placement, target) ?? null)
+              : null;
+
+      return refused(
+        outcome.refusal === "holeTaken"
+          ? {
+              ns: "errors" as const,
+              k: "holeTaken" as const,
+              args: [
+                (target ? maybeNode(live.scene, target)?.label : undefined) ??
+                  target ??
+                  "",
+              ] as [string],
+            }
+          : outcome.refusal === "leadNotFree"
+            ? { ns: "errors" as const, k: "leadNotFree" as const }
+            : outcome.refusal === "sameCircuitPart"
+              ? { ns: "errors" as const, k: "sameCircuitPart" as const }
+              : /* A cable end asked to clip onto a leg. It gets its own rung
+                   rather than sharing `sameCircuitPart`, because the two
+                   refusals teach opposite things: that one says a part cannot
+                   meet itself, this one says a jumper only ever lives in a hole
+                   — and an agent told the wrong one will retry the same gesture
+                   with a different part and be refused again. A rung missed
+                   here is not a compile error either: every arm below falls
+                   through to `leadAlreadyThere`, which is the one sentence in
+                   this ladder that claims the write succeeded. */
+                outcome.refusal === "wireEnd"
+                  ? { ns: "errors" as const, k: "wireEnd" as const }
+                  : /* Changed nothing and refused nothing: the lead is already
+                       exactly where it was asked to go. Not a failure, but not
+                       a write either, and the caller has to be able to tell. */
+                    { ns: "errors" as const, k: "leadAlreadyThere" as const },
+        { lead, target, occupant },
+      );
     }
 
     const { effects } = outcome;
@@ -774,6 +971,26 @@ export const handlers: ToolHandlers = {
       result: {
         lead,
         target,
+        /**
+         * Where the lead was before this call, so the move can be taken back.
+         *
+         * `attach_lead(lead, from)` is the exact inverse of any single call —
+         * the one thing the result could not say, on a tool whose own comment
+         * below is *"what a caller needs back is what the model did"*. Where it
+         * came from is half of what it did. `undo` and `redo` are reducer
+         * actions with no tool behind them, so this is the only inverse an
+         * agent has.
+         *
+         * Read from `live`, the state `placeIn` was asked against, and read
+         * before the patch lands — `state` is a second old by here and the
+         * person may have moved that very lead meanwhile.
+         *
+         * The edge stored **on** this lead, which is where a join is stored: a
+         * join another lead had made *onto* this one is knocked loose by the
+         * move and is reported in `brokeJoins`, not here. So `from` inverts the
+         * hop and `brokeJoins` names what the hop cost.
+         */
+        from: live.placement[lead] ?? null,
         /* Structure, not sentences — the same rule `inspect_build` follows.
            What a caller needs back is what the model did, in its own names. */
         seated: effects.seated?.hole ?? null,
@@ -888,7 +1105,13 @@ export const handlers: ToolHandlers = {
         status: "ok",
         result: {
           ...report,
-          findings: found.map((f) => f.id),
+          /* `findingIds`, not `findings`. `inspect_build.findings` is a list of
+             objects and this is a list of ids, and one word cannot mean both in
+             a layer an agent reads in sequence — the two never appear in one
+             body, so nothing was ever wrong on screen, but a client written
+             against either name is written against the other's shape. The rule
+             this pass settles: `findings` always means the objects. */
+          findingIds: found.map((f) => f.id),
           source: "demo",
         },
         patch: {
@@ -973,8 +1196,18 @@ export const handlers: ToolHandlers = {
            the screen that reads it, because this is the moment it happened —
            and the workbench does not throw the person out when it does. The
            foot changes to `Finish` and the door is offered, not walked
-           through. */
-        ...(following ? {} : { completedAt: Date.now() }),
+           through.
+
+           Idempotent by hand, the same shape and for the same reason as
+           `tools.ts:317`'s guard on `startedAt`: `summary-blocks.tsx` subtracts
+           one of these from the other, and one end of that subtraction was
+           hand-guarded against a repeat while this one re-stamped on every
+           call. The printed figure is whole minutes and rarely moved — the
+           asymmetry is the defect, not the drift. `live`, not `state`: the
+           stamp being guarded is the one already on the build. */
+        ...(following || live.completedAt !== null
+          ? {}
+          : { completedAt: Date.now() }),
         highlightedFindingId: null,
         /* The findings that belonged to the step that just closed. Carrying
            them into the next one would let the panel claim every connection
@@ -1061,7 +1294,20 @@ export const handlers: ToolHandlers = {
     if (step.id === state.activeStepId) {
       return {
         status: "ok",
-        result: { stepId: step.id, source: "demo" },
+        /* The same four keys the moved arm returns, so the shape stops varying
+           on the one thing a caller most wants to compare. `name` and
+           `skippedSteps` used to go missing here, which left a client reading
+           `result.name` an `undefined` on the arm where nothing went wrong —
+           and `skippedSteps` is genuinely empty, not unknown: a jump to the
+           step you are standing on passes nothing. `changed` is the fact the
+           handler already had and only the timeline was told. */
+        result: {
+          stepId: step.id,
+          name: stepWords(copy, step.id).name,
+          skippedSteps: [],
+          changed: false,
+          source: "demo",
+        },
         outcome: {
           ns: "activity" as const,
           k: "alreadyOnStep" as const,
@@ -1100,6 +1346,7 @@ export const handlers: ToolHandlers = {
         stepId: step.id,
         name: stepWords(copy, step.id).name,
         skippedSteps: skipped,
+        changed: true,
         source: "demo",
       },
       ...(skipped.length
@@ -1153,7 +1400,14 @@ export const handlers: ToolHandlers = {
     const build = buildFor(state.projectId);
 
     if (!build) {
-      return { status: "error", errorMessage: { ns: "errors", k: "noBench" } };
+      /* Unreachable — `builds.ts` throws at boot if a ready project has no row
+         — and still routed through `refused()`, because `"refused" in body` is
+         only a reliable branch if every error path in the layer carries the key.
+         Not an argument error: `test` is not what is wrong here. */
+      return refused(
+        { ns: "errors", k: "noBench" },
+        { project: state.projectId },
+      );
     }
 
     const all = build.run.checks;
@@ -1161,14 +1415,21 @@ export const handlers: ToolHandlers = {
       test === "full_system" ? all : all.filter((check) => check.id === test);
 
     if (!wanted.length) {
-      return {
-        status: "error",
-        errorMessage: {
+      return refused(
+        {
           ns: "errors",
           k: "unknownCheck",
           args: [all.map((check) => check.id).join(", ")],
         },
-      };
+        {
+          argument: "test",
+          value: test ?? null,
+          /* `full_system` is in the domain and in the published enum, and it is
+             deliberately not in the sentence: that one names the checks this
+             build actually runs. The list is what the argument accepts. */
+          valid: [...all.map((check) => check.id), "full_system"],
+        },
+      );
     }
 
     await ctx.phase({ ns: "phases", k: "runningTest" }, 900);
@@ -1177,7 +1438,7 @@ export const handlers: ToolHandlers = {
        started — the same freshness rule `verify_current_step` keeps. */
     const live = ctx.read();
     const results: TestCheck[] = wanted.map((check) => ({
-      subject: check.id,
+      check: check.id,
       passed: check.passes(live.scene),
       detail: check.detail(live.scene),
     }));
@@ -1187,10 +1448,10 @@ export const handlers: ToolHandlers = {
       status: "ok",
       result: {
         test,
-        ran: results.map((r) => r.subject),
+        ran: results.map((r) => r.check),
         skipped: all
           .map((check) => check.id)
-          .filter((id) => !results.some((r) => r.subject === id)),
+          .filter((id) => !results.some((r) => r.check === id)),
         results,
         source: "demo",
       },
@@ -1282,22 +1543,32 @@ export function headlineFor<K extends keyof ToolInputs>(
         return { ns: "activity", k: "showingCorrectionAlignment" };
       return { ns: "activity", k: "showingCorrection" };
     }
-    case "attach_lead":
+    case "attach_lead": {
+      /**
+       * A third arm for the call that named nothing.
+       *
+       * The id used to be coerced to `""` — the lead table answers `undefined`
+       * for a missing id and the template would otherwise print the word
+       * `undefined` in the timeline — and `""` was the better of those two, not
+       * a good answer: the entry read *"Agent moved "*, a sentence with a hole
+       * in it, in both languages. `lead` is `required` in the published schema,
+       * so this is only reachable through a host that does not enforce one,
+       * which `use-webmcp.ts` says out loud that it expects.
+       *
+       * Still no throw, which is the property that mattered: the entry exists,
+       * the call reaches the handler, and the handler's own refusal is what
+       * says which argument was missing. This only stops the timeline claiming
+       * a subject it does not have.
+       */
+      const lead = (input as ToolInputs["attach_lead"]).lead;
+      if (typeof lead !== "string" || !lead)
+        return { ns: "activity", k: "calledTool" };
       return {
         ns: "activity",
         k: "attachingLead",
-        args: [
-          {
-            ref: "lead",
-            /* Coerced for the same reason `test` is below: the lead table
-               answers `undefined` for a missing id and the template then prints
-               the word `undefined` in the timeline. The handler is what refuses
-               a lead this build does not have. */
-            id: String((input as ToolInputs["attach_lead"]).lead ?? ""),
-            case: "acc",
-          },
-        ],
+        args: [{ ref: "lead", id: lead, case: "acc" }],
       };
+    }
     case "verify_current_step":
       return { ns: "activity", k: "verifying", args: [step.index] };
     case "navigate_build_step": {
@@ -1309,35 +1580,36 @@ export function headlineFor<K extends keyof ToolInputs>(
       );
       return { ns: "activity", k: "navigating", args: [target?.index ?? 0] };
     }
-    case "run_functional_test":
+    case "run_functional_test": {
+      /**
+       * A `Ref`, not the raw id.
+       *
+       * `copy.test.<id>` is the product's own translated word for a check and
+       * the device dock beside the panel renders exactly that — so carrying the
+       * id as text put *"Ajan wiring testini çalıştırdı"* in the Turkish
+       * timeline next to a row reading `Bağlantılar okunuyor`: one screen
+       * naming one check twice, in two languages.
+       *
+       * The sentence had to move with it. `copy.test` holds the row's
+       * *activity* — "Reading the connections", "Can the lamp breathe" — and
+       * the template used to read `Agent ran the ${test} test`, which would
+       * have produced "Agent ran the Can the lamp breathe test". It is an
+       * apposition now, so a phrase reads correctly where an id did.
+       *
+       * And the same empty-subject arm `attach_lead` has above: a call with no
+       * `test` used to open its entry with *"Agent ran the check: "*. It still
+       * does not throw, so the handler's `unknownCheck` is still what names the
+       * mistake.
+       */
+      const test = (input as ToolInputs["run_functional_test"]).test;
+      if (typeof test !== "string" || !test)
+        return { ns: "activity", k: "calledTool" };
       return {
         ns: "activity",
         k: "testing",
-        /**
-         * A `Ref`, not the raw id.
-         *
-         * `copy.test.<id>` is the product's own translated word for a check and
-         * the device dock beside the panel renders exactly that — so carrying
-         * the id as text put *"Ajan wiring testini çalıştırdı"* in the Turkish
-         * timeline next to a row reading `Bağlantılar okunuyor`: one screen
-         * naming one check twice, in two languages.
-         *
-         * The sentence had to move with it. `copy.test` holds the row's
-         * *activity* — "Reading the connections", "Can the lamp breathe" — and
-         * the template used to read `Agent ran the ${test} test`, which would
-         * have produced "Agent ran the Can the lamp breathe test". It is an
-         * apposition now, so a phrase reads correctly where an id did.
-         *
-         * Coerced, so a call with no `test` reaches the handler's own refusal
-         * instead of throwing before the activity entry exists.
-         */
-        args: [
-          {
-            ref: "check",
-            id: String((input as ToolInputs["run_functional_test"]).test ?? ""),
-          },
-        ],
+        args: [{ ref: "check", id: test }],
       };
+    }
     /* `get_build_context` and anything a later batch adds. */
     default:
       return { ns: "activity", k: "readContext" };
