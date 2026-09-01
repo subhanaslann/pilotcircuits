@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useSearchParams } from "next/navigation";
 import { AgentWorkspace } from "@/components/agent/workspace";
 import type { AgentSession } from "@/components/agent/use-agent-session";
 import { type CanvasHandle } from "@/components/canvas/canvas-viewport";
 import { AgentMascot } from "@/components/canvas/agent-mascot";
-import { BuildSceneView } from "@/components/canvas/build-scene";
+import {
+  BuildSceneView,
+  declaredBodyAt,
+} from "@/components/canvas/build-scene";
 import { buildFor, defaultBuild } from "@/lib/agent/builds";
 import { DeviceDock, type DeviceTab } from "@/components/device/dock";
 import { DeviceInfo } from "@/components/device/device-info";
@@ -33,6 +37,7 @@ import {
 import type { CameraVariant } from "@/components/workbench/camera";
 import { useCopy } from "@/content/copy-provider";
 import { clockOf } from "@/lib/agent/activity";
+import type { AgentTool } from "@/lib/agent/model";
 import { partNameOf, stepParts } from "@/lib/agent/parts";
 import { stepAside, stepWords } from "@/lib/agent/steps";
 import type { BriefingDef } from "@/lib/agent/briefings";
@@ -58,9 +63,8 @@ import {
  * Every control here runs a tool. `Inspect my build` reads the context,
  * compares against the sketch and opens the inspection on what it found —
  * §7's "opened by `Inspect my build` or by the matching WebMCP action", both
- * being the same call. The demo menu drives the same six tools from the other
- * side, and the panel, the rail, the dock and the two canvases all read one
- * store.
+ * being the same call. The demo menu drives the same tools from the other side,
+ * and the panel, the rail, the dock and the two canvases all read one store.
  *
  * **Batch 8 · the session and the canvas handles arrive as props.** Batch 7
  * built this component around its own `useAgentSession`, which was right while
@@ -163,6 +167,7 @@ export function Workbench({
   onBriefed,
   onFinish,
   wide,
+  panelTools,
   cameraVariant = "plate",
   className,
 }: {
@@ -197,6 +202,16 @@ export function Workbench({
   /** Overrides the media query, so the lab can show the folded layout. */
   wide?: boolean;
   /**
+   * G-15's list, for the panel's `N tools available`.
+   *
+   * Which tools are registered is the ROUTE's fact, not this component's:
+   * below the breakpoint the canvas is unmounted and `workbench-route.tsx`
+   * hands the browser four of the seven, so a panel counting the bench's whole
+   * list was claiming three tools nothing had registered. Omitted — the lab,
+   * which registers the bench's own set — the panel falls back to it.
+   */
+  panelTools?: readonly AgentTool[];
+  /**
    * W-06, settled: **`plate`**. The frame is evidence, not a photograph — the
    * label and the capture time sit under the image in the interface's own
    * voice rather than burned into it. `capture` is still built and still live
@@ -206,6 +221,7 @@ export function Workbench({
   className?: string;
 }) {
   const copy = useCopy();
+  const search = useSearchParams();
 
   /**
    * The agent, on the bench.
@@ -315,6 +331,16 @@ export function Workbench({
     },
   }[kind];
 
+  /**
+   * Whether W-10's demo controls are on offer — see `demoMenu` below.
+   *
+   * Read here rather than at the call site because `useSearchParams` is a hook
+   * and the menu is built inside a prop. `?demo=1` exactly: a gate that took
+   * any truthy value would open on `?demo=0`.
+   */
+  const demoOpen =
+    process.env.NODE_ENV !== "production" || search.get("demo") === "1";
+
   const build = buildFor(state.projectId) ?? defaultBuild;
   const referenceScene = build.reference;
   const scene = view === "reference" ? referenceScene : session.scene;
@@ -324,6 +350,14 @@ export function Workbench({
 
   const spec = build.placement;
 
+  /**
+   * Where each module's case stands once it is placed, asked once.
+   *
+   * Only a module answers; see `declaredBodyAt`. Read off the FINISHED scene on
+   * purpose — a module's case is a constant, and the live scene says
+   * `undefined` for every part that is still in the box, which is every part
+   * the shelf below draws.
+   */
   /**
    * Every answer the placement model owes this render, asked once.
    *
@@ -929,6 +963,9 @@ export function Workbench({
           ),
           /* Which end of it lands. The build knows; the shelf draws it. */
           mark: spec.anchorMark(part),
+          /* And where its body lands, for the one kind whose body does not
+             follow the lead — `undefined` for everything else. */
+          bodyAt: declaredBodyAt(state.projectId, part),
         }))}
         targets={targets}
         aimAt={spec.grabPoint}
@@ -966,12 +1003,21 @@ export function Workbench({
               })
             }
             demoMenu={
-              /* W-10 · development only, the way `builds.ts`'s assertion block
-                 is. These controls drive the build on the person's behalf —
-                 which is honest theatre while the film is being shown and is
-                 the exact affordance the learner's own panel was just stripped
-                 of. Shipping both would put the shortcut back one menu over. */
-              process.env.NODE_ENV !== "production" ? (
+              /* W-10 · in development always, and in a deployed build only
+                 behind `?demo=1`. These controls drive the build on the
+                 person's behalf — honest theatre while the film is being shown,
+                 and the exact affordance the learner's own panel was stripped
+                 of, so shipping them to everybody would put the shortcut back
+                 one menu over.
+                 The mode gate alone was too tight in one specific way: §10 asks
+                 for the menu to be reachable "in the top menu or when
+                 `?demo=1`", and `session.reset()` has exactly one call site in
+                 the whole product — `demo-scenarios.ts` — so a production build
+                 had no way to reset the demo at all, and §18's "the demo can be
+                 reset" was unreachable on the only builds anybody would film.
+                 `useSearchParams` is safe here: every route is dynamically
+                 rendered. */
+              demoOpen ? (
                 <DemoControls
                   scenarios={demoScenarios(session, copy)}
                   busy={session.busy}
@@ -1196,6 +1242,7 @@ export function Workbench({
         panel={
           <AgentWorkspace
             session={session}
+            tools={panelTools}
             action={{
               id: action.id,
               label: action.label,

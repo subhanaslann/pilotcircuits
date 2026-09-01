@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { useSvgPrefix } from "@/components/canvas/svg-ids";
 import { PART_SPECS } from "@/components/workspace/case-parts";
 import {
   INK,
@@ -154,6 +155,16 @@ export function KitCase({
     return () => cancelAnimationFrame(frame);
   }, [open]);
 
+  /* Every gradient, pattern and clip path this case defines, under this copy's
+     own name. SVG ids are document-global and `url(#…)` resolves against the
+     page, so `cp-case-shadow`, `cp-face-N`, `cp-art-N` and the two clip names
+     `case-geometry.ts` exports were the same for every case ever drawn: a
+     second one in the same document would have taken the first's shadow, its
+     face gradients and — through the cavity clip — the shape of its inside.
+     `/workspace` draws one, so this was latent. It is the last of the fixed
+     ids in `src/`, and `svg-ids.test.ts` can stop tolerating this file. */
+  const uid = useSvgPrefix();
+
   const slabs = useMemo(() => slabsFor(components), [components]);
   const { facets, clips } = useMemo(
     () => buildCase(slabs, motion.p, motion.extra),
@@ -182,7 +193,7 @@ export function KitCase({
       >
         <defs>
           {/* The shadow the case throws on the bench. */}
-          <radialGradient id="cp-case-shadow">
+          <radialGradient id={`${uid}-shadow`}>
             <stop offset="0" stopColor="#0C141C" stopOpacity="0.44" />
             <stop offset="0.5" stopColor="#0C141C" stopOpacity="0.2" />
             <stop offset="1" stopColor="#0C141C" stopOpacity="0" />
@@ -193,7 +204,7 @@ export function KitCase({
             return (
               <linearGradient
                 key={i}
-                id={`cp-face-${i}`}
+                id={`${uid}-face-${i}`}
                 x1={x1}
                 y1={y1}
                 x2={x2}
@@ -213,7 +224,7 @@ export function KitCase({
             );
           })}
           {Object.entries(clips).map(([id, d]) => (
-            <clipPath key={id} id={id}>
+            <clipPath key={id} id={`${uid}-${id}`}>
               <path d={d} />
             </clipPath>
           ))}
@@ -226,7 +237,7 @@ export function KitCase({
           cy={BENCH.cy}
           rx={BENCH.rx}
           ry={BENCH.ry}
-          fill="url(#cp-case-shadow)"
+          fill={`url(#${uid}-shadow)`}
           className="duration-deliberate ease-out-soft transition-opacity"
           style={{ opacity: open ? 1 : 0.82 }}
         />
@@ -245,11 +256,11 @@ export function KitCase({
               : d;
           const width = f.inkWidth ?? 1.6;
           return (
-            <g key={i} clipPath={f.clip ? `url(#${f.clip})` : undefined}>
+            <g key={i} clipPath={f.clip ? `url(#${uid}-${f.clip})` : undefined}>
               {f.line ? null : (
                 <path
                   d={d}
-                  fill={f.grad ? `url(#cp-face-${i})` : f.fill}
+                  fill={f.grad ? `url(#${uid}-face-${i})` : f.fill}
                   opacity={f.opacity}
                   shapeRendering="geometricPrecision"
                 />
@@ -278,10 +289,10 @@ export function KitCase({
               ) : null}
               {f.art ? (
                 <>
-                  <clipPath id={`cp-art-${i}`}>
+                  <clipPath id={`${uid}-art-${i}`}>
                     <path d={d} />
                   </clipPath>
-                  <g clipPath={`url(#cp-art-${i})`}>
+                  <g clipPath={`url(#${uid}-art-${i})`}>
                     <g transform={f.art.matrix}>{PART_ART[f.art.key] ?? null}</g>
                     {/* The one light, reaching the drawing. Artwork cannot be
                         tinted without a filter, and a filter would flatten this

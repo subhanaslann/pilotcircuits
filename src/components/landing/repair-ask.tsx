@@ -62,6 +62,23 @@ export function RepairAsk({ className }: { className?: string }) {
         {live ? copy.landing.helpHost : copy.landing.helpNoHost}
       </p>
 
+      {/* §9's unavailable sentence is two clauses, and this route printed one.
+          "No WebMCP in this browser" says what is missing and stops, leaving a
+          person on the landing page with no answer to *so can I still do
+          anything here* — while the demo controls beside it are working. The
+          second clause is the panel's own (`panel.tsx`'s `Alert` prints exactly
+          this pair), so the two routes say the same thing in the same words
+          rather than one of them saying half of it.
+
+          A line of its own rather than a sentence glued to the first: neither
+          key carries the punctuation that would join them, and inventing it in
+          code is writing copy. */}
+      {live ? null : (
+        <p className="text-caption text-ink-tertiary -mt-2">
+          {copy.agentPanel.webMcpUnavailableDetail}
+        </p>
+      )}
+
       <div>
         <h2 className="font-condensed text-ink text-[26px] leading-none font-bold uppercase">
           {copy.landing.helpTitle}

@@ -40,9 +40,11 @@ const toolPurposes = (copy: Copy): Record<AgentTool, string> => ({
   navigate_build_step: copy.agentPanel.tools.navigate_build_step,
   run_functional_test: copy.agentPanel.tools.run_functional_test,
   /* Batch 8 · the library's four. They are never registered while the workbench
-     is open, so `ToolInventory` below still lists only `workbenchTools` and the
-     header's count is still six. They are here because the timeline is shared:
-     an entry written on `/projects` is read on this panel. */
+     is open, so `ToolInventory` below still lists only `workbenchTools` — and
+     the header's count is whatever that list is long, never a literal. It said
+     "six" here while `attach_lead` made it seven. They are in this table
+     because the timeline is shared: an entry written on `/projects` is read on
+     this panel. */
   find_projects: copy.agentPanel.tools.find_projects,
   open_project: copy.agentPanel.tools.open_project,
   get_project_requirements: copy.agentPanel.tools.get_project_requirements,
@@ -52,9 +54,12 @@ const toolPurposes = (copy: Copy): Record<AgentTool, string> => ({
 /**
  * G-15 · Tool inventory
  *
- * `6 tools available` as a claim you can check. WebMCP is supposed to be the
+ * `N tools available` as a claim you can check. WebMCP is supposed to be the
  * structure of this product rather than a badge on it, and a count nobody can
  * open is exactly a badge.
+ *
+ * The number is never written down anywhere — it is `tools.length` — because
+ * the one place it was written down went stale the day `attach_lead` landed.
  */
 export function ToolInventory({
   tools = workbenchTools,
@@ -62,10 +67,10 @@ export function ToolInventory({
   className,
 }: {
   /**
-   * Which tools this panel is standing next to. Defaults to the bench's six
-   * because that is where this header was born, but the count is a claim about
-   * the *current* screen — left hardcoded it told the workspace screen that six
-   * tools were available there when none were registered at all.
+   * Which tools this panel is standing next to. Defaults to the bench's own
+   * list because that is where this header was born, but the count is a claim
+   * about the *current* screen — left hardcoded it told the workspace screen
+   * that tools were available there when none were registered at all.
    */
   tools?: readonly AgentTool[];
   /**
@@ -276,9 +281,9 @@ export function AgentPanel({
       header={
         <div>
           {/* The list this screen actually hands the browser, not the bench's
-              by default — the count is a claim about the current page, and it
-              told the entry screen that six tools were available there when
-              none were registered at all. */}
+              by default — the count is a claim about the current page, and a
+              hardcoded one told the entry screen that tools were available
+              there when none were registered at all. */}
           <AgentPanelHeader pulse={pulse} tool={tool} tools={tools} />
 
           {!webMcpAvailable ? (
@@ -317,7 +322,15 @@ export function AgentPanel({
       }
     >
       {children}
-      {announcement ? <LiveRegion message={announcement} /> : null}
+      {/* Mounted empty, always. A live region that arrives in the DOM together
+          with its first content is the one case screen readers do not reliably
+          announce — the region has to have been observed before the mutation —
+          and `announcement` starts as `""` and is reset to `""` by every call
+          that has nothing to say, so under the old `announcement ? … : null`
+          every announcement was a first announcement. This is the channel a
+          person's OWN placement speaks through; the agent's has the toast
+          viewport, which has always been permanently mounted. */}
+      <LiveRegion message={announcement ?? ""} />
     </Panel>
   );
 }

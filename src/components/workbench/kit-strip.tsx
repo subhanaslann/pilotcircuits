@@ -319,10 +319,56 @@ const SHELF_SCALE = PART_HEIGHT / boxOf(frame.led).height;
  * drawn against the same ruler as every other, so a 220Ω resistor is still a
  * sixth the height of the LED beside it.
  */
+/**
+ * How wide one part's drawing is allowed to get, in CSS pixels.
+ *
+ * `shelfScale` capped HEIGHT only, which is the right rule for a catalogue of
+ * through-hole parts and the wrong one the moment a module joins it. An HC-SR04
+ * is 45 x 25 mm: it fills the row's height at a scale that runs it 119px along,
+ * and a micro servo runs 94. Chapter five's seven parts came to 710 CSS pixels
+ * of shelf in the 597 the workshop column has at 1280 — five rows visible, the
+ * LED, the resistor and a jumper (steps five and six) off the edge — and those
+ * two modules were 236 of the excess.
+ *
+ * 80 is the resistor, near enough: 78px is the longest through-hole drawing in
+ * the catalogue, so nothing that fitted before changes size, and a module is
+ * capped at the width of the widest thing it is standing next to. What it gives
+ * up is the module being drawn taller than the parts around it, which is not
+ * what the shelf is for — the shelf is for recognising a part.
+ *
+ * This closes chapters three, four and five at 1280. It does not close chapter
+ * two: ten rows do not fit on one line at any tile size that leaves a 220Ω
+ * resistor looking like a resistor (ten tiles' padding plus nine gaps is
+ * already 264 of the 597 before a single part is drawn). That chapter keeps the
+ * measured edge fade and the shelf's own scrollbar. See `kit-strip.test.ts`.
+ */
+const MAX_ROW_PX = 80;
+
 const shelfScale = (component: KitId) => {
   const box = KIT_ART[component]?.box;
-  return box ? Math.min(SHELF_SCALE, PART_HEIGHT / box.height) : SHELF_SCALE;
+  return box
+    ? Math.min(SHELF_SCALE, PART_HEIGHT / box.height, MAX_ROW_PX / box.width)
+    : SHELF_SCALE;
 };
+
+/** What separates two rows, in CSS pixels — Tailwind's `gap-4` on the `<ul>`. */
+export const KIT_SHELF_GAP = 16;
+
+/** The `p-1.5` a row's button carries on each side, in CSS pixels. */
+const KIT_SHELF_ROW_PAD = 12;
+
+/**
+ * How wide one row of the shelf is, in CSS pixels, padding included.
+ *
+ * Exported for the test that keeps the shelf inside the workshop column at
+ * 1280. Nothing renders through it — it is the same arithmetic the row's own
+ * `PartArt` does, said once so a test can ask the question without a DOM.
+ */
+export function shelfRowWidth(component: KitId): number {
+  const box = KIT_ART[component]?.box;
+  if (!box) return PART_HEIGHT + KIT_SHELF_ROW_PAD;
+  return box.width * shelfScale(component) + KIT_SHELF_ROW_PAD;
+}
 
 /**
  * The shelf's height, in CSS pixels.
@@ -359,6 +405,18 @@ export interface KitPart {
    * point comes from the build (`spec.anchorMark`); this file only draws it.
    */
   mark?: { x: number; y: number; label?: string };
+  /**
+   * Where this part's body will stand once it is placed, in **scene** units —
+   * set only for a part whose body does not travel.
+   *
+   * A module is a case and some leads. `breadboard-bench.tsx`'s `carriedTo`
+   * has always known that the case is a constant — *it is on the bench or it
+   * is not; it is never in the air* — and this file did not, so the ghost hung
+   * the whole box off the anchor mark under the cursor and the case jumped up
+   * to its own length on release. The build is what knows; see
+   * `declaredBodyAt`.
+   */
+  bodyAt?: { x: number; y: number };
 }
 
 export function KitStrip({
@@ -423,6 +481,24 @@ export function KitStrip({
     return { x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) };
   };
 
+  /**
+   * Where this layer's top-left is on the screen, taken at the press.
+   *
+   * `local` reads it off the ref on every pointer move, which it may: it runs
+   * in a listener. The carried ghost cannot — its position is worked out while
+   * rendering, and a ref read there is the hazard `react-hooks/refs` names. So
+   * the one gesture that needs the layer's origin *during* a render takes it
+   * once, when the part is picked up. Nothing moves this layer mid-drag: the
+   * frame does not scroll and the rail beside it does not resize while a
+   * pointer is down.
+   */
+  const [origin, setOrigin] = useState({ left: 0, top: 0 });
+
+  /** A point in this layer, in the bench's own units. The inverse of `local`. */
+  const sceneAt = (point: { x: number; y: number }) =>
+    toScene(point.x + origin.left, point.y + origin.top);
+
+
   /* The shelf's answer to a release that landed on nothing: nothing. The part
      was in the box and it stays there — see `lamp-scene.tsx` for the bench's
      answer, which is the mirror of it, because down there a release out on the
@@ -439,7 +515,13 @@ export function KitStrip({
     targets,
     targetsFor,
     aimAt,
-    onPick,
+    /* The press, and the one moment the layer's origin can be measured without
+       reading a ref while rendering — see `origin`. */
+    onPick: (terminal) => {
+      const rect = region.current?.getBoundingClientRect();
+      if (rect) setOrigin({ left: rect.left, top: rect.top });
+      onPick(terminal);
+    },
     onSettle,
     onHover,
     onDrop: (terminal, aim) => {
@@ -530,18 +612,37 @@ export function KitStrip({
       {/* The shelf. Stuck to the top edge of the well, on the well's own dark
           ground rather than a panel of its own — the region has one raised
           surface and it is the board. */}
+      {/* `focus-on-dark` is the whole of the fix for the ring in here, and it
+          is on the container rather than on the row: the product's one focus
+          ring is `--color-accent`, tuned for the app's `#f5f7f8` paper where it
+          reads 3.82:1, and this shelf composites to `#3c474f`, where it is
+          2.32:1 — under the 3:1 WCAG 1.4.11 and 2.4.11 both ask of a focus
+          indicator, on the keyboard's entry point to the entire placement
+          gesture. The utility re-points `--focus-ring-color`, which inherits,
+          so the ten rows below say nothing about what they are standing on.
+          Not on the region: the zoom toolbar and the view switch float on
+          `bg-surface` twelve pixels underneath, and a white ring there would be
+          the same bug the other way round. */}
       <div
-        className="pointer-events-auto absolute inset-x-0 top-0 flex items-center gap-5 border-b border-[#4E5C66] bg-[#333E46]/95 px-4"
+        className="focus-on-dark pointer-events-auto absolute inset-x-0 top-0 flex items-center gap-5 border-b border-[#4E5C66] bg-[#333E46]/95 px-4"
         style={{ height: KIT_STRIP_HEIGHT }}
       >
-        <span className="text-overline shrink-0 text-[#98A6B0] uppercase">
+        {/* Lifted from `#98A6B0`, which read 3.81:1 on the shelf's composited
+            `#3c474f`. `text-overline` is 11px and uppercase, which is normal
+            text as far as WCAG is concerned, so 4.5:1 applies; this is
+            5.13:1. */}
+        <span className="text-overline shrink-0 text-[#B4C0C9] uppercase">
           {caption}
         </span>
 
+        {/* `gap-4`, down from `gap-7`. See `MAX_ROW_PX`: 28px between ten rows
+            is 252 of the 597 the shelf has at 1280, and 16 leaves the parts a
+            clear 28px of whitespace between them anyway, since every tile
+            carries 6px of padding on each side. */}
         <ul
           ref={shelf}
           style={fade}
-          className="flex min-w-0 flex-1 items-center gap-7 overflow-x-auto"
+          className="flex min-w-0 flex-1 items-center gap-4 overflow-x-auto"
         >
           {parts.map((part) => (
             <li key={part.part} className="shrink-0">
@@ -562,10 +663,20 @@ export function KitStrip({
                 )}
                 style={{ height: PART_HEIGHT + 12 }}
                 {...bind(part.terminal)}
+                /* Both, in that order, exactly as the rail's kit rows do
+                   (`live-workbench.tsx`'s `kit.onPick`). `onSettle` is raised
+                   from `usePartDrag`'s pointer release and from nowhere else,
+                   so a mouse click on this button took the closer look and
+                   `Enter` on the same button did not — leaving the keyboard at
+                   the opening fit, where the picker's marks are about nine CSS
+                   pixels apart. Rule 14 claims the keyboard route is as precise
+                   as the pointer's; this was the one entry point where it was
+                   not. */
                 onKeyDown={(event) => {
                   if (event.key !== "Enter" && event.key !== " ") return;
                   event.preventDefault();
                   onPick(part.terminal);
+                  onSettle?.(part.terminal);
                 }}
               >
                 <PartArt
@@ -589,7 +700,10 @@ export function KitStrip({
              covers the one piece of feedback the gesture has. A person aiming
              at a hole they cannot see is aiming at nothing. */
           className="pointer-events-none absolute opacity-80 drop-shadow-[0_8px_14px_rgba(8,14,20,0.55)]"
-          style={carriedAt(held.at, carried, scale())}
+          /* The cursor in scene units, which only a module's ghost reads. The
+             region's own rect is what turns its layer coordinates back into
+             client ones; `toScene` does the rest. */
+          style={carriedAt(held.at, carried, scale(), sceneAt(held.at))}
         >
           <PartArt
             component={carried.component}
@@ -695,10 +809,28 @@ function carriedAt(
   at: { x: number; y: number },
   part: KitPart,
   scale: number,
+  /** Where the cursor is in scene units, for the one part kind that needs it. */
+  aim?: { x: number; y: number },
 ): { left: number; top: number; transform?: string } {
   const kit = KIT_ART[part.component];
   if (!part.mark || !kit) {
     return { left: at.x, top: at.y, transform: "translate(-50%, -50%)" };
+  }
+  /* **A module's case does not travel**, so the ghost does not carry it. The
+     case is drawn where the build declares it and the cursor carries the anchor
+     lead alone — which is what the bench does mid-drag (`carriedTo`) and what
+     the drop actually commits. Hung off the cursor instead, the ghost promised
+     a case in one place and delivered it up to a body length away: PIR 97.7
+     scene units, micro servo 124.8, soil probe 225.
+
+     The aim is still the cursor and the hole under it is still marked by the
+     picker — that is the feedback the gesture has, and it is unchanged. What
+     changes is that the picture of the part stops disagreeing with it. */
+  if (part.bodyAt && aim) {
+    return {
+      left: at.x + (part.bodyAt.x - aim.x) * scale,
+      top: at.y + (part.bodyAt.y - aim.y) * scale,
+    };
   }
   return {
     left: at.x - part.mark.x * scale,

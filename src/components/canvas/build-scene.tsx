@@ -5,7 +5,11 @@ import {
   LampSceneView,
   type BenchHandling,
 } from "@/components/canvas/lamp-scene";
-import { BreadboardBenchView } from "@/components/canvas/breadboard-bench";
+import {
+  BreadboardBenchView,
+  type BenchSpec,
+} from "@/components/canvas/breadboard-bench";
+import { buildFor } from "@/lib/agent/builds";
 import { lightBench } from "@/components/canvas/traffic-light-bench";
 import { nightBench } from "@/components/canvas/motion-night-light-bench";
 import { plantBench } from "@/components/canvas/plant-guardian-bench";
@@ -240,4 +244,55 @@ export function BuildSceneView({
       test={test}
     />
   );
+}
+
+/** The four assembled breadboard benches, by the id that picks them above. */
+const BENCHES: Partial<Record<ProjectId, BenchSpec<never>>> = {
+  trafficLight: lightBench as BenchSpec<never>,
+  motionNightLight: nightBench as BenchSpec<never>,
+  plantGuardian: plantBench as BenchSpec<never>,
+  touchlessSoapDispenser: soapBench as BenchSpec<never>,
+};
+
+/**
+ * Where a build declares a **module's** case to stand, if this part is one.
+ *
+ * A module is a case and some leads, and `breadboard-bench.tsx`'s `carriedTo`
+ * already says what that means for a drag: *a module's case is a constant. It
+ * is on the bench or it is not; it is never in the air.* The kit shelf did not
+ * know: `carriedAt` hung the whole part box off the anchor mark at the cursor
+ * for every part alike, so the ghost drew the case as though it were rigid and
+ * on release the case snapped to the point the build declares. Measured from
+ * the ghost's top-left to the declared one, dropping each module's anchor lead
+ * into its finished hole: PIR 97.7 units against a 94.5-unit body, micro servo
+ * 124.8 against a 124.5-unit one, soil probe 225, HC-SR04 20.7 — a whole body
+ * length, and largest exactly when somebody aims at the far end of the rail.
+ *
+ * `undefined` for everything else, which is the answer for a rigid part (it
+ * travels whole, so the ghost is already right), a cable (no box at all), the
+ * capstone (laid out by its author, no shelf) and a part this build has never
+ * heard of.
+ *
+ * The scene it reads is the build's own FINISHED one, and it is fetched here
+ * rather than passed in. A module's case is a constant, so any scene in which
+ * the module is standing answers — and the live scene is never one of them,
+ * because the shelf asks precisely while the module is still in the box, where
+ * `origins` says `undefined` because that is what "not on the bench" looks like
+ * to a drawing. Taking a `projectId` and a `PartId` and nothing else also keeps
+ * the caller's own `build` row out of an opaque call: the React Compiler treats
+ * a value handed to a function it cannot see as one that may be mutated, and
+ * passing `build.reference` in from `live-workbench` made `build.placement` a
+ * dependency that "may be modified later" and skipped that component's
+ * memoisation entirely.
+ */
+export function declaredBodyAt(
+  projectId: ProjectId,
+  part: PartId,
+): { x: number; y: number } | undefined {
+  const bench = BENCHES[projectId];
+  if (bench?.parts.find((p) => p.id === part)?.body.kind !== "module") {
+    return undefined;
+  }
+  const finished = buildFor(projectId)?.reference;
+  return finished ? bench.origins(finished).parts[part] : undefined;
 }

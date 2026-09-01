@@ -91,7 +91,18 @@ export function EditorialRow({
   children,
 }: {
   tone: AlertTone;
-  role?: "status" | "alert";
+  /**
+   * `none` for a row that is a list item rather than an event.
+   *
+   * The default is right for `Alert`, which is a thing the product just said.
+   * It is wrong for the agent panel's finding card: `status` implies
+   * `aria-live="polite"` and `aria-atomic`, so a list of eight findings was
+   * eight live regions — every one of them announced on opening the tab, and
+   * the whole card re-announced on every re-render of it. A row has to be able
+   * to say it is not an announcement, and the default cannot be dropped
+   * because `Alert` genuinely is one.
+   */
+  role?: "status" | "alert" | "none";
   onDismiss?: () => void;
   className?: string;
   children: ReactNode;
@@ -100,7 +111,11 @@ export function EditorialRow({
 
   return (
     <div
-      role={role ?? (tone === "error" ? "alert" : "status")}
+      role={
+        role === "none"
+          ? undefined
+          : (role ?? (tone === "error" ? "alert" : "status"))
+      }
       className={cn("motion-expand flex gap-3 py-3", className)}
     >
       <ToneDisc tone={tone} className="mt-0.5" />

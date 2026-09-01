@@ -20,7 +20,13 @@
   /* Ink */
   --color-ink: #111827;
   --color-ink-secondary: #5b6576;
-  --color-ink-tertiary: #667085;
+  /* Nudged from #667085, which cleared 4.5:1 on white (4.97) and on the app
+     paper (4.63) and missed it on the sunken surface (4.39) — where the build
+     progress bar's upcoming-step disc and the library's ordered-step disc both
+     put it. A palette fix rather than two call-site fixes: the ink is the same
+     grey one step darker, and every ground it lands on improves with it
+     (sunken 4.71, app 4.97, white 5.34). */
+  --color-ink-tertiary: #626b80;
   --color-ink-inverse: #ffffff;
   /* Non-text only: disabled glyphs, decorative rules, empty-state art.
      Below AA by design — never carries a word the user has to read. */
@@ -265,6 +271,20 @@
     --focus-ring-width: 2px;
     --focus-ring-offset: 2px;
     --focus-ring-color: var(--color-accent);
+    /* The same ring on the product's two dark grounds.
+
+       `--color-accent` is tuned for the app's `#f5f7f8` paper, where it reads
+       3.82:1. The canvas mat (`#3E4A53`) and the kit shelf (`#333E46` at 95%
+       over the sunken well, `#3c474f`) are the two surfaces that are not that
+       paper, and the ring lands at 2.22:1 and 2.32:1 on them — under the 3:1
+       WCAG 1.4.11 and 2.4.11 both ask of a focus indicator. The kit shelf is
+       the keyboard's entry point to the whole placement gesture, so this is
+       not a corner of the product.
+
+       White rather than a lighter blue: `#4D94FF` clears the bar by 0.03 and
+       0.17 and nothing else in the product has to be that close to a limit.
+       White is 9.09:1 on the mat and 9.52:1 on the shelf. */
+    --focus-ring-color-inverse: #ffffff;
   }
 
   * {
@@ -427,17 +447,44 @@
   transition-duration: var(--duration-deliberate);
 }
 
+/* Explicit ring for composite controls whose visual box differs from the
+   focusable element (segmented control items, canvas pins, tabs).
+
+   **`@utility`, not `@layer utilities`, and that is the whole point.** Tailwind
+   4 emits a bare class for anything declared inside `@layer utilities` and no
+   variant form of it, so every one of the fifteen `focus-visible:ring-focus`
+   and `peer-focus-visible:ring-focus` call sites in the tree compiled to
+   nothing at all. On a plain `<button>` the loss was invisible — the global
+   `:focus-visible` rule above draws the identical outline — but this class
+   exists for the case where it does not fire: `ui/choice.tsx` puts the radio in
+   `peer sr-only` and the checkbox at `opacity-0` and asks for the ring on the
+   visible sibling. An `sr-only` element paints no outline, so the knowledge
+   check's radio group and every checkbox in the product had no focus indicator
+   whatsoever.
+
+   Nothing else in the block below is used with a variant (checked), which is
+   why only this one moved. */
+@utility ring-focus {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* The one ring, re-pointed for a dark ground.
+
+   A container's declaration, not a control's: both `:focus-visible` and
+   `.ring-focus` read `--focus-ring-color`, and a custom property inherits — so
+   putting this on the kit shelf and on the canvas region re-colours the ring on
+   every focusable thing inside them, including the ones drawn in SVG, without
+   any of them knowing what they are standing on. See
+   `--focus-ring-color-inverse` for the numbers. */
+@utility focus-on-dark {
+  --focus-ring-color: var(--focus-ring-color-inverse);
+}
+
 @layer utilities {
   /* Tabular numerals for every technical readout: D7, 5V, 18 cm, 94%. */
   .tnum {
     font-variant-numeric: tabular-nums;
-  }
-
-  /* Explicit ring for composite controls whose visual box differs from the
-     focusable element (segmented control items, canvas pins, tabs). */
-  .ring-focus {
-    outline: var(--focus-ring-width) solid var(--focus-ring-color);
-    outline-offset: var(--focus-ring-offset);
   }
 
   /* The "second inner layer" active states are built from (F-05). */

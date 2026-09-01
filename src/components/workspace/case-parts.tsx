@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import type { ComponentId } from "@/lib/projects/catalog";
+import { useSvgPrefix } from "@/components/canvas/svg-ids";
 import { material } from "@/components/illustration/spec";
 
 /**
@@ -99,21 +100,44 @@ const board = (
   </g>
 );
 
-const breadboard = (
-  <g>
-    <rect x={0} y={0} width={360} height={110} rx={4} fill={material.cream} />
-    <line x1={14} y1={13} x2={346} y2={13} stroke="#C8474C" strokeWidth={2.4} />
-    <line x1={14} y1={28} x2={346} y2={28} stroke="#3F6FB5" strokeWidth={2.4} />
-    <line x1={14} y1={82} x2={346} y2={82} stroke="#C8474C" strokeWidth={2.4} />
-    <line x1={14} y1={97} x2={346} y2={97} stroke="#3F6FB5" strokeWidth={2.4} />
-    <rect x={8} y={50} width={344} height={10} fill="#D3D0C7" />
-    <pattern id="cp-case-bb" x={16} y={36} width={9.5} height={8} patternUnits="userSpaceOnUse">
-      <rect x={2.6} y={2} width={4.2} height={4.2} rx={1} fill="#7A828A" />
-    </pattern>
-    <rect x={16} y={34} width={330} height={16} fill="url(#cp-case-bb)" />
-    <rect x={16} y={60} width={330} height={16} fill="url(#cp-case-bb)" />
-  </g>
-);
+/**
+ * The one top face with a `<defs>` element of its own, so the one that has to
+ * be a component rather than an element.
+ *
+ * An SVG `id` is document-global: `cp-case-bb` was the pattern's name whatever
+ * drew it, so a second kit case anywhere in the same document would have
+ * resolved both cases' hole rows to the first one's pattern. Only one case is
+ * on `/workspace` today, which is why this was latent rather than live —
+ * `svg-ids.test.ts` tolerated this file and `kit-case.tsx` by name for exactly
+ * that reason, and no longer has to.
+ */
+function BreadboardTop() {
+  const uid = useSvgPrefix();
+  return (
+    <g>
+      <rect x={0} y={0} width={360} height={110} rx={4} fill={material.cream} />
+      <line x1={14} y1={13} x2={346} y2={13} stroke="#C8474C" strokeWidth={2.4} />
+      <line x1={14} y1={28} x2={346} y2={28} stroke="#3F6FB5" strokeWidth={2.4} />
+      <line x1={14} y1={82} x2={346} y2={82} stroke="#C8474C" strokeWidth={2.4} />
+      <line x1={14} y1={97} x2={346} y2={97} stroke="#3F6FB5" strokeWidth={2.4} />
+      <rect x={8} y={50} width={344} height={10} fill="#D3D0C7" />
+      <pattern
+        id={`${uid}-bb`}
+        x={16}
+        y={36}
+        width={9.5}
+        height={8}
+        patternUnits="userSpaceOnUse"
+      >
+        <rect x={2.6} y={2} width={4.2} height={4.2} rx={1} fill="#7A828A" />
+      </pattern>
+      <rect x={16} y={34} width={330} height={16} fill={`url(#${uid}-bb)`} />
+      <rect x={16} y={60} width={330} height={16} fill={`url(#${uid}-bb)`} />
+    </g>
+  );
+}
+
+const breadboard = <BreadboardTop />;
 
 const sensor = (
   <g>

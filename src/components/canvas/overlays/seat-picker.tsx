@@ -1,12 +1,126 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { PITCH } from "@/lib/circuit/geometry";
 import type { CircuitNode, NodeId } from "@/lib/circuit/graph";
 import { bench } from "@/components/illustration/spec";
 
 /** A press is a press, not a pan, until it has travelled this far in CSS px. */
 const PRESS_SLOP = 6;
+
+/**
+ * The dark ground every mark in here is drawn on top of.
+ *
+ * The same value the kit shelf's anchor badge uses, for the same reason: these
+ * marks land on white breadboard plastic, on a blue PCB and on the dark mat
+ * within one gesture, and no single light colour clears 3:1 on all three.
+ */
+const MARK_GROUND = "#10161C";
+
+/**
+ * The caret asking to be looked at — the SVG equivalent of `scrollIntoView`.
+ *
+ * There is no scroll container anywhere on this bench: the pan and the zoom are
+ * a CSS transform on a `<g>` inside `CanvasViewport`, so when the arrow walk
+ * moves focus onto a `<g>` that is off screen the browser has nothing to
+ * scroll and does nothing at all. Measured on the 1440x900 well: after picking
+ * a lead up, `closer()` frames the candidates at the 2.43x zoom `zoomToAim`
+ * demands and centres rather than fits that box, so 240 of chapter three's 381
+ * candidates, 223 of chapter four's 387 and 28 of chapter two's 194 are
+ * outside the well. A person walking with ArrowDown was selecting holes that
+ * were not on the screen, with `Fit view` — which undoes the very zoom the
+ * precision needs — as the only way back.
+ *
+ * It travels as a context rather than as a prop because the two ends are three
+ * files apart and the ones in between are not ours to change: the picker is
+ * rendered by `breadboard-bench.tsx` and `lamp-scene.tsx`, which are drawings
+ * and have no camera, and the handle lives in the region that owns the well.
+ * Absent — the briefing's film, the inspection's frozen frame — the walk simply
+ * does not move the view, which is right for a picture.
+ */
+type KeepCaretInView = (caret: DOMRect, at: { x: number; y: number }) => void;
+
+const CaretView = createContext<KeepCaretInView | null>(null);
+
+/**
+ * Supplied by whatever owns the camera. See `KeepCaretInView`.
+ *
+ * `caret` is where the mark is on the screen right now; `at` is the same point
+ * in scene units, which is what a camera can actually be pointed at. The
+ * provider decides whether the caret is visible at all — only it knows what is
+ * painted over the well.
+ */
+export function CaretViewport({
+  keepInView,
+  children,
+}: {
+  keepInView: KeepCaretInView;
+  children: ReactNode;
+}) {
+  return <CaretView value={keepInView}>{children}</CaretView>;
+}
+
+/**
+ * One candidate's mark: a dark halo with the light ring drawn inside it.
+ *
+ * A plain function rather than a component because it is called up to 387 times
+ * per render and returns two nodes; there is no state here for a component to
+ * hold.
+ */
+function candidateMark({
+  lead,
+  x,
+  y,
+  r,
+  stroke,
+  opacity,
+}: {
+  /** A free lead, drawn as a diamond, rather than a hole drawn as a ring. */
+  lead: boolean;
+  x: number;
+  y: number;
+  r: number;
+  stroke: number;
+  opacity: number;
+}) {
+  /* Same radius for both shapes, so the two read as one family at one size; a
+     different shape, so which one you are on is legible without colour and at
+     40% zoom. */
+  const shape = (paint: string, width: number, alpha: number) =>
+    lead ? (
+      <polygon
+        points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`}
+        fill="none"
+        stroke={paint}
+        strokeWidth={width}
+        opacity={alpha}
+      />
+    ) : (
+      <circle
+        cx={x}
+        cy={y}
+        r={r}
+        fill="none"
+        stroke={paint}
+        strokeWidth={width}
+        opacity={alpha}
+      />
+    );
+
+  return (
+    <>
+      {shape(MARK_GROUND, stroke + 1.8, opacity * 0.9)}
+      {shape(bench.label, stroke, opacity)}
+    </>
+  );
+}
 
 /**
  * The targets as the rows they are drawn in.
@@ -259,8 +373,18 @@ export function SeatPicker({
     refs.current.length = targets.length;
   }, [targets]);
 
+  const keepInView = useContext(CaretView);
+
   useEffect(() => {
-    refs.current[active]?.focus();
+    const node = refs.current[active];
+    node?.focus();
+    /* And then bring the view with it. `targets` is read here rather than
+       listed as a dependency on purpose — the array is rebuilt every render
+       and the caret is what moved, not the list. */
+    const target = targets[active];
+    if (!node || !target || !keepInView) return;
+    keepInView(node.getBoundingClientRect(), aimAt(target));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   const move = (to: number) =>
@@ -403,7 +527,7 @@ export function SeatPicker({
             aria-keyshortcuts={
               onRelease && releaseLabel ? "Delete" : undefined
             }
-            className="cursor-pointer outline-none"
+            className="group cursor-pointer outline-none"
             onPointerDown={(event) => {
               press.current = {
                 id: target.id,
@@ -422,33 +546,62 @@ export function SeatPicker({
             {/* A generous invisible target that still cannot reach its
                 neighbour — see `hitRadius`. */}
             <circle cx={x} cy={y} r={hitRadius} fill="transparent" />
-            {target.kind === "terminal" ? (
-              /* A lead, not a hole. Same radius, so the two read as one family
-                 at one size; a different shape, so which one you are on is
-                 legible without colour and at 40% zoom. */
-              <polygon
-                points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`}
-                fill="none"
-                stroke={bench.label}
-                strokeWidth={marked ? 2.2 : 1.6}
-                opacity={marked ? 1 : adrift ? 0.25 : 0.85}
-              />
-            ) : (
-              <circle
-                cx={x}
-                cy={y}
-                r={r}
-                fill="none"
-                stroke={bench.label}
-                /* Raised from 0.55/1.2. A hairline at half opacity on a dark
-                   board is a target you have to already know is there, and
-                   these are the whole answer to the question the header is
-                   asking. `adrift` — a pointer carrying a lead over nothing —
-                   is still the quiet state, so the two remain distinct. */
-                strokeWidth={marked ? 2.2 : 1.6}
-                opacity={marked ? 1 : adrift ? 0.25 : 0.85}
-              />
-            )}
+            {/* **Two strokes, dark under light**, and it is not a flourish.
+                `bench.label` was chosen against chapter one's Uno, where it
+                reads 5.07:1 on `#1B4F9C`. On every breadboard chapter the marks
+                land on the board's `plasticWhite` `#F2F4F6` and its `#C4CBD2`
+                holes, where the same colour is **1.42:1** and **1.05:1** — and
+                179 of chapter two's 194 candidates, and 359 of the 381–387 on
+                chapters three to five, are on that plastic. So the only
+                keyboard route into a hole was drawn in a colour nobody can see
+                on the surface it is drawn on.
+                No single colour can fix it: clearing 3:1 on `#F2F4F6` needs a
+                luminance at or under 0.262 and clearing it on `#1B4F9C` needs
+                0.34 or more. So the mark carries its own dark ground the way
+                the shelf's anchor badge and `MascotRing` already do, and the
+                pair reads on white plastic (16.5:1 for the halo) and on the
+                board (5.07:1 for the ring) without either of them knowing what
+                is underneath. */}
+            {candidateMark({
+              lead: target.kind === "terminal",
+              x,
+              y,
+              r,
+              /* Opacity, not colour, still carries `adrift` — a pointer
+                 carrying a lead over nothing. The halo fades with the mark, so
+                 the quiet state stays quiet. */
+              stroke: marked ? 2.2 : 1.6,
+              opacity: marked ? 1 : adrift ? 0.25 : 0.85,
+            })}
+            {/* **The keyboard's own ring**, and only on the one candidate that
+                can hold focus — the roving tabindex above means no other ever
+                does, so this costs two nodes on a bench that draws up to 387
+                candidates.
+                It replaces a 0.6-unit stroke delta that was also what a
+                *pointer hover* looked like: two different things wearing one
+                mark, and the quieter of them the one WCAG 2.4.11 is about. Same
+                dark-under-light pair as the mark, one radius out, so it reads
+                as a ring around the caret rather than as a heavier caret. */}
+            {index === active ? (
+              <g className="opacity-0 group-focus-visible:opacity-100">
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={r + PITCH * 0.26}
+                  fill="none"
+                  stroke={MARK_GROUND}
+                  strokeWidth={3.4}
+                />
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={r + PITCH * 0.26}
+                  fill="none"
+                  stroke={bench.label}
+                  strokeWidth={1.6}
+                />
+              </g>
+            ) : null}
             {/* **Where it would land** — a filled dot, the mark of a choice
                 about to be made. */}
             {aimed ? (

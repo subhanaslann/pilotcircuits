@@ -91,18 +91,26 @@ export function Tabs<T extends string>({
             aria-controls={`${id}-${item.value}-panel`}
             tabIndex={active ? 0 : -1}
             onClick={() => onValueChange(item.value)}
+            /* An automatic tablist: the arrow selects, and **the caret goes
+               with it**. The roving tabindex flips to the newly selected tab
+               the moment `onValueChange` lands, so a walk that left
+               `document.activeElement` behind put the accent underline on one
+               tab and the focus ring on another — the one that had just become
+               `tabIndex={-1}`, so the next Tab left the strip entirely. This is
+               the agent panel's main navigation and the mismatch showed on
+               every arrow press. */
             onKeyDown={(event) => {
               const index = items.findIndex((i) => i.value === value);
-              if (event.key === "ArrowRight") {
-                event.preventDefault();
-                onValueChange(items[(index + 1) % items.length].value);
-              }
-              if (event.key === "ArrowLeft") {
-                event.preventDefault();
-                onValueChange(
-                  items[(index - 1 + items.length) % items.length].value,
-                );
-              }
+              const to =
+                event.key === "ArrowRight"
+                  ? (index + 1) % items.length
+                  : event.key === "ArrowLeft"
+                    ? (index - 1 + items.length) % items.length
+                    : undefined;
+              if (to === undefined) return;
+              event.preventDefault();
+              onValueChange(items[to].value);
+              itemRefs.current[to]?.focus();
             }}
             className={cn(
               "relative inline-flex items-center gap-1.5 font-medium transition-colors duration-quick ease-out-soft",

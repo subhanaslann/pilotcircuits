@@ -8,7 +8,7 @@ import { useCopy } from "@/content/copy-provider";
 import type { BuildStep } from "@/lib/agent/steps";
 import { partNameOf, type StepParts } from "@/lib/agent/parts";
 import type { TerminalId } from "@/lib/circuit/placement";
-import type { ComponentId, KitId } from "@/lib/projects/catalog";
+import { countedAs, type ComponentId, type KitId } from "@/lib/projects/catalog";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -178,9 +178,24 @@ export function StepComponents({
   /* What the step names and no row covers stays the read-only line it has
      always been. Chapter six has no rows at all and reads exactly as before;
      chapter one's `Check your kit` names the board, which is part of the step
-     and is not a thing anybody picks up. */
+     and is not a thing anybody picks up.
+
+     The two sides are compared through **one** vocabulary, and that is not a
+     tidy-up. `parts.components` comes from `partOf`, which counts — `led.red`,
+     `led.yellow` and `led.green` are all `led`. `row.component` comes from
+     `spec.componentOf`, which draws, and chapter two's map is per lamp:
+     `ledRed`, `ledYellow`, `ledGreen`. `"led" !== "ledRed"`, so on three of
+     chapter two's five steps the filter matched nothing and the rail printed a
+     read-only `LEDs` — the catalogue's PLURAL word, with the generic dome icon
+     — directly above the `Red LED` / `Amber LED` / `Green LED` rows it was
+     duplicating, on a step about exactly one lamp. `countedAs` is the
+     catalogue's own answer to "which counted part is this", and it keeps
+     working the day a chapter grows a `sensorX`. */
   const listed = parts.components.filter(
-    (id) => !rows.some((row) => row.component === id),
+    (id) =>
+      !rows.some(
+        (row) => row.component === id || countedAs(row.component) === id,
+      ),
   );
 
   /* Two tables, and the split is the point rather than an oversight.
@@ -316,8 +331,13 @@ function KitChip({
       id={id}
       className={cn(
         "text-caption shrink-0 rounded-full px-2 py-0.5 leading-none",
+        /* `text-inverse` is not a generated class — the theme has
+           `--color-ink-inverse` and no `--color-inverse` — so this capsule
+           inherited `body`'s near-black onto accent blue and read at 4.32:1.
+           White on `--color-accent` is 4.10:1, still under the 4.5:1 a 12px
+           chip asks for, so the ground darkens one step with it: 5.41:1. */
         active
-          ? "bg-accent text-inverse"
+          ? "bg-accent-hover text-ink-inverse"
           : "border-border text-ink-secondary border",
       )}
     >

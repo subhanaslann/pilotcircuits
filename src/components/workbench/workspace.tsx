@@ -1,11 +1,12 @@
 "use client";
 
 import { Maximize, Redo2, Undo2, ZoomIn, ZoomOut } from "lucide-react";
-import type { ReactNode, Ref, RefObject } from "react";
+import { useRef, type ReactNode, type Ref, type RefObject } from "react";
 import {
   CanvasViewport,
   type CanvasHandle,
 } from "@/components/canvas/canvas-viewport";
+import { CaretViewport } from "@/components/canvas/overlays/seat-picker";
 import { Button, IconButton } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/choice";
 import { Disclosure } from "@/components/ui/disclosure";
@@ -134,6 +135,46 @@ export function CanvasWorkspace({
 }) {
   const copy = useCopy();
   const g = { size: icon.sm, strokeWidth: icon.strokeWidth } as const;
+  const well = useRef<HTMLDivElement>(null);
+
+  /**
+   * The keyboard caret asking to be brought into the well — see `CaretViewport`.
+   *
+   * The region answers it rather than the picker, because the two facts the
+   * question needs are both here: the well's box, and how much of its top edge
+   * the kit shelf is painted over. `boxFor` already frames against the same
+   * inset, so a caret that lands here is centred in the part of the well
+   * anybody can see rather than behind the shelf.
+   *
+   * Only when the caret is actually outside. The walk is one hole at a time and
+   * a camera that re-centred on every press would be the re-fit rule 6 forbids
+   * — the bench would move under a hand that had not asked it to. The margin is
+   * two pitches at the opening fit, so the pan happens as the caret reaches the
+   * edge rather than after it has left.
+   */
+  const keepCaretInView = (caret: DOMRect, at: { x: number; y: number }) => {
+    const view = canvas.current;
+    const box = well.current?.getBoundingClientRect();
+    if (!view || !box) return;
+    const margin = 28;
+    const top = box.top + (kit ? KIT_STRIP_HEIGHT : 0) + margin;
+    if (
+      caret.left >= box.left + margin &&
+      caret.right <= box.right - margin &&
+      caret.top >= top &&
+      caret.bottom <= box.bottom - margin
+    ) {
+      return;
+    }
+    /* The point, not the candidate set: the scale stays exactly where the
+       person left it, because the precision they zoomed in for is the reason
+       they are on the keyboard at all. */
+    const pad = 24;
+    view.focusOn(
+      { x: at.x - pad, y: at.y - pad, width: pad * 2, height: pad * 2 },
+      { scale: view.getScale(), animate: true },
+    );
+  };
 
   return (
     <section
@@ -197,35 +238,43 @@ export function CanvasWorkspace({
         ) : null}
       </header>
 
-      <div inert={Boolean(overlay)} className="relative min-h-0 flex-1">
-        <CanvasViewport
-          ref={canvas}
-          ariaLabel={ariaLabel}
-          interactive={interactive}
-          fitBox={fitBox}
-          /* The shelf is drawn over this canvas, so the part of it a build can
-             be framed in starts below the shelf. Same constant the toolbar
-             below is offset by. */
-          insetTop={kit ? KIT_STRIP_HEIGHT : 0}
-          onScaleChange={onScaleChange}
-          className="h-full"
-        >
-          {children}
-        </CanvasViewport>
+      <div
+        ref={well}
+        inert={Boolean(overlay)}
+        className="relative min-h-0 flex-1"
+      >
+        {/* **The furniture comes first, and it is the tab order that asks for
+            it.** Visually the shelf is stuck to the TOP edge of the well and
+            the toolbar sits just under it; in DOM order they used to come after
+            the whole scene, so on chapter two `Tab` walked the instruction, then
+            up to twenty lead handles scattered across the board, and only then
+            reached the shelf of parts still in the box — which is where a
+            person starts. WCAG 2.4.3 wants focus order to preserve meaning;
+            that inverted it.
 
-        {/* The region's own controls, hidden under an overlay for the same
-            reason the instruction is: the panel is inset, so a zoom button and
-            a view switch would show along its edges as slivers of furniture
-            belonging to a canvas nobody can reach. The bench itself stays
-            visible behind, dimmed — that is what the overlay is standing on.
-            Not positioned, so the three keep the same containing block. */}
-        <div className={cn(overlay && "invisible")}>
+            Hidden under an overlay for the same reason the instruction is: the
+            panel is inset, so a zoom button and a view switch would show along
+            its edges as slivers of furniture belonging to a canvas nobody can
+            reach. The bench itself stays visible behind, dimmed — that is what
+            the overlay is standing on.
+
+            The layer is `absolute inset-0` and inert to the pointer so it can
+            sit in front of the canvas without taking the drag gestures the
+            canvas lives on; each control switches the pointer back on for
+            itself. `z-10` because the canvas is now the LATER sibling and would
+            otherwise paint over all of it. */}
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-0 z-10",
+            overlay && "invisible",
+          )}
+        >
           {kit}
 
           {/* Below the shelf when there is one. The offset is the shelf's own
               exported height, so the two cannot drift apart. */}
           <div
-            className="absolute left-3"
+            className="pointer-events-auto absolute left-3"
             style={{ top: kit ? KIT_STRIP_HEIGHT + 12 : 12 }}
           >
             <Toolbar floating className="gap-1 p-1.5">
@@ -282,7 +331,7 @@ export function CanvasWorkspace({
           </div>
 
           <div
-            className="absolute right-3"
+            className="pointer-events-auto absolute right-3"
             style={{ top: kit ? KIT_STRIP_HEIGHT + 12 : 12 }}
           >
             <SegmentedControl<CanvasView>
@@ -303,6 +352,21 @@ export function CanvasWorkspace({
             {Math.round(scale * 100)}%
           </span>
         </div>
+
+        <CanvasViewport
+          ref={canvas}
+          ariaLabel={ariaLabel}
+          interactive={interactive}
+          fitBox={fitBox}
+          /* The shelf is drawn over this canvas, so the part of it a build can
+             be framed in starts below the shelf. Same constant the toolbar
+             above is offset by. */
+          insetTop={kit ? KIT_STRIP_HEIGHT : 0}
+          onScaleChange={onScaleChange}
+          className="h-full"
+        >
+          <CaretViewport keepInView={keepCaretInView}>{children}</CaretViewport>
+        </CanvasViewport>
       </div>
 
       {/* Above the floating toolbar and the view switch — `SegmentedControl`'s

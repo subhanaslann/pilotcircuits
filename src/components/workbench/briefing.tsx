@@ -6,6 +6,7 @@ import { LiveRegion } from "@/components/ui/status";
 import { MonoValue, Sentence } from "@/components/ui/text";
 import { ProjectScene } from "@/components/illustration/project-scenes";
 import { BuildSceneView } from "@/components/canvas/build-scene";
+import { useSvgPrefix } from "@/components/canvas/svg-ids";
 import { useCopy } from "@/content/copy-provider";
 import {
   briefingScreenCount,
@@ -62,6 +63,13 @@ import { cn } from "@/lib/utils/cn";
  *   frame are genuinely available, and `aria-modal` would tell a screen reader
  *   they are not while the sighted user can see all four. The scrim is a
  *   picture of *this region is busy*, not a claim about the other four.
+ *
+ *   *`role="dialog"`* — paid, and it is the half of the modal contract that was
+ *   missing rather than declined. Declining `aria-modal` says *the rest of the
+ *   frame is still yours*; it does not say *this is not a window*, and a bare
+ *   `<section aria-labelledby>` was announced as a region with no shape, no
+ *   entry and no exit. The role names it and `aria-modal`'s absence keeps the
+ *   claim honest.
  *
  *   *Focus on open* — paid, on the region's heading rather than on the primary
  *   button. The briefing is read; focusing `İleri` would make a screen-reader
@@ -178,7 +186,14 @@ export function ChapterBriefing({
           drawer put behind themselves, so the product has one darkness. */}
       <div aria-hidden="true" className="absolute inset-0 bg-[#0B1220]/45" />
 
+      {/* `role="dialog"` and no `aria-modal`, which is the pair the header
+          argues for: this *is* a window standing in front of one region, so a
+          screen reader should name it as one and say when it is entered and
+          left — and the other four regions of the frame really are available,
+          so claiming otherwise would be a lie a sighted user can see through.
+          A bare `<section>` was announced as a region with no shape at all. */}
       <section
+        role="dialog"
         aria-labelledby="cp-briefing-title"
         className="bg-surface shadow-e3 relative flex min-h-0 w-full flex-col rounded-xl"
       >
@@ -316,8 +331,16 @@ function BriefingSteps({
                 aria-hidden="true"
                 className={cn(
                   "text-caption tnum grid size-5 shrink-0 place-items-center rounded-full font-mono leading-none",
+                  /* `text-inverse` was not a class: the theme defines
+                     `--color-ink-inverse` and no `--color-inverse`, so Tailwind
+                     emitted nothing and this numeral inherited `body`'s
+                     near-black onto accent blue — 4.32:1 at 12px, and visibly
+                     not the inverted disc it was drawn as. White on
+                     `--color-accent` is 4.10:1 and also under the 4.5:1 this
+                     size asks for, so the ground moves with the ink: white on
+                     `--color-accent-hover` is 5.41:1. */
                   n === at
-                    ? "bg-accent text-inverse"
+                    ? "bg-accent-hover text-ink-inverse"
                     : "border-border text-ink-tertiary border",
                 )}
               >
@@ -629,6 +652,7 @@ function SceneStage({
   showLabels?: boolean;
 }) {
   const reduced = useReducedMotion();
+  const uid = useSvgPrefix();
   const stage = def.stageBox;
 
   return (
@@ -637,24 +661,58 @@ function SceneStage({
       viewBox={`${stage.x} ${stage.y} ${stage.width} ${stage.height}`}
       className="block h-full w-full"
     >
-      <g
-        style={{
-          transform: framing(box, stage),
-          transition: reduced
-            ? "none"
-            : "transform var(--duration-deliberate) var(--ease-out-soft)",
-        }}
-      >
-        <BuildSceneView
-          projectId={def.projectId}
-          scene={def.sceneFrom(placement)}
-          showLabels={showLabels}
-          entering={entering}
-          lit={lit}
-          breathing={breathing}
-          lamps={lamps}
-          successTrace={trace ? [trace] : undefined}
-        />
+      {/* **The viewBox is the frame, so the frame has to clip.**
+          `geometry.ts` clips every `stageBox` to the cutting mat, which is what
+          settles the *numbers* — chapter three's film is now `[70, 30, 607.74,
+          670]` and the mat is `[70, 30, 1060, 744]`, entirely inside it. It did
+          not settle the *picture*, because a viewBox is a scale and an offset
+          and not a window: `preserveAspectRatio`'s default `xMidYMid meet` fits
+          the box into the element and then fills the leftover with whatever
+          happens to lie outside it, which here is the desk. At the briefing's
+          545 x 888 stage against chapter three's 0.93 box that is a plank of
+          oak above and below the mat, on exactly the three chapters wave one
+          measured.
+
+          So the letterbox is drawn on purpose instead: the film is clipped to
+          its own viewBox and the bars are the `Stage`'s own sunken ground, the
+          surface the film is already sitting in. Two things fall out of it that
+          are worth more than the oak — a part close-up no longer bleeds its
+          neighbours into the margin, and the travel between two close-ups is a
+          bench moving behind a fixed frame rather than a scene sliding across
+          an open field. */}
+      <defs>
+        <clipPath id={`${uid}-stage`}>
+          <rect
+            x={stage.x}
+            y={stage.y}
+            width={stage.width}
+            height={stage.height}
+          />
+        </clipPath>
+      </defs>
+      {/* The clip is on a group of its own, untransformed, so the rect above is
+          read in the viewBox's own units. Put it on the moving group and the
+          window would travel with the bench, which is the opposite of a frame. */}
+      <g clipPath={`url(#${uid}-stage)`}>
+        <g
+          style={{
+            transform: framing(box, stage),
+            transition: reduced
+              ? "none"
+              : "transform var(--duration-deliberate) var(--ease-out-soft)",
+          }}
+        >
+          <BuildSceneView
+            projectId={def.projectId}
+            scene={def.sceneFrom(placement)}
+            showLabels={showLabels}
+            entering={entering}
+            lit={lit}
+            breathing={breathing}
+            lamps={lamps}
+            successTrace={trace ? [trace] : undefined}
+          />
+        </g>
       </g>
     </svg>
   );

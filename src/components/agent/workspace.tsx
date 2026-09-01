@@ -18,6 +18,7 @@ import { buildFor } from "@/lib/agent/builds";
 import { checklistFor } from "@/lib/agent/checklist";
 import { isResolved } from "@/lib/agent/findings";
 import { stepAside, stepTotalFor, stepWords } from "@/lib/agent/steps";
+import type { AgentTool } from "@/lib/agent/model";
 import { diff } from "@/lib/circuit/graph";
 import { cn } from "@/lib/utils/cn";
 
@@ -38,6 +39,7 @@ import { cn } from "@/lib/utils/cn";
 export function AgentWorkspace({
   session,
   action,
+  tools,
   className,
 }: {
   session: AgentSession;
@@ -49,6 +51,17 @@ export function AgentWorkspace({
     loading?: boolean;
     disabled?: boolean;
   };
+  /**
+   * G-15's list, for the screen this panel is actually standing on.
+   *
+   * Defaulted by `AgentPanel` to the bench's own seven, which is right for the
+   * wide workbench and wrong for the narrow one: below the breakpoint the
+   * canvas is unmounted and only four tools are registered, so `7 tools
+   * available` was the panel counting a list the browser had never been handed.
+   * `panel.tsx`'s own note says the count is a claim about the current page —
+   * this is the prop that lets the page make it.
+   */
+  tools?: readonly AgentTool[];
   className?: string;
 }) {
   const copy = useCopy();
@@ -80,9 +93,19 @@ export function AgentWorkspace({
    * matches" directly above a progress bar reading the live graph and saying
    * `1 of 2`. Two sentences, one screen, and one of them false. The list still
    * decides whether the agent has looked; the graph decides what is true.
+   *
+   * And a step has to HAVE something to solve. The opening step of every
+   * assembled chapter owns no connections — `Check your kit` compares nothing —
+   * so `matched === step.connections.length` was `0 === 0` and all three
+   * conjuncts were vacuously true the moment anybody pressed `Inspect my
+   * build`. The panel then printed "every expected connection for this step
+   * matches" and put the chapter's FINAL comprehension question on screen over
+   * a bench with four to twenty leads still in the box, on chapters one to
+   * five, through the product's own primary action.
    */
   const solved =
     inspected &&
+    step.connections.length > 0 &&
     openFindings.length === 0 &&
     matched === step.connections.length;
 
@@ -97,6 +120,7 @@ export function AgentWorkspace({
             : "idle"
       }
       tool={state.running?.name}
+      tools={tools}
       webMcpAvailable={state.webMcpAvailable}
       tab={state.tab}
       onTabChange={session.setTab}
@@ -113,15 +137,22 @@ export function AgentWorkspace({
           stepIndex={step.index}
           stepTotal={stepTotalFor(step.id)}
           stepName={stepWords(copy, step.id).name}
+          /* Four arms, and the fourth is the one the kit step needs. `Check
+             your kit` owns no connections, so an inspection of it fell through
+             to `allMatch` — "every expected connection for this step matches",
+             said over a bench with everything still in the box. The sentence
+             for that has been in the dictionary all along. */
           context={
             !inspected
               ? copy.agentPanel.context.notInspected
-              : openFindings.length
-                ? copy.agentPanel.context.someMatch(
-                    matched,
-                    step.connections.length,
-                  )
-                : copy.agentPanel.context.allMatch
+              : step.connections.length === 0
+                ? copy.agentPanel.context.nothingToCheck
+                : openFindings.length
+                  ? copy.agentPanel.context.someMatch(
+                      matched,
+                      step.connections.length,
+                    )
+                  : copy.agentPanel.context.allMatch
           }
           /* The bar is gone from here: the checklist below is the same count
              with each item named, which is what rule 5 asks of a countable

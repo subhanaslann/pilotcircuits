@@ -187,10 +187,20 @@ export function FindingRow({
     );
   }
 
+  /* No `role="status"` on the card, and that is a removal rather than an
+     oversight. `role="status"` implies `aria-live="polite"` and
+     `aria-atomic="true"`, so every finding in the list was its own live region:
+     opening the Findings tab announced all of them, and any re-render of a card
+     — pressing `Show me`, ticking a check, changing the coaching level —
+     re-announced the whole card from the top. The arrival of a finding is
+     already said once by the panel's single `LiveRegion` and, for a tool
+     effect, once more by the toast; this was a third copy of the same event,
+     attached to something that is a list item and not an event. §16 asks for a
+     live region on status changes, not on the things the status is about. */
   return (
     <EditorialRow
       tone={severityToTone[finding.severity]}
-      role="status"
+      role="none"
       className={className}
     >
       <p className="text-h3 text-ink">{words.title}</p>
