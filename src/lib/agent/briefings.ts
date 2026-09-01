@@ -3,7 +3,7 @@ import type { ComponentId, ProjectId } from "@/lib/projects/catalog";
 import {
   lampComplete,
   lampEmpty,
-  lampFitBox,
+  lampStageBox,
   lampPartBox,
   lampPartNumbers,
   lampSceneFrom,
@@ -12,7 +12,7 @@ import { lampAssembly } from "@/lib/circuit/lamp-assembly";
 import {
   lightComplete,
   lightEmpty,
-  lightFitBox,
+  lightStageBox,
   lightPartBox,
   lightPartNumbers,
   lightSceneFrom,
@@ -21,7 +21,7 @@ import { lightAssembly } from "@/lib/circuit/traffic-light-assembly";
 import {
   nightComplete,
   nightEmpty,
-  nightFitBox,
+  nightStageBox,
   nightPartBox,
   nightPartNumbers,
   nightSceneFrom,
@@ -30,7 +30,7 @@ import { nightAssembly } from "@/lib/circuit/motion-night-light-assembly";
 import {
   plantComplete,
   plantEmpty,
-  plantFitBox,
+  plantStageBox,
   plantPartBox,
   plantPartNumbers,
   plantSceneFrom,
@@ -39,7 +39,7 @@ import { plantAssembly } from "@/lib/circuit/plant-guardian-assembly";
 import {
   soapComplete,
   soapEmpty,
-  soapFitBox,
+  soapStageBox,
   soapPartBox,
   soapPartNumbers,
   soapSceneFrom,
@@ -143,7 +143,18 @@ export interface BriefingDef {
   words: (copy: Copy) => BriefingWords;
   /** Introduced in this order, and they arrive in the assembly in it too. */
   parts: readonly BriefingPart[];
-  /** What the assembly is framed on. */
+  /**
+   * What the assembly is framed on — the build's `stageBox`, never its
+   * `fitBox`.
+   *
+   * These five rows carried `fitBox` verbatim, and `fitBox` pads by four
+   * pitches on every side so the canvas's opening fit has air around it. That
+   * padding is right for the bench and wrong for the film: the film's viewBox
+   * IS this box, so chapters three, four and five framed a strip of bare oak
+   * outside the mat — 21 units on the left in all three, 36 and 56 above. The
+   * two answers are now two boxes (`geometry.framing`), and the stage is the
+   * one clamped to the mat.
+   */
   stageBox: Box;
   assembly: readonly AssemblyBeat[];
   /**
@@ -203,7 +214,7 @@ export const briefings: Partial<Record<ProjectId, BriefingDef>> = {
         number: lampPartNumbers.resistor,
       },
     ],
-    stageBox: lampFitBox,
+    stageBox: lampStageBox,
     assembly: lampAssembly,
     sceneFrom: lampSceneFrom,
     /* Exactly the two the window used to carry as literals, so chapter one's
@@ -273,7 +284,7 @@ export const briefings: Partial<Record<ProjectId, BriefingDef>> = {
         number: lightPartNumbers.resistor,
       },
     ],
-    stageBox: lightFitBox,
+    stageBox: lightStageBox,
     assembly: lightAssembly,
     sceneFrom: lightSceneFrom,
     /* The ground pin, the three drive pins, and the value stamped on the
@@ -359,7 +370,7 @@ export const briefings: Partial<Record<ProjectId, BriefingDef>> = {
         number: nightPartNumbers.resistor,
       },
     ],
-    stageBox: nightFitBox,
+    stageBox: nightStageBox,
     assembly: nightAssembly,
     sceneFrom: nightSceneFrom,
     /* The two supply pins, the two the sketch names, and the value stamped on
@@ -420,7 +431,7 @@ export const briefings: Partial<Record<ProjectId, BriefingDef>> = {
         number: plantPartNumbers.resistor,
       },
     ],
-    stageBox: plantFitBox,
+    stageBox: plantStageBox,
     assembly: plantAssembly,
     sceneFrom: plantSceneFrom,
     /* The two supply pins, the two the sketch names, and the value stamped on
@@ -494,7 +505,7 @@ export const briefings: Partial<Record<ProjectId, BriefingDef>> = {
         number: soapPartNumbers.resistor,
       },
     ],
-    stageBox: soapFitBox,
+    stageBox: soapStageBox,
     assembly: soapAssembly,
     sceneFrom: soapSceneFrom,
     /* The two supply pins and the four the sketch names. `D9` carries the most

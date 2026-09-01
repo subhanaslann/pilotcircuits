@@ -270,12 +270,20 @@ export const projects: ProjectDef[] = [
     id: "smartParkingBarrier",
     slug: "smart-parking-barrier",
     chapter: 6,
-    minutes: 45,
+    /* Thirty-five, which is what `barrierSteps` adds up to: 2 + 4 + 6 + 5 + 4 +
+       8 + 6. It said 45 while the step list on the same page — the header meta
+       reads this row, the preview below it reads the steps — added to 35. The
+       other five rows carry that sum in their own comment and all five agree;
+       this was the only one with no such line and the only one that differed.
+       `docs/frontend-plan.md` specifies 35 for this build. */
+    minutes: 35,
     difficulty: "intermediate",
     status: "ready",
-    /* The capstone, and the only build with a guided bench. Same six parts as
-       chapter five: everything new here is judgement — deciding, calibrating,
-       and proving it works. */
+    /* The capstone, and the only build the author lays out rather than the
+       person: it opens on a planted fault with two steps already ticked, where
+       the other five hand over an empty bench. All six have a guided bench.
+       Same six parts as chapter five: everything new here is judgement —
+       deciding, calibrating, and proving it works. */
     components: ["board", "breadboard", "sensor", "servo", "led", "resistor"],
     concepts: [
       "digitalPins",

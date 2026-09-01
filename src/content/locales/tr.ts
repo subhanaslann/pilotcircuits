@@ -22,8 +22,13 @@ import type { Copy } from "@/content/locales/en";
  *   · Ajan kullanıcıya "sen" der. Ürün bir öğretmen, bir form değil.
  *   · Fiiller yalın: `Doğrula`, `Göster`, `Düzelttim`. Türkçede buton
  *     etiketlerinde emir kipi İngilizcedeki mastardan daha doğal durur.
- *   · Adım adları isim öbeği: `Mesafe sensörünü kabla` değil
- *     `Mesafe sensörünün kablolaması` — listede yan yana dururlar.
+ *   · Fiil `kablola-`: `kablo` adından türeyen standart biçim. `kabla` diye
+ *     bir fiil yok, ve 3–5. bölümler zaten `kablola` diyor — 6. bölüm üç yerde
+ *     `kabla` diyordu ve bu satırın altına düşüyordu.
+ *   · Adım adları emir kipinde: `Mesafe sensörünü kablola`. Burada bir zamanlar
+ *     isim öbeği yazıyordu (`Mesafe sensörünün kablolaması`); 33 adım adının
+ *     hiçbiri öyle değil ve hiçbiri öyle olmamalı — ray satırı bir başlık değil,
+ *     kişiye verilen iş.
  */
 export const tr: Copy = {
   /**
@@ -318,7 +323,12 @@ export const tr: Copy = {
     parts: {
       board: "Kart",
       breadboard: "Breadboard",
-      sensor: "Ultrasonik sensör",
+      /* Tek ad, ve o ad ürünün geri kalanının zaten kullandığı ad.
+         Burada `Ultrasonik sensör` yazıyordu; oysa 5. bölümün tanıtım ekranı,
+         3. adımı, kit satırı ve capstone'un 2. adımı "mesafe sensörü" diyor —
+         yani kit rafı ve bulgular parçayı bir türlü, etrafındaki her cümle
+         başka türlü adlandırıyordu, hem de aynı ekranda. */
+      sensor: "Mesafe sensörü",
       sensorMotion: "Hareket sensörü",
       sensorMoisture: "Toprak probu",
       servo: "Mikro servo",
@@ -331,6 +341,32 @@ export const tr: Copy = {
       resistorYellow: "Sarı lambanın direnci",
       resistorGreen: "Yeşil lambanın direnci",
       jumper: "Jumper kablo",
+      /**
+       * Dört kablo, her birine programın verdiği işle.
+       *
+       * 2–5. bölümlerde kit rafında ve adım listesinde dört satır vardı ve
+       * dördü de aynı çizimi aynı kelimeyle sunuyordu — `Jumper kablo`, dört
+       * kez, aynı `aria-label` ile. Dirençlere bu sebeple çoktan birer ad
+       * verilmişti ("üç tanesi olan bir tezgahta tür, ad değildir"); kablolara
+       * verilmemişti.
+       *
+       * Dürüst olan ve olmayan, açıkça: dört kablodan hangisini eline aldığın
+       * konusunda modelin bir fikri yok — yeşil diye aldığı kabloyla kırmızı
+       * lambayı kablolayan biri doğru devreyi kurmuş oluyor ve ona öyle
+       * deniyor. Bu adlar o yüzden plastiğin bir özelliği değil, programın o
+       * kablodan beklediği İŞ; aşağıdaki UÇ adları da tam bu yüzden ortak
+       * kalıyor ve yalnızca ucun hangi karta gittiğini söylüyor. Modelin ısrar
+       * ettiği tek şey, bir kablonun iki ucunun birlikte kalması — ve role göre
+       * verilen bir ad, o kuralı tahmin edilir olmaktan çıkarıp izlenir hâle
+       * getiriyor.
+       */
+      jumperGround: "Toprak kablosu",
+      jumperPower: "Güç kablosu",
+      jumperSignal: "Sinyal kablosu",
+      jumperLamp: "Lamba kablosu",
+      jumperRed: "Kırmızı lambanın kablosu",
+      jumperYellow: "Sarı lambanın kablosu",
+      jumperGreen: "Yeşil lambanın kablosu",
       cardboard: "Karton",
     },
 
@@ -355,12 +391,14 @@ export const tr: Copy = {
          `parts.resistorRed` de aynı şeyi aynı şekilde söylüyor. Zincir uzun
          ama Türkçe onu taşıyor: lamba-nın direnc-i-nin uc-u.
 
-         Dört jumperın uçları ise bilerek aynı adı taşıyor. Modelde dördü tek
-         bir nesne — sekiz ucun hepsi tek bir `interchangeable` grubunda — yani
-         yeşil diye aldığı kabloyla kırmızı lambayı kablolayan biri doğru devre
-         kurmuş oluyor. Onları birbirinden ayıran bir ad, sözlüğün grafiğe ters
-         düşmesi olurdu; bir ucu ayıran şey hangi lambaya değil, hangi karta
-         gittiği. */
+         Dört jumperın UÇLARI ise bilerek aynı adı taşıyor. Hangi kabloyu
+         eline aldığın konusunda modelin bir fikri yok — yeşil diye aldığı
+         kabloyla kırmızı lambayı kablolayan biri doğru devre kurmuş oluyor.
+         Bir UCU ayıran şey hangi lambaya değil, hangi karta gittiği, ve tablo
+         da onu söylüyor. Kablonun KENDİSİ artık ayrı ayrı adlanıyor
+         (`parts.jumperGround` ve kardeşleri): rafta ve adım listesinde dört
+         özdeş satır, seçilemeyen bir satırdı. O ad programın kablodan
+         beklediği işi söylüyor; bu tablo ucun nereye gittiğini. */
       "wire.gnd.rail": "Jumper kablonun ray ucu",
       "wire.gnd.pin": "Jumper kablonun kart ucu",
       "led.red.cathode": "Kırmızı LED'in kısa bacağı",
@@ -819,7 +857,7 @@ export const tr: Copy = {
         rationale: "Kablo boylarını parçaların durduğu yer belirler.",
       },
       sensor: {
-        name: "Mesafe sensörünü kabla",
+        name: "Mesafe sensörünü kablola",
         instruction: "Sensörün Echo pinini D7 dijital pinine bağla.",
         rationale: "Echo, yansıyan darbenin dönüş süresini ölçer.",
         asideSummary: "Neden D7?",
@@ -828,7 +866,7 @@ export const tr: Copy = {
       },
       servo: {
         name: "Servoyu bağla ve tak",
-        instruction: "Servoyu D9'a kabla ve kolu AÇIK konumda tak.",
+        instruction: "Servoyu D9'a kablola ve kolu AÇIK konumda tak.",
         rationale:
           "Kolun başlangıç açısı bariyerin hangi yöne açılacağını belirler.",
         asideSummary: "Açı neden önemli?",
@@ -838,7 +876,7 @@ export const tr: Copy = {
       leds: {
         name: "Durum LED'lerini ekle",
         instruction:
-          "Yeşil LED'i D3'e, kırmızıyı D2'ye, her birini kendi direnci üzerinden kabla.",
+          "Yeşil LED'i D3'e, kırmızıyı D2'ye, her birini kendi direnci üzerinden kablola.",
         rationale: "Yapımın ne karar verdiğini sana LED'ler söyler.",
       },
       upload: {
@@ -892,7 +930,11 @@ export const tr: Copy = {
         purpose:
           "Tek bir LED, yavaşça parlayıp yavaşça sönüyor. Yanıp sönmüyor — arada duruyor. Bunun olabilmesi için kartın pini yalnızca açık ya da kapalı olmakla kalmayıp arada bir yerde durabilmeli, ve bunu sadece bazı pinler yapabiliyor. Bu bölümün tamamı o farkın üstünde duruyor.",
         assembly: {
-          board: "Kart tezgâhta. Program yüklü, hiçbir şey bağlı değil.",
+          /* Yalnızca tezgahta olanı söylüyor — 2–5. bölümlerin açılış
+             cümleleri gibi. Eskiden "Program yüklü" diyordu, ve dört beat
+             sonraki `upload` programı yüklüyordu; ikisi de perdenin tamamı
+             boyunca aynı anda ekranda duruyor. */
+          board: "Kart tezgâhta. Hiçbir şey bağlı değil.",
           seat: "LED'in kısa bacağı üst sıradaki GND deliğine giriyor. Uzun bacak bekliyor.",
           reach: "Direnç D9'a iniyor ve LED'e doğru uzanıyor.",
           bridge: "Öbür ucu LED'in uzun bacağına değiyor. Devre kapanıyor.",
@@ -919,9 +961,13 @@ export const tr: Copy = {
             name: "LED'ler",
             note: "Artık üç tane var, ve her biri zaten tanıdığın parça: akım uzun bacaktan girer, kısa bacaktan çıkar. Birini ters takarsan o lamba karanlıkta kalır, diğer ikisi çalışmaya devam eder — bu bölümde gözden kaçması en kolay hata da bu.",
           },
+          /* Ne YAPTIĞI, ikinci bacağının nereye çizildiği değil. Bu ekranın
+             çerçevesi direncin kendi kutusu, yani toprak rayı karede hiç yok —
+             not ise resmin içeremeyeceği bir inişi anlatıyordu. Rayı, yapımın
+             tamamını çerçeveleyen beat gösteriyor. */
           resistor: {
             name: "Dirençler",
-            note: "Her lambaya bir tane, ve üçü de aynı 220Ω parça. Her biri kendi lambasının sütununda durup toprak rayına iniyor; böylece her lambanın kendi dönüş yolu oluyor ve hiçbiri taşıyabileceğinden fazlasını çekmiyor.",
+            note: "Her lambaya bir tane, ve üçü de aynı 220Ω parça. Her biri kendi lambasının sütununda durup o lambanın akımını toprağa geri taşıyor; böylece her lambanın kendi dönüş yolu oluyor ve hiçbiri taşıyabileceğinden fazlasını çekmiyor.",
           },
         },
         purpose:
@@ -967,7 +1013,7 @@ export const tr: Copy = {
           },
           resistor: {
             name: "Direnç",
-            note: "Bir tane 220Ω, geçen bölümde yaptığı işin aynısını yapıyor. Lambanın kendi sütununda durup toprak rayına iniyor, böylece LED taşıyabileceğinden fazlasını hiç çekmiyor.",
+            note: "Bir tane 220Ω, geçen bölümde yaptığı işin aynısını yapıyor. Lambanın kendi sütununda durup lambanın akımını toprağa geri taşıyor, böylece LED taşıyabileceğinden fazlasını hiç çekmiyor.",
           },
         },
         purpose:
@@ -985,7 +1031,11 @@ export const tr: Copy = {
             "Sensör üç ucuyla geliyor, ve bir jumper onun cevabını D2'ye taşıyor.",
           lamp: "Lamba zaten bildiğin gibi kuruluyor — LED, direnç, ve D13'e bir jumper.",
           upload: "Program karta gidiyor. D2 artık okunuyor, durmadan.",
-          wake: "Bir şey kımıldıyor. Lamba yanıyor — ve kendiliğinden yeniden sönüyor.",
+          /* Kare nerede bitiyorsa cümle de orada bitiyor. `wake` son beat,
+             `lit: true` ile duruyor ve film orada donuyor — yani "yeniden
+             sönüyor" hiçbir karenin oynamadığı bir değişimdi. Sönmeyi
+             `nightRun` gösteriyor, orada gerçekten izlenebiliyor. */
+          wake: "Bir şey kımıldıyor. Lamba yanıyor, ve sensör pinini yukarıda tuttuğu sürece yanık kalıyor.",
         },
       },
 
@@ -1012,7 +1062,7 @@ export const tr: Copy = {
           },
           resistor: {
             name: "Direnç",
-            note: "Bir tane 220Ω, lambanın kendi sütununda durup toprak rayına iniyor — iki bölümdür yaptığı işin aynısı.",
+            note: "Bir tane 220Ω, lambanın kendi sütununda durup akımı toprağa geri taşıyor — iki bölümdür yaptığı işin aynısı.",
           },
         },
         purpose:
@@ -1058,7 +1108,7 @@ export const tr: Copy = {
           },
           resistor: {
             name: "Direnç",
-            note: "Bir tane 220Ω, lambanın kendi sütununda durup toprak rayına iniyor.",
+            note: "Bir tane 220Ω, lambanın kendi sütununda durup lambanın akımını toprağa geri taşıyor.",
           },
         },
         purpose:
@@ -1549,14 +1599,42 @@ export const tr: Copy = {
     connectionMismatch: "Bağlantı uyuşmazlığı",
     missingConnection: "Bağlantı eksik",
     servoOff: "Servo kolu 90° yanlış",
-    notWired: "Kablolanmamış",
+    notWired: "Bağlı değil",
     unexpectedConnection: "Programda olmayan bir bağlantı",
     notAsked: "Programda yok",
 
+    /* `${observed}` bir pin adı da olabilir bir delik adı da — ikisine birden
+       uyan tek bir ek yok, o yüzden cümle onu iki nokta üst üsteden sonra yalın
+       bırakıyor; `unexpectedDetail` de aynı sebeple öyle yazılmıştı. Eskiden
+       "pinine" diyordu, ve 2–5. bölümde hedeflerin çoğu delik. */
     wrongPin: (subject: string, observed: string, expected: string) =>
-      `${subject} ${observed} pinine bağlı. Bu yapım ${expected} bekliyor.`,
+      `${subject} şuraya bağlı: ${observed}. Bu yapım ${expected} bekliyor.`,
+    /* "Kablo yok" değil: 1. bölümde hiç kablo yok, joinler parçaların kendi
+       bacakları. Her bölümde doğru olan şey, ucun hiçbir yere bağlı olmaması. */
     missingWire: (subject: string, expected: string) =>
-      `${subject} için henüz kablo yok. Bu yapım ${expected} bekliyor.`,
+      `${subject} henüz hiçbir yere bağlı değil. Bu yapım ${expected} bekliyor.`,
+
+    /**
+     * Parçanın ucunun yanına bastığı şey — `Echo`, `−`, `220Ω`. Donanımın
+     * yazdığı hiçbir şey çevrilmez (kural 13); eksik olan, o işaretin NE
+     * üstünde olduğu. `siyah − kablosu` 1. bölümde olmayan bir nesneyi
+     * adlandırıyordu. Parçanın hiçbir şey basmadığı uçlar — üründeki bütün
+     * jumper uçları — `build.leadObject`'ten adlandırılıyor ve bu tabloya hiç
+     * uğramıyor.
+     *
+     * İki hâl, `leads`/`leadObject` neden iki tabloysa o sebeple: biri cümleyi
+     * açıyor, öbürü cümlenin içinde duruyor.
+     */
+    subjectNominative: {
+      leg: (printed: string) => `${printed} bacağı`,
+      lead: (printed: string) => `${printed} ucu`,
+      "cable-end": (printed: string) => `${printed} ucu`,
+    },
+    subjectObject: {
+      leg: (printed: string) => `${printed} bacağını`,
+      lead: (printed: string) => `${printed} ucunu`,
+      "cable-end": (printed: string) => `${printed} ucunu`,
+    },
     /* `other` bir delik adı (`D13`) da olabilir bir uç adı (`+`, `220Ω`) da —
        ikisine birden uyan tek bir ek yok, o yüzden cümle onu iki nokta
        üst üsteden sonra yalın bırakıyor. */
@@ -1564,22 +1642,85 @@ export const tr: Copy = {
       `${subject} şuraya bağlanmış: ${other}. Program böyle bir bağlantı istemiyor.`,
     servoExplanation: "Program AÇIK konumunu gönderdiğinde bariyer kapanacak.",
 
+    /**
+     * İlk basamak, hedefin türü başına bir cümle.
+     *
+     * Eskiden tek bir cümleydi — "vurgulanan dijital pin sırasıyla karşılaştır"
+     * — ve altı bölümün 81 bağlantısının hepsinde basılıyordu; oysa bunların
+     * yalnızca 16'sı dijital pin. Kalan 65'i breadboard sütunları, raylar,
+     * besleme pinleri, başka bir parçanın bacağı, ve 4. bölümün `A0`'ı: o
+     * bölümün bütün dersi olan analog delik, ki merdivenin ilk basamağı okuru
+     * ondan uzağa yolluyordu.
+     */
     hint: (subject: string) =>
-      `${subject} kablosunu vurgulanan dijital pin sırasıyla karşılaştır.`,
+      `${subject} kartın üstünde vurgulanan pinle karşılaştır.`,
+    hintAnalog: (subject: string) =>
+      `${subject} A harfiyle işaretli altı delikten vurgulananla karşılaştır.`,
+    hintPower: (subject: string) =>
+      `${subject} kartta vurgulanan besleme piniyle karşılaştır.`,
+    hintRow: (subject: string) => `${subject} vurgulanan sütunla karşılaştır.`,
+    hintRail: (subject: string) =>
+      `${subject} rayda vurgulanan delikle karşılaştır.`,
+    hintLead: (subject: string) =>
+      `${subject} karşısında vurgulanan uçla karşılaştır.`,
+
+    /**
+     * Orta basamak: bu TÜR bağlantı hakkında doğru olan tek şey.
+     *
+     * Eskiden capstone'un echo cümlesiydi ve altı bölümün her kablolama
+     * bulgusunda, iki dilde de basılıyordu. Ürünün 81 bağlantısından tam olarak
+     * birinde doğru; 1–4. bölümlerde ultrasonik sensör diye bir şey yok, yani
+     * cümle kutuda olmayan bir parçayı anlatıyordu.
+     *
+     * Altısı da `subject` alıyor ve yazmıyor — `unexpectedExplain` gibi: orta
+     * basamak genel kural, tek bir bacağın hikâyesi değil.
+     */
     explain: (subject: string, expected: string) =>
-      `${subject} pini yansıyan darbenin süresini karta geri gönderir. Program bu sinyali ${expected} pininden okuyor.`,
-    exact: (colour: string, subject: string, from: string, to: string) =>
-      `${colour} ${subject} kablosunu ${from} pininden ${to} pinine taşı.`,
+      `Pin numarası bir tercih değil, programın parçası: program ${expected} diyor, o sıradaki başka hiçbir deliği değil.`,
+    explainAnalog: (subject: string, expected: string) =>
+      `Evet-hayır yerine bir sayı verebilen tek yer, A harfiyle işaretli altı delik; programın okuduğu da ${expected}.`,
+    explainPower: (subject: string, expected: string) =>
+      `${expected} kartın besleme pinlerinden biri. Sinyal taşımaz ve program adını hiç anmaz — oradan geçen şey, tezgahtaki her parçanın ihtiyaç duyduğu akım.`,
+    explainRow: (subject: string, expected: string) =>
+      `Breadboard'da bir sütunun beş deliği tek parça metaldir. ${expected} deliğindeki bir uç, o sütundaki her şeye bağlıdır — yanındaki sütundaki hiçbir şeye değil.`,
+    explainRail: (subject: string, expected: string) =>
+      `Bir ray, breadboard boyunca baştan sona tek parça metaldir ve ${expected} onun üstünde. Önemli olan ucun raya ulaşması, hangi deliğini kullandığı değil.`,
+    explainLead: (subject: string, expected: string) =>
+      `Bu bağlantıyı kart kurmuyor. Metal metale değecek: bu ucun ${expected} değmesi gerekiyor.`,
+
+    /**
+     * Son basamak, ve tek cümle değil iki cümle.
+     *
+     * `exact` tek şablondu ve `observed ?? ""` alıyordu, yani hiçbir deliğe
+     * takılmamış bir uç için "… pininden … pinine taşı" cümlesi boş bir
+     * kaynakla, havada kalmış bir ekle basılıyordu. Eksik bağlantı bir
+     * TAKMA'dır; yalnızca yanlış yerdeki bağlantı bir taşımadır.
+     *
+     * Renk de gitti: `wire.colour` "kabloyu sesli isterken kullanacağın renk" —
+     * capstone'un boştaki jumperı — ve ekranda hiçbir şeye karşılık gelmiyordu.
+     */
+    exactMove: (subject: string, from: string, to: string) =>
+      `${subject} ${from} pininden ${to} pinine taşı.`,
+    exactMoveHole: (subject: string, from: string, to: string) =>
+      `${subject} ${from} deliğinden çıkar ve ${to} deliğine tak.`,
+    exactPut: (subject: string, to: string) => `${subject} ${to} pinine tak.`,
+    exactPutHole: (subject: string, to: string) => `${subject} ${to} deliğine tak.`,
+    /* Adres olmayan tek hedef: başka bir parçanın kendi ucu. Ne taşıma var ne
+       takma — iki metalin birbirine değmesi gerekiyor. */
+    exactJoin: (subject: string, to: string) => `${subject} ${to} tuttur.`,
 
     /* Kablolama merdiveninin aynı üç basamağı. Orta basamak `subject` alıyor
        ama yazmıyor: oradaki cümle genel kural, tek bir bacağın hikâyesi
        değil. Argüman, üç basamağın aynı şekilde çağrılabilmesi için duruyor. */
+    /* Artık ekli isim yok: `subject` sözlükten çekilmiş hâlde geliyor
+       ("Jumper kablonun kart ucunu", "− bacağını"), ve şablonun sonuna bir isim
+       ekleyip ekten kaçması gerekmiyor. */
     unexpectedHint: (subject: string) =>
-      `${subject} ucu nereye değiyor, tek tek bak.`,
+      `${subject} tek tek izle: nereye değiyor?`,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     unexpectedExplain: (subject: string) =>
       "Bu yapımın ihtiyacı olan her bağlantı programda yazıyor; bu onlardan biri değil. Kimsenin istemediği bir bağlantı da akımın bulacağı bir yoldur.",
-    unexpectedExact: (subject: string) => `${subject} ucunu çöz ve boşta bırak.`,
+    unexpectedExact: (subject: string) => `${subject} çöz ve boşta bırak.`,
 
     servoHint: "Bariyer açılması gerekirken kolun hangi yöne döndüğüne bak.",
     servoExplain:
@@ -1721,7 +1862,6 @@ export const tr: Copy = {
        bir soru. */
     distance: "Mesafe okunuyor",
     sweep: "Pompaya açı söylenebiliyor mu",
-    barrierDirection: "Bariyer yönü",
     states: {
       idle: "Başlamadı",
       running: "Çalışıyor",

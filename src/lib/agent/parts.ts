@@ -141,10 +141,37 @@ export function partNameOf(copy: Copy, id: NodeId): string {
   if (id.startsWith("pir.")) return parts.sensorMotion;
   if (id.startsWith("soil.")) return parts.sensorMoisture;
   if (id.startsWith("servo.")) return parts.servo;
-  /* Every cable in the kit is the same object, so there is nothing here to
-     tell apart: `wire.gnd.pin` and `wire.green.row` are both "a jumper wire".
-     The colour in a cable's id names the LAMP it serves, not the cable —
-     spelling it out would invent a green jumper the box does not contain. */
+  /**
+   * The cables, by the job the sketch has for each of them.
+   *
+   * These four arms all returned `parts.jumper`, on the reasoning that every
+   * cable in the kit is the same object and that the colour in an id names the
+   * LAMP it serves rather than the cable. Both halves of that are still true —
+   * and the row it produced was four identical rows: the kit shelf and the step
+   * list drew the same picture under the same word four times over, with the
+   * same accessible name, on every chapter from two to five. That is the fault
+   * this whole function was rewritten for one part earlier: *on a bench holding
+   * four of a kind, a kind is not a name.*
+   *
+   * So the name says what the cable is FOR, which is a fact about the sketch
+   * rather than about the plastic — the same move the resistors already make
+   * ("the red lamp's resistor" is not a red resistor). The residual is written
+   * down where it belongs, in the dictionary's own note: the model still
+   * accepts any of the four in any of these roles, so a person who fetches the
+   * ground jumper and wires the red lamp with it has built the right circuit
+   * and is told so. The LEAD names stay shared for that reason.
+   *
+   * Longest prefix first, and `wire.` last, or a chapter-three cable answers
+   * with chapter two's name.
+   */
+  if (id.startsWith("wire.gnd.")) return parts.jumperGround;
+  if (id.startsWith("wire.ground.")) return parts.jumperGround;
+  if (id.startsWith("wire.power.")) return parts.jumperPower;
+  if (id.startsWith("wire.signal.")) return parts.jumperSignal;
+  if (id.startsWith("wire.lamp.")) return parts.jumperLamp;
+  if (id.startsWith("wire.red.")) return parts.jumperRed;
+  if (id.startsWith("wire.yellow.")) return parts.jumperYellow;
+  if (id.startsWith("wire.green.")) return parts.jumperGreen;
   if (id.startsWith("wire.")) return parts.jumper;
   if (id.startsWith("led.green.")) return parts.ledGreen;
   if (id.startsWith("led.red.")) return parts.ledRed;

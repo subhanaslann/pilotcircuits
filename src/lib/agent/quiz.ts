@@ -9,9 +9,11 @@ import type { ProjectId } from "@/lib/projects/catalog";
  * Echo wire has to match the sketch. G-12's entire job is to prove the lesson
  * landed, and it was asking about a different lesson.
  *
- * A lookup rather than an index, because the two ready chapters have questions
- * and the four previews do not: a chapter with nothing to ask asks nothing, and
- * `KnowledgeCheck` renders nothing rather than the wrong thing.
+ * A lookup rather than an index. All six chapters have a question today —
+ * this comment said two did and four were previews, which stopped being true
+ * when the last three benches landed — and the lookup is what keeps a seventh
+ * chapter free to arrive without one: a chapter with nothing to ask asks
+ * nothing, and `KnowledgeCheck` renders nothing rather than the wrong thing.
  */
 
 export interface Quiz {

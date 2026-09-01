@@ -27,12 +27,14 @@ import { decisions } from "@/content/locales/lab/decisions";
  * chapter two's twenty have to say which of three lamps they belong to, and a
  * finding that named none of them would read the same on all three.
  *
- * The four jumpers are the exception, and deliberately: they are one
- * interchangeable object in the model — all eight of their ends sit in a single
- * `interchangeable` group, so a person who wires the red lamp with the cable
- * they took for the green one has built a correct circuit. A name that told
- * them apart would be the dictionary contradicting the graph, so a cable's end
- * is named by which board it reaches and never by which lamp it drives.
+ * The four jumpers are the exception, and deliberately: which of the four
+ * cables a person picks up is not something the model has an opinion about, so
+ * somebody who wires the red lamp with the cable this file calls green has
+ * built a correct circuit and is told so. What the model does now insist on is
+ * that a cable's two ends stay together — it pairs them by the connection the
+ * lead makes, the way chapters three to five always did. So a cable's END is
+ * named by which board it reaches and never by which lamp it drives; the CABLE
+ * has a name of its own in `parts` for the job the sketch has for it.
  */
 type LeadKey =
   /* Chapter one. */
@@ -497,15 +499,25 @@ export const en = {
   build: {
     project: "Smart Parking Barrier",
     /* What a node's owner is called out loud. `board.D7` reads as
-       `Board → D7`; `sensor.echo` as `Ultrasonic sensor → Echo`. */
+       `Board → D7`; `sensor.echo` as `Distance sensor → Echo`. */
     parts: {
       board: "Board",
       breadboard: "Breadboard",
-      sensor: "Ultrasonic sensor",
+      /**
+       * One name, and it is the one the rest of the product already uses.
+       *
+       * This said `Ultrasonic sensor` while chapter five's briefing screen, its
+       * step three, its kit line and the capstone's step two all said "the
+       * distance sensor" — so the kit shelf and the findings named a part one
+       * way and every sentence around them named it another, on one screen.
+       * `Distance sensor` is also the family the two below are in: what the
+       * part senses, not how it does it.
+       */
+      sensor: "Distance sensor",
       /* The counted vocabulary says `sensor` three times over; a person holding
          one says which. Chapter three's is the module that watches the hallway
          and chapter four's is the thing that goes in the pot, and neither of
-         them is the ultrasonic one above. */
+         them is the distance one above. */
       sensorMotion: "Motion sensor",
       sensorMoisture: "Soil probe",
       servo: "Micro servo",
@@ -516,13 +528,48 @@ export const en = {
       resistor: "Resistor",
       /* Chapter two has three of them and a finding names the one it means, so
          they are told apart by the lamp they belong to rather than by which
-         hole the sentence happens to point at. */
-      resistorRed: "The red lamp's resistor",
-      resistorYellow: "The amber lamp's resistor",
-      resistorGreen: "The green lamp's resistor",
+         hole the sentence happens to point at.
+
+         No article, and that is the whole of the fix: these were the only three
+         entries in the table that carried one, and every reader of this table
+         supplies its own — `This step wires the ${part}`, `Pick up the ${part}`
+         — so chapter two's opening bench printed "the The red lamp's resistor"
+         four times in each of three rows. The capital stays: the kit shelf and
+         the step rail draw this as a row label standing on its own, beside
+         `Red LED` and `Breadboard`. */
+      resistorRed: "Red lamp's resistor",
+      resistorYellow: "Amber lamp's resistor",
+      resistorGreen: "Green lamp's resistor",
       /* Uncounted by the catalogue (`ComponentId`), held by the bench
          (`KitId`): chapter two hands the person four of these. */
       jumper: "Jumper wire",
+      /**
+       * The four cables, by the job the sketch has for each.
+       *
+       * Chapters two to five put four of these in the kit shelf and in the step
+       * list, and all four rows drew the same picture under the same word —
+       * `Jumper wire`, `Jumper wire`, `Jumper wire`, `Jumper wire` — with the
+       * same `aria-label`. The resistors had already been given a name each for
+       * exactly this reason ("On a bench holding three of a kind, a kind is not
+       * a name", `parts.ts`); the cables had not.
+       *
+       * What is honest about naming them and what is not, said out loud: which
+       * of the four cables a person picks up is not something the model has an
+       * opinion about, so somebody who wires the red lamp with the cable this
+       * file calls green has built the right circuit and is told so. These names
+       * are therefore the sketch's INTENTION for a cable, not a property of the
+       * plastic — which is why the LEAD names below stay shared and say only
+       * which board an end reaches. What the model does insist on is that a
+       * cable's two ends stay together, and a name per role is what makes that
+       * rule something a person can follow rather than guess at.
+       */
+      jumperGround: "Ground jumper",
+      jumperPower: "Power jumper",
+      jumperSignal: "Signal jumper",
+      jumperLamp: "Lamp jumper",
+      jumperRed: "Red lamp's jumper",
+      jumperYellow: "Amber lamp's jumper",
+      jumperGreen: "Green lamp's jumper",
       cardboard: "Cardboard",
     },
 
@@ -1134,7 +1181,11 @@ export const en = {
            `GND` and `D9` are spelled exactly — `AssemblyAct` sets them in
            mono by matching the token. */
         assembly: {
-          board: "The board is on the bench. The sketch is loaded, nothing is wired.",
+          /* Says only what is on the bench, the way chapters two to five's
+             opening captions do. It used to add "the sketch is loaded" — and
+             the `upload` beat four lines down loads it, with both captions on
+             screen together for the whole act. */
+          board: "The board is on the bench. Nothing is wired.",
           seat: "The LED's short leg goes into the GND hole on the top row. The long leg waits.",
           reach: "The resistor drops into D9, reaching back towards the LED.",
           bridge: "Its other lead meets the LED's long leg. The circuit is closed.",
@@ -1161,9 +1212,14 @@ export const en = {
             name: "The LEDs",
             note: "Three of them now, and each one is the part you already know: current goes in the long leg and out the short one. Put one in backwards and that lamp stays dark while the other two carry on, which makes it the easiest fault in this chapter to miss.",
           },
+          /* What it DOES, not where its second leg is drawn. The frame on
+             this screen is the resistor's own box, so the ground rail is not
+             in it at all — and the note asserted a bend down into a rail the
+             picture cannot contain. The rail is the film's to show, on the
+             beat that frames the whole build. */
           resistor: {
             name: "The resistors",
-            note: "One for each lamp, and the same 220Ω part in all three. Each one sits in its own lamp's column and bends down into the ground rail, so every lamp has its own way back and none of them draws more than it can take.",
+            note: "One for each lamp, and the same 220Ω part in all three. Each one stands in its own lamp's column and carries that lamp's current back to ground, so every lamp has its own way back and none of them draws more than it can take.",
           },
         },
         purpose:
@@ -1209,7 +1265,7 @@ export const en = {
           },
           resistor: {
             name: "The resistor",
-            note: "One 220Ω, doing exactly what it did last chapter. It stands in the lamp's own column and bends down into the ground rail, so the LED never draws more than it can take.",
+            note: "One 220Ω, doing exactly what it did last chapter. It stands in the lamp's own column and carries the lamp's current back to ground, so the LED never draws more than it can take.",
           },
         },
         purpose:
@@ -1228,7 +1284,11 @@ export const en = {
           lamp: "The lamp goes in the way you already know — LED, resistor, and a jumper up to D13.",
           upload:
             "The sketch goes to the board. D2 is being read now, over and over.",
-          wake: "Something moves. The lamp comes on — and goes out again on its own.",
+          /* Ends where the frame ends. `wake` is the last beat, it holds at
+             `lit: true`, and the film stops there — so "and goes out again on
+             its own" was a state change no frame plays. The lamp going out is
+             `nightRun`'s, where it can actually be watched. */
+          wake: "Something moves. The lamp comes on, and stays on while the sensor holds its pin up.",
         },
       },
 
@@ -1255,7 +1315,7 @@ export const en = {
           },
           resistor: {
             name: "The resistor",
-            note: "One 220Ω, standing in the lamp's own column and bending down into the ground rail, exactly as it has for two chapters.",
+            note: "One 220Ω, standing in the lamp's own column and carrying its current back to ground, exactly as it has for two chapters.",
           },
         },
         purpose:
@@ -1302,7 +1362,7 @@ export const en = {
           },
           resistor: {
             name: "The resistor",
-            note: "One 220Ω, standing in the lamp's own column and bending down into the ground rail.",
+            note: "One 220Ω, standing in the lamp's own column and carrying the lamp's current back to ground.",
           },
         },
         purpose:
@@ -1804,8 +1864,10 @@ export const en = {
       failed: "Failed",
     },
 
-    /* G-15 · What each of the six tools is for. The header claims `6 tools
-       available`; this is what makes the claim checkable rather than decorative. */
+    /* G-15 · What each of the workbench's tools is for — seven since
+       `attach_lead` arrived. The header counts `workbenchTools` rather than
+       printing a number, and this list is what makes that count checkable
+       rather than decorative. */
     tools: {
       title: "Tools on this page",
       note: "Registered with the browser while the workbench is open.",
@@ -1982,7 +2044,10 @@ export const en = {
     connectionMismatch: "Connection mismatch",
     missingConnection: "Connection missing",
     servoOff: "Servo horn is 90° off",
-    notWired: "Not wired",
+    /* The `observed` half of a join that is not made. "Not wired" was the
+       capstone's word for it; chapter one has no wire, and the sentence beside
+       this one now says the lead is joined to nothing. */
+    notWired: "Not joined",
     /* The third kind of finding: not a wire in the wrong place and not a wire
        that is missing, but one the sketch never asked for. It reads as a
        statement about the sketch rather than an accusation, because the join
@@ -1993,8 +2058,36 @@ export const en = {
 
     wrongPin: (subject: string, observed: string, expected: string) =>
       `${subject} is connected to ${observed}. This build expects ${expected}.`,
+    /* Not `has no wire yet`. Chapter one is wired with the parts' own legs and
+       contains no wire at all, and the model calls chapter two's four cables
+       legs as well. What is true of every chapter is that the lead is joined to
+       nothing. */
     missingWire: (subject: string, expected: string) =>
-      `${subject} has no wire yet. This build expects ${expected}.`,
+      `${subject} is not joined to anything yet. This build expects ${expected}.`,
+
+    /**
+     * The near end, when the part prints something beside it.
+     *
+     * `Echo`, `−`, `220Ω` — what is silkscreened on the thing in your hand, and
+     * never replaced by a dictionary name (rule 13). What a glyph cannot say is
+     * what KIND of thing it is printed on, and the sentences need that: `Move
+     * the black − wire` named an object chapter one does not contain. A lead
+     * its part prints nothing beside — every jumper cable end in the product —
+     * is named from `build.leadObject` instead and never reaches this table.
+     *
+     * Two cases, for the same reason `build.leads` and `build.leadObject` are
+     * two tables: one opens a sentence, the other stands inside one.
+     */
+    subjectNominative: {
+      leg: (printed: string) => `The ${printed} leg`,
+      lead: (printed: string) => `The ${printed} lead`,
+      "cable-end": (printed: string) => `The ${printed} end`,
+    },
+    subjectObject: {
+      leg: (printed: string) => `the ${printed} leg`,
+      lead: (printed: string) => `the ${printed} lead`,
+      "cable-end": (printed: string) => `the ${printed} end`,
+    },
     /* `other` is whatever the lead reached — a hole label like `D13` or
        another lead's label like `220Ω` — so the sentence is built to read
        either way round and never claims it is a pin. */
@@ -2003,12 +2096,83 @@ export const en = {
     servoExplanation:
       "The gate will close when the sketch sends the OPEN position.",
 
+    /**
+     * The first rung, one per kind of target.
+     *
+     * There is no such thing as a general "highlighted row". This was one
+     * sentence — *"Compare the ${subject} wire with the highlighted digital-pin
+     * row"* — printed on all 81 joins in the six chapters, of which 16 are
+     * digital pins. The other 65 are breadboard columns, rails, supply pins,
+     * another part's leg, and chapter four's `A0`: the analog hole that
+     * chapter's whole lesson is about, which the first rung of the ladder was
+     * steering the reader away from.
+     *
+     * `hint` itself is the digital-header arm — the capstone's geometry, and
+     * the one the correction specimen in `/lab/molecules` renders.
+     */
     hint: (subject: string) =>
-      `Compare the ${subject} wire with the highlighted digital-pin row.`,
+      `Compare where ${subject} sits with the highlighted pin on the board's header.`,
+    hintAnalog: (subject: string) =>
+      `Compare where ${subject} sits with the highlighted hole among the six marked A.`,
+    hintPower: (subject: string) =>
+      `Compare where ${subject} sits with the highlighted supply pin on the board.`,
+    hintRow: (subject: string) =>
+      `Compare where ${subject} sits with the highlighted column.`,
+    hintRail: (subject: string) =>
+      `Compare where ${subject} sits with the highlighted hole on the rail.`,
+    hintLead: (subject: string) =>
+      `Compare where ${subject} sits with the lead it is highlighted against.`,
+
+    /**
+     * The middle rung: one true thing about this kind of join.
+     *
+     * It used to be the capstone's Echo sentence — *"the ${subject} pin sends
+     * the return pulse timing back to the board"* — composed for every wiring
+     * finding in every chapter, in both languages. It is true of exactly one of
+     * the product's 81 joins; chapters one to four contain no ultrasonic sensor
+     * of any kind, so it described a component that is not in the box.
+     *
+     * Each of these takes the subject and does not print it, the way
+     * `unexpectedExplain` already does: the middle rung is the general rule,
+     * and naming the lead here would make it sound like a fact about one leg
+     * rather than about every join of its kind.
+     */
     explain: (subject: string, expected: string) =>
-      `The ${subject} pin sends the return pulse timing back to the board. The sketch reads that signal from ${expected}.`,
-    exact: (colour: string, subject: string, from: string, to: string) =>
-      `Move the ${colour} ${subject} wire from ${from} to ${to}.`,
+      `A pin number is part of the program, not a preference: the sketch names ${expected} and no other hole along that header.`,
+    explainAnalog: (subject: string, expected: string) =>
+      `Only the six holes marked A can answer with a number instead of a yes or a no, and ${expected} is the one the sketch reads.`,
+    explainPower: (subject: string, expected: string) =>
+      `${expected} is one of the board's supply pins. It carries no signal and the sketch never names it — what runs through it is the current everything else on the bench needs.`,
+    explainRow: (subject: string, expected: string) =>
+      `The five holes down one column of a breadboard are a single strip of metal, so a lead in ${expected} is joined to everything else in that column — and to nothing in the column beside it.`,
+    explainRail: (subject: string, expected: string) =>
+      `A rail runs the whole length of the breadboard as one piece of metal, and ${expected} is on it. What matters is that the lead reaches the rail, not which of its holes it uses.`,
+    explainLead: (subject: string, expected: string) =>
+      `Nothing on the board makes this join. The metal has to meet the metal: this lead has to be touching ${expected} itself.`,
+
+    /**
+     * The bottom rung, and two sentences rather than one.
+     *
+     * `exact` was a single template handed `observed ?? ""`, so a lead that is
+     * in no hole at all read *"Move the black − wire from  to F9."* — a double
+     * space in English and, in Turkish, a case suffix stranded on nothing. A
+     * missing connection is a **placement**; only a misplaced one is a move.
+     *
+     * The colour went with it. `wire.colour` is "how you would ask for the wire
+     * out loud, reaching into a tangle" — the capstone's loose jumper — and it
+     * matched nothing on screen: chapter one has no cable, the kit shelf draws
+     * all four of chapter two's in one colour on purpose, and a lead in a
+     * mismatch is stroked in the error orange rather than its role.
+     */
+    exactMove: (subject: string, from: string, to: string) =>
+      `Move ${subject} from ${from} to ${to}.`,
+    exactMoveHole: (subject: string, from: string, to: string) =>
+      `Move ${subject} out of ${from} and into ${to}.`,
+    exactPut: (subject: string, to: string) => `Put ${subject} into ${to}.`,
+    exactPutHole: (subject: string, to: string) => `Push ${subject} into ${to}.`,
+    /* The one target that is not an address: another part's own lead. There is
+       no move and no put — the two pieces of metal have to meet. */
+    exactJoin: (subject: string, to: string) => `Clip ${subject} onto ${to}.`,
 
     /* The same three rungs the wiring ladder has. The hint sends the person
        back to the object; the explanation says why an extra join is a fault
@@ -2212,7 +2376,10 @@ export const en = {
        which is a different question from whether the servo is wired. */
     distance: "Reading the distance",
     sweep: "Can the pump be told an angle",
-    barrierDirection: "Barrier direction",
+    /* `barrierDirection` used to sit here. `copy.test` is one entry per check
+       id (`run-spec.ts`) and it was no build's — the only live one of that name
+       is `agentPanel.errors.barrierDirection`, which a lab specimen reads. It
+       was the one row in this table a translator could not place. */
     /* A-17 · the word a test row shows when it has no measurement to show. */
     states: {
       idle: "Not started",

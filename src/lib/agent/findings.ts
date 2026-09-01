@@ -85,6 +85,43 @@ export interface Evidence {
   simulated: boolean;
 }
 
+/**
+ * What kind of thing the sketch wants this lead to reach.
+ *
+ * The teaching ladder used to be one sentence for all 81 joins in the product,
+ * and that sentence was the capstone's: *"the Echo pin sends the return pulse
+ * timing back to the board"*, printed over a chapter-one resistor leg. The
+ * middle rung has to be a fact about the join, and the only honest source for
+ * such a fact is **what the far end is** — a numbered pin on the header, one of
+ * the six holes marked A, a supply pin, a column of a breadboard, a rail, or
+ * another part's own lead.
+ *
+ * Derived from the graph at derivation time and stored as a kind, never as a
+ * sentence: the words are still looked up at render, so a finding already on
+ * screen changes language with the rest of the panel.
+ */
+export type JoinTarget =
+  | "digital-pin"
+  | "analog-pin"
+  | "power-pin"
+  | "breadboard-row"
+  | "power-rail"
+  | "part-lead";
+
+/**
+ * What the near end physically is, for the sentences that have to name it.
+ *
+ * `exact` called every end a *wire* — "Move the black − wire" — on a chapter
+ * whose two joins are the LED's and the resistor's own legs and which contains
+ * no wire at all. A leg, a module's lead and a cable's end are three different
+ * objects and the instruction differs for each.
+ *
+ * Read off the id's owner rather than off `Connection.medium`: chapter two's
+ * four jumper cables are PARTS, and every one of their ends is `medium: "leg"`
+ * twenty times over (`parts.ts`), so `medium` answers a different question.
+ */
+export type EndKind = "leg" | "lead" | "cable-end";
+
 /** G-06. `Ultrasonic sensor → Echo`. */
 export interface AffectedNode {
   id: NodeId;
@@ -162,8 +199,20 @@ interface FindingBase {
  */
 export interface WiringFinding extends FindingBase {
   type: "connection-mismatch" | "missing-connection";
-  /** Names the wire's colour in the exact-fix rung. */
+  /**
+   * The role the sketch gives this join.
+   *
+   * It used to pick the wire's colour for the exact-fix rung, and that rung no
+   * longer names one: `copy.wire.colour` is *"how you would ask for the wire
+   * out loud, reaching into a tangle"*, which is the capstone's loose jumper.
+   * Chapter one has no cable at all, the shelf deliberately draws all four of
+   * chapter two's in one colour, and a lead in a mismatch is stroked in the
+   * error orange rather than its role — so the named colour matched nothing on
+   * screen. Kept because it is a fact about the join; nothing prints it.
+   */
   role: WireRole;
+  /** A leg, a module's lead, or a cable's end — see `EndKind`. */
+  subjectKind: EndKind;
   /**
    * The terminal the wire leaves from, as the hardware prints it: `Echo`.
    *
@@ -187,6 +236,17 @@ export interface WiringFinding extends FindingBase {
   expectedTerminal: string;
   /** Where it is, if it is plugged in at all: `D6`. */
   observedTerminal?: string;
+  /**
+   * The id of the far end, and what kind of thing it is.
+   *
+   * The id rather than only its printed label, because a lead is not printed
+   * on: the sketch's target in chapter one is the LED's own long leg, and
+   * *"clip it onto +"* is the panel reading a badge glyph out loud where the
+   * dictionary has *"the LED's long leg"*. `expectedTerminal` stays the printed
+   * value, which is what the `expected → observed` pair and `mono` want.
+   */
+  target: NodeId;
+  targetKind: JoinTarget;
 }
 
 export interface MechanicalFinding extends FindingBase {
@@ -206,8 +266,21 @@ export interface ExtraFinding extends FindingBase {
   type: "unexpected-connection";
   /** The lead that made the join, as the hardware prints it: `+`. */
   subject: string;
+  /** A leg, a module's lead, or a cable's end — see `EndKind`. */
+  subjectKind: EndKind;
+  /**
+   * The lead itself, when the part prints nothing beside it.
+   *
+   * The same escape hatch `WiringFinding.subjectLead` is, and it was missing
+   * here — so a stray made with a jumper end put `wire.gnd.pin` in the
+   * sentence, in the chip, in the callout drawn on the canvas and in the
+   * screen-reader label, which is a graph address on four surfaces at once.
+   */
+  subjectLead?: NodeId;
   /** What it reached: `220Ω`, `D13`. */
   otherTerminal: string;
+  /** And the same, for the far end. */
+  otherLead?: NodeId;
 }
 
 /**
@@ -259,10 +332,29 @@ export interface FindingWords {
   nodes: (AffectedNode & { part: string })[];
 }
 
+/**
+ * What the chip's mono half says.
+ *
+ * `AffectedNode.terminal` is *what the hardware prints there*, and a jumper
+ * cable prints nothing on either of its ends by design — so the field fell back
+ * to the node id and the chip read `Jumper wire → wire.gnd.pin`, in the font
+ * reserved for silkscreen, with the same id read out by `a11y.showOnWorkbench`.
+ * The dictionary has had a name for every one of those ids since chapter two.
+ *
+ * Resolved at render, never stored: `terminal === id` is exactly the case where
+ * nothing was printed, because `affected()` falls back to the id and to nothing
+ * else.
+ */
+function printedOrNamed(copy: Copy, node: AffectedNode): string {
+  if (node.terminal !== node.id) return node.terminal;
+  return copy.build.leads[node.id] ?? node.terminal;
+}
+
 export function findingWords(copy: Copy, finding: Finding): FindingWords {
   const nodes = finding.affectedNodes.map((n) => ({
     ...n,
     part: ownerOf(copy, n.id),
+    terminal: printedOrNamed(copy, n),
   }));
 
   /* A lookup rather than a ternary: with three kinds, a two-way test captions
@@ -292,20 +384,40 @@ export function findingWords(copy: Copy, finding: Finding): FindingWords {
   }
 
   if (finding.type === "unexpected-connection") {
-    const { subject, otherTerminal: other } = finding;
+    /* Three forms of one lead again — see the wiring branch below. `nom` opens
+       the sentence that reports the join and stands beside the arrow; `object`
+       is what the two rungs act on. A lead its part prints nothing beside is
+       named from the dictionary rather than from its node id. */
+    const printed = finding.subject;
+    const nom = finding.subjectLead
+      ? (copy.build.leads[finding.subjectLead] ?? printed)
+      : copy.findings.subjectNominative[finding.subjectKind](printed);
+    const object = finding.subjectLead
+      ? (copy.build.leadObject[finding.subjectLead] ?? printed)
+      : copy.findings.subjectObject[finding.subjectKind](printed);
+    const other = finding.otherLead
+      ? (copy.build.leads[finding.otherLead] ?? finding.otherTerminal)
+      : finding.otherTerminal;
+    const subject = nom;
     return {
       title: copy.findings.unexpectedConnection,
       explanation: copy.findings.unexpectedDetail(subject, other),
-      mono: { [subject]: "error", [other]: "error" },
+      /* Only what the hardware actually prints goes in mono (rule 13). A lead
+         its part says nothing about has a dictionary name, and a dictionary
+         name set in the silkscreen font is the same category error as an id. */
+      mono: {
+        ...(finding.subjectLead ? {} : { [printed]: "error" as MonoTone }),
+        ...(finding.otherLead ? {} : { [other]: "error" as MonoTone }),
+      },
       /* There is no expected terminal, and a blank here would read as one the
          panel forgot to fill in. */
       expected: copy.findings.notAsked,
       observed: `${subject} → ${other}`,
       evidenceLabel,
       coaching: {
-        hint: copy.findings.unexpectedHint(subject),
-        explain: copy.findings.unexpectedExplain(subject),
-        exact: copy.findings.unexpectedExact(subject),
+        hint: copy.findings.unexpectedHint(object),
+        explain: copy.findings.unexpectedExplain(object),
+        exact: copy.findings.unexpectedExact(object),
       },
       /* One label, and it fits this kind best of the three: the fix for a join
          the sketch does not ask for is a removal, made on the bench by pulling
@@ -350,45 +462,231 @@ export function findingWords(copy: Copy, finding: Finding): FindingWords {
     };
   }
 
-  const { expectedTerminal: want, observedTerminal: got } = finding;
-  const colour = copy.wire.colour[finding.role];
-  /* What the part prints, if it prints anything; otherwise what a person would
-     call the lead. Never the raw id — that is a graph address leaking into a
-     sentence, which is the fault `bb.f7` in a callout was fixed for. */
-  const subject = finding.subjectLead
-    ? (copy.build.leads[finding.subjectLead] ?? finding.subject)
-    : finding.subject;
+  const { expectedTerminal: want, observedTerminal: got, targetKind } = finding;
+  const words = copy.findings;
+
+  /* The lead named three ways, because three sentences want three different
+     things from it.
+
+     `label` is the standing form — the one that goes either side of an arrow in
+     the `expected` / `observed` pair, where `build.leads`'s own contract (a
+     capitalised, article-less name) is exactly right.
+
+     `nom` opens a sentence and `object` sits inside one. English marks the
+     difference with an article and a capital; Turkish inflects the noun itself,
+     which is why `build.leadObject` exists and why splicing the naming form
+     mid-sentence produced "Compare the Jumper's board end wire".
+
+     A part that prints something beside the lead keeps printing it (rule 13):
+     chapter six's `Echo` is what is silkscreened on the module in your hand,
+     and no dictionary name may replace it. What it gains is the noun that says
+     what kind of thing it is — a leg, a lead, or a cable's end. */
+  const named = finding.subjectLead;
+  const printed = finding.subject;
+  const label = named ? (copy.build.leads[named] ?? printed) : printed;
+  const nom = named
+    ? (copy.build.leads[named] ?? printed)
+    : words.subjectNominative[finding.subjectKind](printed);
+  const object = named
+    ? (copy.build.leadObject[named] ?? printed)
+    : words.subjectObject[finding.subjectKind](printed);
+
+  /* Where the sketch wants it. A hole and a board pin print an address, and
+     that address is what the sentence says; another part's lead prints a badge
+     glyph, so "clip it onto +" would be the panel reading a symbol out loud
+     where the dictionary has "the LED's long leg". `leadTarget` is the table
+     written for exactly this — the case a sentence arrives at. */
+  const target =
+    targetKind === "part-lead"
+      ? (copy.build.leadTarget[finding.target] ?? want)
+      : want;
 
   return {
     title: got
       ? copy.findings.connectionMismatch
       : copy.findings.missingConnection,
     explanation: got
-      ? copy.findings.wrongPin(subject, got, want)
-      : copy.findings.missingWire(subject, want),
+      ? copy.findings.wrongPin(nom, got, want)
+      : copy.findings.missingWire(nom, want),
     mono: got ? { [got]: "error", [want]: "target" } : { [want]: "target" },
-    expected: `${subject} → ${want}`,
-    observed: got ? `${subject} → ${got}` : copy.findings.notWired,
+    expected: `${label} → ${want}`,
+    observed: got ? `${label} → ${got}` : copy.findings.notWired,
     evidenceLabel,
     coaching: {
-      hint: copy.findings.hint(subject),
-      explain: copy.findings.explain(subject, want),
-      exact: copy.findings.exact(colour, subject, got ?? "", want),
+      hint: hintFor(copy, targetKind, object),
+      explain: explainFor(copy, targetKind, object, target),
+      /* Two sentences, not one with a hole in it. `exact` used to be handed
+         `got ?? ""`, so a lead that is in no hole at all read *"Move the black
+         − wire from  to F9."* — a double space in English, and in Turkish a
+         case suffix stranded on nothing (" pininden"). A missing connection is
+         a placement; only a misplaced one is a move. */
+      exact: got
+        ? moveFor(copy, targetKind, object, got, target)
+        : putFor(copy, targetKind, object, target),
     },
     actions: { show: copy.workbench.showMe, check: copy.workbench.checkThis },
     nodes,
   };
 }
 
+/**
+ * The first rung, per kind of target.
+ *
+ * It used to say *"Compare the ${subject} wire with the highlighted digital-pin
+ * row"* for all 81 joins — the capstone's geometry, where every fault is on the
+ * digital header. Only 16 of the 81 targets are digital pins. The rest are
+ * breadboard columns, rails, supply pins, another part's leg, and chapter
+ * four's `A0` — the analog hole that chapter's whole lesson is about, which the
+ * ladder's first rung was pointing away from.
+ */
+function hintFor(copy: Copy, target: JoinTarget, subject: string): string {
+  const words = copy.findings;
+  switch (target) {
+    case "analog-pin":
+      return words.hintAnalog(subject);
+    case "power-pin":
+      return words.hintPower(subject);
+    case "breadboard-row":
+      return words.hintRow(subject);
+    case "power-rail":
+      return words.hintRail(subject);
+    case "part-lead":
+      return words.hintLead(subject);
+    default:
+      return words.hint(subject);
+  }
+}
+
+/**
+ * The middle rung: one true thing about this kind of join.
+ *
+ * Never about the chapter. The sentence a person reads under a chapter-one
+ * resistor is about what a numbered pin is; the one under chapter two's lamp is
+ * about what a breadboard column is made of. Neither of them is about an
+ * ultrasonic sensor, which is what all six chapters said in both languages.
+ */
+function explainFor(
+  copy: Copy,
+  target: JoinTarget,
+  subject: string,
+  expected: string,
+): string {
+  const words = copy.findings;
+  switch (target) {
+    case "analog-pin":
+      return words.explainAnalog(subject, expected);
+    case "power-pin":
+      return words.explainPower(subject, expected);
+    case "breadboard-row":
+      return words.explainRow(subject, expected);
+    case "power-rail":
+      return words.explainRail(subject, expected);
+    case "part-lead":
+      return words.explainLead(subject, expected);
+    default:
+      return words.explain(subject, expected);
+  }
+}
+
+/** The lead is in the wrong place: take it out of there and put it here. */
+function moveFor(
+  copy: Copy,
+  target: JoinTarget,
+  subject: string,
+  from: string,
+  to: string,
+): string {
+  const words = copy.findings;
+  if (target === "part-lead") return words.exactJoin(subject, to);
+  if (target === "breadboard-row" || target === "power-rail") {
+    return words.exactMoveHole(subject, from, to);
+  }
+  return words.exactMove(subject, from, to);
+}
+
+/** The lead is in no hole at all: there is nothing to move it from. */
+function putFor(
+  copy: Copy,
+  target: JoinTarget,
+  subject: string,
+  to: string,
+): string {
+  const words = copy.findings;
+  if (target === "part-lead") return words.exactJoin(subject, to);
+  if (target === "breadboard-row" || target === "power-rail") {
+    return words.exactPutHole(subject, to);
+  }
+  return words.exactPut(subject, to);
+}
+
 /* --- Naming -------------------------------------------------------------- */
 
+
+/**
+ * What is printed beside a node — and, for a hole, what a person reads off the
+ * plastic when the chapter's own artwork carries no silkscreen.
+ *
+ * Chapters two to five label every hole (`F7`, `−6`); the capstone's carry only
+ * `row` and `col`, so every reader that wanted an address there fell back to
+ * the raw id and printed `bb.pos1` where the silkscreen belongs. The address is
+ * derivable from the two fields the node already has, in exactly the form the
+ * labelled chapters spell it — `U+2212` on the rail, because that is what is
+ * printed there and what is read out loud.
+ *
+ * Exported because it is not only the findings' problem: the step checklist
+ * (`checklist.tsx`) has the same `?? item.to` fallback and prints the same id
+ * on the same chapter.
+ */
+export function printedLabel(
+  scene: CircuitScene,
+  id: NodeId,
+): string | undefined {
+  const found = maybeNode(scene, id);
+  if (!found) return undefined;
+  if (found.label) return found.label;
+  if (found.row === undefined || found.col === undefined) return undefined;
+  if (found.row === "+") return `+${found.col}`;
+  if (found.row === "-") return `−${found.col}`;
+  return `${found.row.toUpperCase()}${found.col}`;
+}
 
 function affected(
   scene: CircuitScene,
   id: NodeId,
   mark: AffectedNode["mark"],
 ): AffectedNode {
-  return { id, terminal: maybeNode(scene, id)?.label ?? id, mark };
+  return { id, terminal: printedLabel(scene, id) ?? id, mark };
+}
+
+/** Which of the six kinds of far end this is. Asked of the graph, once. */
+function joinTargetOf(scene: CircuitScene, id: NodeId): JoinTarget {
+  const found = maybeNode(scene, id);
+  if (!found || found.kind === "terminal") return "part-lead";
+  if (found.kind === "breadboard-hole") {
+    return found.row === "+" || found.row === "-"
+      ? "power-rail"
+      : "breadboard-row";
+  }
+  const label = found.label ?? "";
+  /* `A0`…`A5`. The one address chapter four exists to teach, and the one the
+     shared hint used to steer a reader away from. */
+  if (/^A\d+$/.test(label)) return "analog-pin";
+  if (/^(5V|3V3|GND|VIN)$/.test(label)) return "power-pin";
+  return "digital-pin";
+}
+
+/**
+ * A leg, a module's lead, or a cable's end.
+ *
+ * By the id's owner, which is the same test `partOf` and `componentOf` already
+ * make. Not by `Connection.medium`: chapter two's cables are parts whose ends
+ * stand in holes as their own metal, so they are `"leg"` there twenty times
+ * over and a sentence keyed off that field would call them legs.
+ */
+function endKindOf(id: NodeId): EndKind {
+  if (id.startsWith("wire.")) return "cable-end";
+  if (id.startsWith("led.") || id.startsWith("res.")) return "leg";
+  return "lead";
 }
 
 /* --- Derivation ---------------------------------------------------------- */
@@ -418,11 +716,12 @@ function wiringFinding(
   activeStepId: StepId,
   now: number,
 ): WiringFinding {
-  const want = maybeNode(scene, expected.to);
-  const got = observed ? maybeNode(scene, observed.to) : undefined;
   const printed = maybeNode(scene, expected.from)?.label;
   const subject = printed ?? expected.from;
-  const wantLabel = want?.label ?? expected.to;
+  const wantLabel = printedLabel(scene, expected.to) ?? expected.to;
+  const gotLabel = observed
+    ? (printedLabel(scene, observed.to) ?? observed.to)
+    : undefined;
 
   return {
     id: wiringFindingId(expected.id),
@@ -430,6 +729,7 @@ function wiringFinding(
     severity: "warning",
     stepId: owningStepId(expected.id, activeStepId),
     role: expected.role,
+    subjectKind: endKindOf(expected.from),
     subject,
     /* Only where the part prints nothing: an LED's `−`, a resistor's `220Ω`
        and a sensor's `D` are what is written on the thing in your hand, and a
@@ -437,7 +737,9 @@ function wiringFinding(
        for it. */
     ...(printed ? {} : { subjectLead: expected.from }),
     expectedTerminal: wantLabel,
-    observedTerminal: observed ? (got?.label ?? observed.to) : undefined,
+    observedTerminal: gotLabel,
+    target: expected.to,
+    targetKind: joinTargetOf(scene, expected.to),
     evidence: { kind: "camera", confidence: 0.94, simulated: true },
     affectedNodes: [
       affected(scene, expected.from, "neutral"),
@@ -445,11 +747,13 @@ function wiringFinding(
       affected(scene, expected.to, "target"),
     ],
     probe: { kind: "connection", connectionId: expected.id },
+    /* Same rule as the stray's below: the callout sets this in the silkscreen
+       font, so only what is silkscreened may go in it. */
     highlight: {
       connectionId: expected.id,
       errorPin: observed?.to,
       targetPin: expected.to,
-      subject,
+      ...(printed ? { subject: printed } : {}),
     },
     focus: {
       nodes: [expected.to, ...(observed ? [observed.to] : [])],
@@ -511,8 +815,9 @@ function extraFinding(
   activeStepId: StepId,
   now: number,
 ): ExtraFinding {
-  const from = maybeNode(scene, extra.from);
   const to = maybeNode(scene, extra.to);
+  const fromLabel = printedLabel(scene, extra.from);
+  const toLabel = printedLabel(scene, extra.to);
   const near = scene.expected.find((c) =>
     [c.from, c.to].some((end) => end === extra.from || end === extra.to),
   );
@@ -525,8 +830,11 @@ function extraFinding(
        mildest of the three faults. */
     severity: "warning",
     stepId: near ? owningStepId(near.id, activeStepId) : activeStepId,
-    subject: from?.label ?? extra.from,
-    otherTerminal: to?.label ?? extra.to,
+    subject: fromLabel ?? extra.from,
+    subjectKind: endKindOf(extra.from),
+    ...(fromLabel ? {} : { subjectLead: extra.from }),
+    otherTerminal: toLabel ?? extra.to,
+    ...(toLabel ? {} : { otherLead: extra.to }),
     evidence: { kind: "graph", confidence: 0.9, simulated: true },
     /* Both ends `error` and no `target`: there is no pin this belongs on. That
        also keeps `CorrectionCallout` — which needs both an error and a target
@@ -544,10 +852,15 @@ function extraFinding(
     /* The mark goes on the thing the person CHOSE. For a lead put into a hole
        that is the hole: the lead's drawn position is half a unit from the hole
        one along, and a disc there would accuse the wrong pin. */
+    /* `subject` only where something is printed. It is drawn in the callout's
+       mono, beside `F9 → F7`, and that component's own note says a translated
+       noun there would be the one place the callout stopped speaking the
+       board's language — so the honest answer for a lead that prints nothing is
+       to say nothing and let the callout fall back to the pin's own address. */
     highlight: {
       connectionId: extra.id,
       errorPin: to?.kind === "board-pin" ? extra.to : extra.from,
-      subject: from?.label ?? extra.from,
+      ...(fromLabel ? { subject: fromLabel } : {}),
     },
     focus: { nodes: [extra.from, extra.to], ...PIN_FOCUS },
     foundAt: now,
@@ -632,6 +945,7 @@ const partFindingId = (id: NodeId): FindingId =>
   `kit-${id.slice(0, id.lastIndexOf("."))}`;
 
 function missingPartFinding(
+  scene: CircuitScene,
   component: KitId,
   terminal: NodeId,
   stepId: StepId,
@@ -663,13 +977,14 @@ function missingPartFinding(
     /* `graph` is the honest provenance — nothing was photographed and nothing
        was measured. The sketch was read and a part it names is not there. */
     evidence: { kind: "graph", confidence: 1, simulated: true },
-    affectedNodes: towards.map((id) => ({
-      id,
-      terminal: id,
-      /* `target`, not `error`: nothing here is wrong. This is the hole waiting
-         for a part that has not arrived. */
-      mark: "target" as const,
-    })),
+    /* Through the same reader the other three kinds use. This built its own
+       node objects and put the raw id in `terminal`, so every one of these
+       chips read `Breadboard → bb.f7` — in the mono reserved for silkscreen —
+       while the wiring rows replacing them minutes later read `Breadboard →
+       F7`. Two vocabularies for one hole, in one list.
+       `target`, not `error`: nothing here is wrong. This is the hole waiting
+       for a part that has not arrived. */
+    affectedNodes: towards.map((id) => affected(scene, id, "target")),
     probe: { kind: "absent-node", nodeId: terminal },
     /* The hole it is going into gets the target ring — there is no error pin,
        because nothing is in the wrong place. */
@@ -724,9 +1039,16 @@ export function deriveFindings(
         if (component && !found.some((f) => f.id === partFindingId(absent))) {
           found.push(
             missingPartFinding(
+              scene,
               component,
               absent,
-              activeStepId,
+              /* The step that OWNS the connection, exactly as `wiringFinding`
+                 does one branch below. It was handed `activeStepId`, so every
+                 "this part is still in the box" was stamped on whichever step
+                 the person happened to be standing on: the rail blamed the
+                 wrong row, and `inspectionCovers` then counted these inside
+                 `current_step` and filtered them straight back out. */
+              owningStepId(mismatch.expected.id, activeStepId),
               now,
               /* The ends of this join that are on the bench: where the part is
                  going, which is the only part of the answer that can be shown. */
