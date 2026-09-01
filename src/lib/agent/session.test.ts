@@ -10,6 +10,12 @@ import { lampComplete, lampSceneFrom } from "@/lib/circuit/breathing-lamp";
 import { placeIn } from "@/lib/agent/placement";
 import { diff, extras } from "@/lib/circuit/graph";
 import { onBench } from "@/lib/circuit/placement";
+import { stepsOwning } from "@/lib/agent/steps";
+import { headlineFor, type ToolInputs, type ToolOutcome } from "@/lib/agent/services";
+import { allHandlers, type AllToolInputs } from "@/lib/agent/tools";
+import { say, type Line } from "@/lib/agent/line";
+import { en } from "@/content/locales/en";
+import { tr } from "@/content/locales/tr";
 
 const lamp = builds.breathingLamp!;
 const spec = lamp.placement!;
@@ -179,4 +185,455 @@ describe("the opening bench", () => {
       lampSceneFrom(lampComplete).observed,
     );
   });
+});
+
+/**
+ * The tools, called the way the browser calls them.
+ *
+ * Every one of these is an argument no button in the product can produce, and
+ * every one of them used to be answered with `status: "ok"`. The phases are
+ * collapsed to nothing — the wait is theatre and this is about the answer.
+ */
+async function call<K extends keyof AllToolInputs>(
+  state: AgentSessionState,
+  name: K,
+  input: AllToolInputs[K],
+): Promise<{ outcome: ToolOutcome; next: AgentSessionState }> {
+  let live = state;
+  const outcome = await allHandlers[name](input as never, {
+    read: () => live,
+    copy: en,
+    locale: "en",
+    phase: async () => {},
+  });
+  live = outcome.patch
+    ? sessionReducer(live, { type: "patch", patch: outcome.patch })
+    : live;
+  return { outcome, next: live };
+}
+
+/** What a refusal put in `result` — the half the sentence cannot carry yet. */
+const refusal = (outcome: ToolOutcome) =>
+  (outcome.result as { refused?: string } | undefined)?.refused;
+
+describe("navigate_build_step refuses another chapter's step", () => {
+  /* `stepById` searches all 33 ids, so the lamp's bench used to accept the
+     capstone's and redraw its whole rail as the other build's — with no UI
+     route back, because the rail the person clicks is the same derivation. */
+  it("every bench refuses every other bench's step ids", async () => {
+    for (const build of Object.values(builds)) {
+      const mine = new Set(
+        stepsOwning(build!.activeStepId).map((step) => step.id),
+      );
+      for (const other of Object.values(builds)) {
+        if (other!.projectId === build!.projectId) continue;
+        for (const step of stepsOwning(other!.activeStepId)) {
+          if (mine.has(step.id)) continue;
+          const { outcome, next } = await call(
+            initialSession(build!),
+            "navigate_build_step",
+            { step_id: step.id },
+          );
+          expect(outcome.status, `${build!.projectId} -> ${step.id}`).toBe(
+            "error",
+          );
+          expect(refusal(outcome)).toBe("unknownStep");
+          expect(next.activeStepId).toBe(build!.activeStepId);
+        }
+      }
+    }
+  });
+
+  it("and still moves to one of its own", async () => {
+    const { outcome, next } = await call(open(), "navigate_build_step", {
+      step_id: "lampResistor",
+    });
+    expect(outcome.status).toBe("ok");
+    expect(next.activeStepId).toBe("lampResistor");
+  });
+
+  /* The headline is composed OUTSIDE the runner's try, so a throw in it used to
+     mean no activity entry, no settle, no toast — and a raw JS `TypeError`
+     where the handler had a refusal ready. */
+  it("the headline survives an id no build has", () => {
+    const state = open();
+    expect(() =>
+      headlineFor(
+        "navigate_build_step",
+        { step_id: "nope" } as unknown as ToolInputs["navigate_build_step"],
+        state,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      headlineFor(
+        "run_functional_test",
+        {} as ToolInputs["run_functional_test"],
+        state,
+      ),
+    ).not.toThrow();
+  });
+});
+
+describe("verify_current_step", () => {
+  /**
+   * `verifyStep` reads `verified` off the mismatches and `expected` off the
+   * step's own count, with no clause tying them together — so a step whose ids
+   * the scene has never heard of yields zero mismatches and a green tick beside
+   * `matched: 0`. Six such calls turned an untouched bench into a finished
+   * build with `Finish` in the foot.
+   */
+  it("cannot report `verified: true` with nothing matched", async () => {
+    /* Reached by hand: `navigate_build_step` refuses this now, and the point of
+       the test is that the invariant holds even if that guard ever stops. */
+    const foreign: AgentSessionState = { ...open(), activeStepId: "sensor" };
+    const { outcome, next } = await call(foreign, "verify_current_step", {});
+    const result = outcome.result as { verified: boolean; matched: number };
+    expect(result.matched).toBe(0);
+    expect(result.verified).toBe(false);
+    expect(next.completedSteps).toEqual([]);
+    expect(next.completedAt).toBeNull();
+  });
+
+  /**
+   * §9: a failed verification returns a structured answer and makes the finding
+   * visible. The failure branch used to return no patch at all, so the activity
+   * tab said `1 issue still open` while the Findings tab said there was nothing
+   * open on this step.
+   */
+  it("a failed verification puts the findings on screen", async () => {
+    const seat: AgentSessionState = { ...open(), activeStepId: "lampSeat" };
+    const { outcome, next } = await call(seat, "verify_current_step", {});
+    expect((outcome.result as { verified: boolean }).verified).toBe(false);
+    expect(next.findings.length).toBeGreaterThan(0);
+    expect(next.tab).toBe("findings");
+    expect(next.highlightedFindingId).toBe(next.findings[0]!.id);
+    expect(
+      outcome.effects?.some(
+        (effect) => effect.kind === "toast" && effect.tone === "warning",
+      ),
+    ).toBe(true);
+  });
+
+  it("and a step with nothing to compare still ticks", async () => {
+    const { outcome, next } = await call(open(), "verify_current_step", {});
+    expect((outcome.result as { verified: boolean }).verified).toBe(true);
+    expect(next.completedSteps).toContain("lampKit");
+  });
+});
+
+describe("inspect_build validates its scope", () => {
+  it("refuses a name that is not one of the five", async () => {
+    for (const scope of ["banana", null, 42, ""]) {
+      const { outcome, next } = await call(open(), "inspect_build", {
+        scope,
+      } as ToolInputs["inspect_build"]);
+      expect(outcome.status, String(scope)).toBe("error");
+      expect(refusal(outcome)).toBe("unknownScope");
+      expect(next.findings).toEqual([]);
+    }
+  });
+
+  /**
+   * A scope this build does not *offer* is still a true question with a true
+   * answer. `schemaFactsFor` withholds `mechanical` from a build with nothing
+   * that turns; the honest reply is an empty list, not a refusal.
+   */
+  it("but answers a valid scope the build does not offer", async () => {
+    const { outcome } = await call(open(), "inspect_build", {
+      scope: "mechanical",
+    });
+    expect(outcome.status).toBe("ok");
+    expect((outcome.result as { findings: unknown[] }).findings).toEqual([]);
+  });
+
+  /**
+   * The credit ledger is scoped to the findings list, not emptied.
+   *
+   * `repaired: []` plus a `kept` list that keeps out-of-scope findings alive
+   * left the two disagreeing, and `commit` in `agent/placement.ts` guards
+   * double-billing with exactly this set — so one fault could be counted twice.
+   */
+  it("keeps the repair credit of a finding it did not look at", async () => {
+    const held: AgentSessionState = { ...open(), activeStepId: "lampResistor" };
+    const { next: found } = await call(held, "inspect_build", { scope: "all" });
+    expect(found.findings.length).toBeGreaterThan(0);
+
+    const credited = { ...found, repaired: [found.findings[0]!.id] };
+    const { next: after } = await call(credited, "inspect_build", {
+      scope: "mechanical",
+    });
+    expect(after.repaired).toEqual(credited.repaired);
+  });
+
+  /** And the id an agent is holding survives the tool's own default scope. */
+  it("a second inspection does not throw away the first one's ids", async () => {
+    const { next: all } = await call(open(), "inspect_build", { scope: "all" });
+    expect(all.findings.length).toBeGreaterThan(0);
+    const { next: again } = await call(all, "inspect_build", {});
+    for (const finding of all.findings) {
+      expect(again.findings.map((f) => f.id)).toContain(finding.id);
+    }
+  });
+});
+
+describe("show_correction", () => {
+  const withFindings = async () => {
+    const seat: AgentSessionState = { ...open(), activeStepId: "lampSeat" };
+    const { next } = await call(seat, "inspect_build", { scope: "all" });
+    return next;
+  };
+
+  it("refuses a detail level outside the ladder, and does not write it", async () => {
+    const state = await withFindings();
+    const { outcome, next } = await call(state, "show_correction", {
+      finding_id: state.findings[0]!.id,
+      detail_level: "loud",
+    } as unknown as ToolInputs["show_correction"]);
+    expect(outcome.status).toBe("error");
+    expect(refusal(outcome)).toBe("unknownDetailLevel");
+    expect(next.coaching).toBe("hint");
+  });
+
+  /* The two conditions were the wrong way round: an id nothing ever minted was
+     told the finding was "no longer open", and an id whose fault the graph says
+     is fixed returned ok and swung the camera onto the corrected hole. */
+  it("refuses an id nothing minted", async () => {
+    const state = await withFindings();
+    const { outcome } = await call(state, "show_correction", {
+      finding_id: "finding:nope",
+    });
+    expect(outcome.status).toBe("error");
+    expect(refusal(outcome)).toBe("noSuchFinding");
+  });
+
+  it("refuses a finding the build has already put right", async () => {
+    const state = await withFindings();
+    const finding = state.findings[0]!;
+    const fixed = {
+      ...state,
+      placement: spec.complete,
+      scene: lampSceneFrom(spec.complete),
+    };
+    const { outcome } = await call(fixed, "show_correction", {
+      finding_id: finding.id,
+    });
+    expect(outcome.status).toBe("error");
+    expect(outcome.errorMessage).toEqual({
+      ns: "errors",
+      k: "unknownFinding",
+    });
+    expect(outcome.result).toMatchObject({ resolved: true });
+  });
+
+  it("and points at one that is genuinely open", async () => {
+    const state = await withFindings();
+    const { outcome, next } = await call(state, "show_correction", {
+      finding_id: state.findings[0]!.id,
+      detail_level: "exact",
+    });
+    expect(outcome.status).toBe("ok");
+    expect(next.coaching).toBe("exact");
+    expect(next.highlightedFindingId).toBe(state.findings[0]!.id);
+  });
+});
+
+describe("find_projects validates before it writes the toolbar", () => {
+  it("refuses a filter of the wrong shape", async () => {
+    const bad: Record<string, unknown>[] = [
+      { search: 42 },
+      { max_minutes: "twenty" },
+      { max_minutes: -5 },
+      { ready_only: "yes" },
+      { difficulty: {} },
+      { concepts: 5 },
+      { components: "servo" },
+      { components: ["nope"] },
+      { concepts: ["blinking"] },
+      { difficulty: ["hard"] },
+    ];
+    for (const input of bad) {
+      const { outcome } = await call(
+        open(),
+        "find_projects",
+        input as never,
+      );
+      expect(outcome.status, JSON.stringify(input)).toBe("error");
+      expect(refusal(outcome)).toBe("unknownFilter");
+      expect(outcome.effects).toBeUndefined();
+    }
+  });
+
+  it("and narrows on one it accepts", async () => {
+    const { outcome } = await call(open(), "find_projects", {
+      components: ["servo"],
+    });
+    expect(outcome.status).toBe("ok");
+    expect((outcome.result as { count: number }).count).toBeGreaterThan(0);
+  });
+
+  it("resolves a project by a shouted slug", async () => {
+    const { outcome } = await call(open(), "open_project", {
+      project: "TRAFFIC-LIGHT",
+    });
+    expect(outcome.status).toBe("ok");
+  });
+});
+
+/**
+ * §14 · nothing in state is a sentence.
+ *
+ * Undo and redo say *what came back* — `Undone: You put the LED's long leg in
+ * A5` — and the inner half was rendered at gesture time and passed as a STRING.
+ * `resolve` returns a non-`Ref` verbatim, so that half never re-translated:
+ * switch language and the timeline read one clause in each. It was the only
+ * occurrence in `src/`.
+ */
+describe("a sentence inside a sentence still re-translates", () => {
+  const nested: Line = {
+    ns: "user",
+    k: "undone",
+    args: [{ ref: "line", line: { ns: "user", k: "nothingToUndo" } }],
+  };
+
+  it("resolves both halves through the reader's own dictionary", () => {
+    expect(say(en, nested)).toContain(en.agentPanel.user.nothingToUndo);
+    expect(say(tr, nested)).toContain(tr.agentPanel.user.nothingToUndo);
+    expect(say(tr, nested)).not.toContain(en.agentPanel.user.nothingToUndo);
+  });
+});
+
+/**
+ * A part is named by its lead, not by the kind it is counted as.
+ *
+ * `componentOf` collapses chapter two's three resistors to `resistor` and its
+ * four cables to `jumper`, so three different acts produced one identical
+ * timeline row — under a finding row that named the part correctly.
+ */
+describe("part names come from one authority", () => {
+  const named = (lead: string) =>
+    say(en, {
+      ns: "activity",
+      k: "checkedPartPlaced",
+      args: [{ ref: "part", lead }],
+    });
+
+  it("tells chapter two's lamps, resistors and cables apart", () => {
+    const leads = [
+      "led.red.anode",
+      "led.yellow.anode",
+      "led.green.anode",
+      "res.red.in",
+      "res.yellow.in",
+      "res.green.in",
+      "wire.gnd.pin",
+      "wire.red.pin",
+      "wire.yellow.pin",
+      "wire.green.pin",
+    ];
+    expect(new Set(leads.map(named)).size).toBe(leads.length);
+  });
+});
+
+/**
+ * A check id is translated too — the dock beside the panel already says so.
+ *
+ * The `check` ref resolves; the timeline does not use it yet, because
+ * `activity.testing` is written for an id (`Agent ran the ${test} test`) and
+ * `copy.test` holds the row's activity rather than its name. Both halves have
+ * to move together; this pins the half that is here.
+ */
+describe("a check ref resolves in the reader's language", () => {
+  const line: Line = {
+    ns: "activity",
+    k: "testing",
+    args: [{ ref: "check", id: "wiring" }],
+  };
+
+  it("in both, and falls back to the id where there is no word", () => {
+    expect(say(en, line)).toContain(en.test.wiring);
+    expect(say(tr, line)).toContain(tr.test.wiring);
+    expect(
+      say(tr, {
+        ns: "activity",
+        k: "testing",
+        args: [{ ref: "check", id: "full_system" }],
+      }),
+    ).toContain("full system");
+  });
+});
+
+/**
+ * A stray is not a wire in the wrong place.
+ *
+ * `foundLine`'s docstring says only a set that is all of one kind gets that
+ * kind's sentence — and the implementation asked "not mechanical and not
+ * part-not-placed", which swept `unexpected-connection` in with the two
+ * mismatch kinds. So one missing join plus one join nobody asked for — the
+ * ordinary outcome of moving a single lead to a wrong hole — was announced as
+ * `2 connection mismatches found`, sending the person to look for the sketch's
+ * line about a wire the sketch does not have.
+ */
+describe("a mixed set of wiring faults is counted, not named", () => {
+  it("one missing join and one stray is `2 issues found`", async () => {
+    const wrong: AgentSessionState = {
+      ...open(),
+      activeStepId: "lampResistor",
+      placement: { ...spec.complete, "led.anode": "board.D8" },
+      scene: lampSceneFrom({ ...spec.complete, "led.anode": "board.D8" }),
+    };
+    const { outcome } = await call(wrong, "inspect_build", { scope: "all" });
+    const found = (outcome.result as { findings: { type: string }[] }).findings;
+    expect(found.map((f) => f.type).sort()).toEqual([
+      "missing-connection",
+      "unexpected-connection",
+    ]);
+    expect(outcome.note?.headline).toEqual({
+      ns: "activity",
+      k: "issuesFound",
+      args: [2],
+    });
+  });
+});
+
+/**
+ * The happy path, end to end, on every bench that has one.
+ *
+ * `verify_current_step` now re-derives `verified` (see `fullyVerified` in
+ * `services.ts`) instead of trusting `verifyStep`'s boolean, which is the guard
+ * that stops a step the scene cannot answer for reporting a green tick beside
+ * `matched: 0`. The cost of getting that wrong would be silent and total: a
+ * correctly assembled build that can no longer be finished. So the same tool,
+ * on the same finished placement, walks each rail to `completedAt`.
+ */
+describe("a correctly built bench still verifies to the end", () => {
+  for (const build of Object.values(builds)) {
+    const placement = build!.placement;
+    if (!placement) continue;
+
+    it(build!.projectId, async () => {
+      const start = initialSession(build!);
+      let state: AgentSessionState = {
+        ...start,
+        placement: placement.complete,
+        scene: placement.sceneFrom(
+          placement.complete,
+          start.scene.mechanical,
+        ),
+      };
+      const rail = stepsOwning(state.activeStepId);
+      for (let i = 0; i < rail.length; i += 1) {
+        const at = state.activeStepId;
+        const { outcome, next } = await call(state, "verify_current_step", {});
+        expect(
+          (outcome.result as { verified: boolean }).verified,
+          `${build!.projectId} ${at}`,
+        ).toBe(true);
+        state = next;
+      }
+      expect(state.completedSteps.sort()).toEqual(
+        rail.map((step) => step.id).sort(),
+      );
+      expect(state.completedAt).not.toBeNull();
+    });
+  }
 });

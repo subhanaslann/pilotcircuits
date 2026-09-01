@@ -97,7 +97,15 @@ export function stepAside(
     : undefined;
 }
 
-/** Chapter six · the capstone, and the only build with all seven parts. */
+/**
+ * Chapter six · the capstone, and the only build with all seven parts.
+ *
+ * 2 + 4 + 6 + 5 + 4 + 8 + 6 = 35 minutes across seven steps, which is exactly
+ * what `catalog.smartParkingBarrier` promises on the card before anyone opens
+ * it. It was the one list with no such line and the one card that disagreed
+ * with its own step list — the card said 45 over a rail that sums to 35, and a
+ * reader who counted was right and the product was wrong.
+ */
 export const barrierSteps: BuildStepDef[] = [
   {
     id: "kit",

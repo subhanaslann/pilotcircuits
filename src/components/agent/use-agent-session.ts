@@ -516,11 +516,26 @@ export function useAgentSession(options?: {
     const callId = `call-${before.seq}`;
     const call = toolCallOf(callId, name, input);
 
-    apply({
-      type: "tool/start",
-      call,
-      headline: headlineForAny(name, input, before),
-    });
+    /**
+     * The headline, composed defensively.
+     *
+     * It used to be built as an **argument** to `tool/start`, which is
+     * dispatched before the try below — so a throw while composing it escaped
+     * `execute` altogether: no activity entry was ever created, `tool/settle`
+     * never ran, the error toast never fired and nothing was announced. The
+     * agent got a raw JS `TypeError` where the handler had a good refusal
+     * waiting. `headlineFor` is total now (`services.ts` says why); this is the
+     * belt to that pair of braces, because rule 6 cuts both ways — a change
+     * nobody sees did not happen, and neither did a refusal.
+     */
+    let headline: Line;
+    try {
+      headline = headlineForAny(name, input, before);
+    } catch {
+      headline = { ns: "activity", k: "readContext" };
+    }
+
+    apply({ type: "tool/start", call, headline });
 
     const ctx: ToolContext = {
       read: () => latest.current,
@@ -709,11 +724,19 @@ export function useAgentSession(options?: {
             : { ns: "user", k: "removedJoin" };
       /* And which of the two this was. Both branches used to be announced as
          `Undone:`, so redo — the control whose whole job is putting a gesture
-         back — reported that it had taken one away. */
+         back — reported that it had taken one away.
+
+         The inner sentence travels as a `Line`, not as words. `say(copy, inner)`
+         here rendered it at gesture time and passed the STRING as an argument —
+         and `resolve` returns a non-`Ref` verbatim, so that half never
+         re-translated: switch language after an undo and the timeline read
+         `Geri alındı: You put the LED's long leg in A5`, one clause in each
+         language. It was the only sentence in `src/` frozen into state, and §14
+         says there are none. */
       const headline: Line = {
         ns: "user",
         k: action.kind === "undo" ? "undone" : "redone",
-        args: [say(copy, inner)],
+        args: [{ ref: "line", line: inner }],
       };
       apply({
         type: "log",
@@ -855,7 +878,7 @@ export function useAgentSession(options?: {
             ? {
                 ns: "user",
                 k: "removedPart",
-                args: [{ ref: "component", id: spec.componentOf[part] }],
+                args: [{ ref: "part", lead: effects.loosened }],
               }
             : {
                 ns: "user",
@@ -867,7 +890,7 @@ export function useAgentSession(options?: {
         lines.push({
           ns: "user",
           k: "removedPart",
-          args: [{ ref: "component", id: spec.componentOf[action.part] }],
+          args: [{ ref: "part", lead: spec.anchorOf[action.part] }],
         });
       }
 
@@ -882,7 +905,12 @@ export function useAgentSession(options?: {
       }
 
       /* A second part that lost its last hold because this one moved. The part
-         the gesture itself removed is already in the headline. */
+         the gesture itself removed is already in the headline.
+
+         Named through its anchor lead rather than through `componentOf`, like
+         every other part sentence in this file: on chapter two `componentOf`
+         answers `resistor` for three different resistors and `jumper` for four
+         different cables, so "The Resistor came with it" could not say which. */
       const named =
         action.kind === "remove-part"
           ? action.part
@@ -894,7 +922,7 @@ export function useAgentSession(options?: {
         lines.push({
           ns: "user",
           k: "cameWithIt",
-          args: [{ ref: "component", id: spec.componentOf[part] }],
+          args: [{ ref: "part", lead: spec.anchorOf[part] }],
         });
       }
 
@@ -970,12 +998,20 @@ export function useAgentSession(options?: {
       const observedPin =
         finding.affectedNodes.find((n) => n.mark === "error")?.terminal ?? "";
 
+      /* Both arms name the part through its LEAD, which is what the finding row
+         this button sits on already does. This one asked `finding.component` —
+         the counted kind — while the unresolved arm below asked the build, so
+         one `if/else` used two naming authorities for the same part: placing
+         chapter two's red lamp, then the amber, then the green produced three
+         identical rows reading "Checked: the LED is on the bench now", under a
+         finding row that said `Red LED`. `componentOf` is no better on that
+         bench — it answers `resistor` three times and `jumper` four times. */
       const headline: Line = resolved
         ? finding.type === "part-not-placed"
           ? {
               ns: "activity",
               k: "checkedPartPlaced",
-              args: [{ ref: "component", id: finding.component }],
+              args: [{ ref: "part", lead: finding.terminal }],
             }
           : probe.kind === "servo-alignment"
           ? { ns: "activity", k: "checkedAligned" }
@@ -986,11 +1022,11 @@ export function useAgentSession(options?: {
                 k: "checkedMatches",
                 args: [subject, expectedPin],
               }
-        : missingPart && spec
+        : missingPart && missing
           ? {
               ns: "activity",
               k: "checkedUnreachable",
-              args: [{ ref: "component", id: spec.componentOf[missingPart] }],
+              args: [{ ref: "part", lead: missing }],
             }
           : probe.kind === "servo-alignment"
             ? { ns: "activity", k: "checkedStillTurned" }

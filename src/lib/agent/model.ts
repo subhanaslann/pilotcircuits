@@ -1,12 +1,19 @@
 /**
  * Batch 4 · The agent's vocabulary.
  *
- * The six tools the workbench exposes, and the one axis the product teaches on.
- * Nothing here touches React or the DOM: in Batch 7 a WebMCP callback invoked by
- * the browser has to be able to reach every one of these without a hook.
+ * The seven tools the workbench exposes, and the one axis the product teaches
+ * on. Nothing here touches React or the DOM: in Batch 7 a WebMCP callback
+ * invoked by the browser has to be able to reach every one of these without a
+ * hook.
  */
 
-/** Declaration order is display order — `6 tools available` counts this list. */
+/**
+ * Declaration order is display order, and the panel's `N tools available`
+ * counts this list rather than printing a number of its own — which is why the
+ * header has been right since `attach_lead` arrived and made it seven, while
+ * every comment that wrote the number out by hand went on saying six. A number
+ * beside a rendered list is a fact with two copies.
+ */
 export const workbenchTools = [
   "get_build_context",
   "inspect_build",
@@ -41,13 +48,13 @@ export type WorkbenchTool = (typeof workbenchTools)[number];
 /**
  * Batch 8 · The four the library and the project page expose.
  *
- * Named here, beside the bench's six, so that the one thing every layer needs —
- * *what is this tool called* — has a single declaration with no imports behind
+ * Named here, beside the bench's seven, so that the one thing every layer needs
+ * — *what is this tool called* — has a single declaration with no imports behind
  * it. The handlers live where their screen does (`lib/projects/tools.ts`); this
  * is only the vocabulary.
  *
  * They are deliberately not added to `workbenchTools`: the agent panel counts
- * that list to say `6 tools available`, and it is right to, because §9 keeps a
+ * that list for its `N tools available`, and it is right to, because §9 keeps a
  * tool on the page that can act on it. Four of these are never registered while
  * the workbench is open.
  */
@@ -102,12 +109,43 @@ export const toolKind: Record<AgentTool, ToolKind> = {
  * person assembles can be asked that the others cannot answer: what is still in
  * the box.
  */
-export type InspectionScope =
-  | "current_step"
-  | "wiring"
-  | "placement"
-  | "mechanical"
-  | "all";
+export const inspectionScopes = [
+  "current_step",
+  "wiring",
+  "placement",
+  "mechanical",
+  "all",
+] as const;
+
+export type InspectionScope = (typeof inspectionScopes)[number];
+
+/**
+ * Whether a value a caller handed us is one of the five names at all.
+ *
+ * A list rather than a type, because the type is what a *compiler* checks and
+ * nothing compiles a WebMCP host's arguments. `inspect_build` used to take
+ * whatever arrived: `"everything"`, `null` and `42` all fell through
+ * `scopeConnections` and `scopeKinds` to their `default` arms — the whole build,
+ * every kind — and were then echoed back in `result.scope` as if honoured. On
+ * the capstone that silently deleted the servo finding, because an unrecognised
+ * scope is admitted by `inspectionCovers` (so the finding is dropped from what
+ * the inspection keeps) and refused by `scopeChecksMechanical` (so it is never
+ * re-derived).
+ *
+ * The closed set, not the build's own offered subset: `schemaFactsFor` withholds
+ * `mechanical` from a build with nothing that turns and `placement` from one the
+ * author laid out, and "this build does not offer that scope" is a true and
+ * useful answer — an empty finding list — rather than a bad argument. Only a
+ * name that is not a scope at all is a bad argument.
+ */
+export function isInspectionScope(value: unknown): value is InspectionScope {
+  return (inspectionScopes as readonly unknown[]).includes(value);
+}
+
+/** The same question for the coaching ladder — see `show_correction`. */
+export function isCoachingLevel(value: unknown): value is CoachingLevel {
+  return (coachingOrder as readonly unknown[]).includes(value);
+}
 
 /**
  * How much help the user has asked for — and, unchanged, the `detail_level`

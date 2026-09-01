@@ -1,6 +1,8 @@
 import type { Copy } from "@/content/i18n";
 import type { CoachingLevel } from "@/lib/agent/model";
+import { partNameOf } from "@/lib/agent/parts";
 import { stepWords, type StepId } from "@/lib/agent/steps";
+import type { NodeId } from "@/lib/circuit/graph";
 import type { TerminalId } from "@/lib/circuit/placement";
 import type { KitId } from "@/lib/projects/catalog";
 
@@ -55,7 +57,52 @@ export type Ref =
    * other sentence in this file dodges suffixes by appending a template-owned
    * noun; a lead name is too long for that to read as anything but padding.
    */
-  | { ref: "lead"; id: TerminalId; case: "nom" | "acc" | "dat" };
+  | { ref: "lead"; id: TerminalId; case: "nom" | "acc" | "dat" }
+  /**
+   * The **part** a lead belongs to, by the name a person would call it.
+   *
+   * `component` answers with the counted vocabulary — `componentOf` collapses
+   * every `led.*` to one kind, and chapter two's three resistors and four
+   * cables to one word each. On a bench holding three of a kind, a kind is not
+   * a name: placing the red lamp, then the amber, then the green produced three
+   * identical timeline rows reading *"Checked: the LED is on the bench now"*,
+   * beside a finding row that said `Red LED`.
+   *
+   * So this asks `partNameOf`, which `parts.ts` names as the single authority
+   * the finding's sentence, the kit shelf's row and the step rail's row must
+   * share. `component` stays for the one caller that genuinely has a kind in
+   * hand and no lead.
+   */
+  | { ref: "part"; lead: NodeId }
+  /**
+   * A check of the build's own run, by the name the dock prints beside it.
+   *
+   * A check id is not hardware. `copy.test.<id>` is the product's translated
+   * word for it and the device dock renders exactly that — so passing the raw
+   * id as text puts *"Ajan wiring testini çalıştırdı"* in the Turkish timeline
+   * next to a row reading `Bağlantılar okunuyor`: one screen naming one check
+   * twice, in two languages.
+   *
+   * **Nothing passes one yet, and that is deliberate.** The only sentence that
+   * wants it is `activity.testing`, written as `Agent ran the ${test} test` for
+   * an id — and `copy.test` holds the row's *activity* rather than its name, so
+   * feeding one into the other produces "Agent ran the Can the lamp breathe
+   * test". The template has to change in the same move, and the dictionary
+   * belongs to another batch. This is the half that can be written and tested
+   * now; `services.ts:headlineFor` says what the other half is.
+   */
+  | { ref: "check"; id: string }
+  /**
+   * A whole sentence inside another one.
+   *
+   * Undo and redo are the one pair that says *what came back* — `Undone: You
+   * put the LED's long leg in A5` — and the inner half was being rendered at
+   * gesture time and passed as a string. `resolve` returns a non-`Ref` verbatim,
+   * so that half never re-translated: switch language after an undo and the
+   * timeline read one clause in each. It was the only sentence anywhere in
+   * `src/` frozen into state, and §14 says there are none.
+   */
+  | { ref: "line"; line: Line };
 
 type Arg<T> = T extends string ? T | Ref : T;
 
@@ -84,6 +131,16 @@ function resolve(copy: Copy, value: unknown): unknown {
      the one part in your hand needs the singular the graph already uses when
      it says `Board → D7`. */
   if (ref.ref === "component") return copy.build.parts[ref.id];
+  if (ref.ref === "part") return partNameOf(copy, ref.lead);
+  /* `copy.test` is keyed by `string` and a build may name a check the
+     dictionary has no word for — `full_system` is one today — so the fallback
+     is the id with its underscores opened out, which is what the timeline
+     printed before this ref existed. Ugly and legible beats blank. */
+  if (ref.ref === "check") {
+    const named = (copy.test as Record<string, unknown>)[ref.id];
+    return typeof named === "string" ? named : ref.id.replace(/_/g, " ");
+  }
+  if (ref.ref === "line") return say(copy, ref.line);
   if (ref.ref === "lead") {
     const table =
       ref.case === "acc"

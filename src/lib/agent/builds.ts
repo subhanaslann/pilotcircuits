@@ -1,5 +1,10 @@
 import { diff, extras, type CircuitScene } from "@/lib/circuit/graph";
-import { attach, partOf, type PlacementSpec } from "@/lib/circuit/placement";
+import {
+  attach,
+  partOf,
+  shortedParts,
+  type PlacementSpec,
+} from "@/lib/circuit/placement";
 import { PITCH } from "@/lib/circuit/geometry";
 import { boxOf, frame } from "@/lib/circuit/wokwi";
 import { stepsOwning, type StepId } from "@/lib/agent/steps";
@@ -95,7 +100,9 @@ interface Box {
  * the compare view draws, the route guard, the workspace's call to action —
  * reads the row rather than the barrier.
  *
- * A chapter with no row is a `preview`. That is the same fact `catalog.ts`
+ * All six chapters have a row today, so nothing in the product is a `preview`
+ * and every route below is reachable. The rule is kept for the seventh: a
+ * chapter with no row is a `preview`, which is the same fact `catalog.ts`
  * states with `status`, and the two have to agree — a `ready` chapter with no
  * row is a 404 behind a live-looking button, and a row on a `preview` chapter
  * is a bench nothing offers. The catalogue cannot import this file (this one
@@ -134,10 +141,12 @@ export interface BuildDef {
    * Whether the person builds this one themselves.
    *
    * Present, the scene is a function of where the parts are and the bench can
-   * be handed over empty. Absent, the build is laid out by the author exactly
-   * as it always was — which is what keeps a chapter that has not been
-   * converted yet byte-for-byte unchanged, rather than relying on anybody
-   * remembering not to touch it.
+   * be handed over empty. That is the five assembled chapters. Absent, the
+   * build is laid out by the author exactly as it always was — which is
+   * chapter six, and a decision rather than a queue: the capstone is the film,
+   * and its bench is the one nothing on this side may move. The absence is also
+   * what keeps it byte-for-byte unchanged through every shared edit, rather
+   * than relying on anybody remembering not to touch it.
    */
   placement?: PlacementSpec;
   /**
@@ -165,9 +174,9 @@ export interface BuildDef {
    * Absent means the static `partBox` in `geometry.ts`, which is the truth for
    * a build nobody moves. This and `fitBox` both lived in components as
    * `projectId === "breathingLamp" ? … : …` — a two-armed answer to a
-   * six-chapter question, and the second chapter with a bench is where that
-   * stops being harmless. They are facts about the build, so they are on the
-   * row.
+   * six-chapter question, and the second chapter with a bench was where that
+   * stopped being harmless. Five chapters answer it now. They are facts about
+   * the build, so they are on the row.
    */
   boxesFor?: (scene: CircuitScene) => Record<string, Box>;
 }
@@ -414,6 +423,23 @@ if (process.env.NODE_ENV !== "production") {
       );
     }
 
+    /* A part with both ends on one piece of metal. `diff` and `extras` are both
+       blind to it — the rail is one node, so the loose end really is making the
+       join the sketch asks for — so an author's `complete` that shorts a part
+       passed every assertion above. */
+    const shorted = shortedParts(spec, spec.complete);
+    if (shorted.length) {
+      throw new Error(
+        `${build.projectId}: \`complete\` shorts a part — ` +
+          shorted
+            .map(
+              (s) =>
+                `${s.part} (${s.terminals[0]} in ${s.at[0]}, ${s.terminals[1]} in ${s.at[1]})`,
+            )
+            .join(", "),
+      );
+    }
+
     /* `empty` and `complete` are hand-written literals, spread from five other
        files, and the key type is `string` — a misspelled lead compiles, is
        ignored by `sceneFrom`, and draws an empty board. */
@@ -466,11 +492,12 @@ if (process.env.NODE_ENV !== "production") {
        which is why the write is checked rather than assumed. 64 scenes, once,
        at boot.
 
-       Chapter two is 20 leads x 195 holes, which is 3,900, and it is the
-       reason that chapter builds its node grid once at module scope and
-       spreads it: this loop is the largest consumer of `sceneFrom` in the
-       product, and a chapter that constructs its nodes per call pays for that
-       decision here, 3,900 times, before the first frame is drawn. */
+       Five chapters run it now and the cost is the reason every breadboard
+       chapter builds its node grid once at module scope and spreads it: this
+       loop is the largest consumer of `sceneFrom` in the product, and a chapter
+       that constructs its nodes per call pays for that decision here, once per
+       lead per hole, before the first frame is drawn. Chapter two is 20 x 195 =
+       3,900; chapter five is the biggest at 17 x 382 = 6,494. */
     for (const terminal of spec.terminals) {
       const part = partOf(spec, terminal);
       if (!part) {

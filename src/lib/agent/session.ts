@@ -46,8 +46,9 @@ export interface AgentSessionState {
    * kit. So the record says *what somebody did*, and where the parts ended up
    * is read back out of it.
    *
-   * `{}` on a build laid out by the author, which is every chapter that has not
-   * been converted yet. Where it is filled, **`scene` is a function of it** —
+   * `{}` on a build laid out by the author, which today is chapter six alone —
+   * a decision rather than a queue, and `builds.ts` says why beside
+   * `BuildDef.placement`. Where it is filled, **`scene` is a function of it** —
    * `sceneFrom(placement)` — and the two must never be written apart. There are
    * three writers, `placeIn`, `satisfy` and `clear`, and all three go through
    * one `commit` in `agent/placement.ts` that sets both from the same pruned

@@ -32,6 +32,43 @@ export interface ProjectFilters {
   readyOnly: boolean;
 }
 
+/**
+ * The two closed vocabularies, as values.
+ *
+ * `componentIds` has been a value in `catalog.ts` since P-06; these two were
+ * types only, so nothing could ask at runtime whether `difficulty: "hard"` or
+ * `concepts: ["blinking"]` is a word this product knows. `find_projects` took
+ * them on trust, wrote them into the toolbar the person can see, and answered a
+ * typo with a silent `0 projects match` — the same answer a genuinely empty
+ * query gives.
+ *
+ * Written as a total `Record` rather than as a hand-kept array: a member added
+ * to either union and not to the table below is a compile error, which is the
+ * only arrangement in which two copies of one list stay in step.
+ */
+const DIFFICULTIES: Record<Difficulty, true> = {
+  beginner: true,
+  intermediate: true,
+};
+
+const CONCEPTS: Record<ConceptId, true> = {
+  digitalPins: true,
+  analogReading: true,
+  triggerEcho: true,
+  pwmServo: true,
+  ledPolarity: true,
+  distanceMeasurement: true,
+  conditionalLogic: true,
+  mechanicalCalibration: true,
+  testing: true,
+  thresholds: true,
+  serialOutput: true,
+  timing: true,
+};
+
+export const difficulties = Object.keys(DIFFICULTIES) as Difficulty[];
+export const conceptIds = Object.keys(CONCEPTS) as ConceptId[];
+
 export const noFilters: ProjectFilters = {
   search: "",
   difficulty: [],

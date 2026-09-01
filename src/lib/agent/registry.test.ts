@@ -22,9 +22,10 @@ import { tr } from "@/content/locales/tr";
  * `[]` — which reports `verified: true, matched: 0` on an unbuilt circuit — and
  * a misspelled terminal renders as a part that simply never appears.
  *
- * Chapter one is the only bench with a placement today. Everything below is
- * written to run over *every* build in the registry, so it is the tripwire for
- * chapters two to five rather than a test of the one that exists.
+ * Five of the six benches have a placement; the capstone is laid out by its
+ * author and has none. Everything below runs over *every* build in the
+ * registry, so a seventh chapter is covered by the tripwire on the day its row
+ * is added rather than on the day somebody remembers to widen a test.
  */
 describe("the registry agrees with the catalogue", () => {
   it("a `ready` chapter has a bench and a `preview` chapter does not", () => {
@@ -79,18 +80,82 @@ describe("step ids are one flat global namespace", () => {
     }
   });
 
+  /**
+   * Driven from the build's own rail, which is the whole of the fix.
+   *
+   * This used to pick the steps to check with the predicate it was checking:
+   * `allStepIds.map(stepById).filter(step => step.connections.some(id =>
+   * defined.has(id)))`, then assert that the rest of each surviving step's list
+   * was defined too. So it caught a step that MIXES chapters, and a step whose
+   * connection list is *entirely* misspelled, renamed or copied from another
+   * chapter had `some(...) === false` for every build and was asserted about by
+   * nothing at all — which is exactly the shape this file's docstring says it
+   * exists to catch, and exactly the shape that pairs with `diff` reporting
+   * `verified: true, matched: 0` on an unbuilt circuit.
+   *
+   * The converse is here too, and it is what gives the capstone the partition
+   * assertion the five assembled chapters each have in their own test file: a
+   * join the sketch defines and no step claims is a wire nobody is ever asked
+   * to make and no verification ever looks at.
+   */
   it("every connection a step claims is one its build's sketch defines", () => {
     for (const build of Object.values(builds)) {
       const defined = new Set(build!.reference.expected.map((c) => c.id));
-      const own = allStepIds
-        .map(stepById)
-        .filter((step) => step.connections.some((id) => defined.has(id)));
-      for (const step of own) {
+      const rail = stepsOwning(build!.activeStepId);
+      for (const step of rail) {
         for (const id of step.connections) {
-          expect([...defined], `${step.id} → ${id}`).toContain(id);
+          expect(
+            [...defined],
+            `${build!.projectId} ${step.id} → ${id}`,
+          ).toContain(id);
         }
       }
+      const claimed = new Set(rail.flatMap((step) => step.connections));
+      expect(
+        [...defined].filter((id) => !claimed.has(id)),
+        `${build!.projectId}: defined but on no step`,
+      ).toEqual([]);
     }
+  });
+
+  /**
+   * The rail adds up to the number on the card.
+   *
+   * Four of the six lists said so in a comment and two did not — and the
+   * capstone was the one that disagreed: its card promised 45 minutes over a
+   * step list that sums to 35, so a reader who counted was right and the
+   * product was wrong. A comment cannot notice that; this can.
+   */
+  it("a build's steps add up to the minutes its card promises", () => {
+    for (const build of Object.values(builds)) {
+      const rail = stepsOwning(build!.activeStepId);
+      const total = rail.reduce((sum, step) => sum + step.minutes, 0);
+      expect(total, build!.projectId).toBe(
+        projectById(build!.projectId).minutes,
+      );
+    }
+  });
+
+  /**
+   * No bench answers for another bench's steps.
+   *
+   * `stepById` searches all 33 ids and `navigate_build_step` asked it nothing
+   * else, so chapter one's bench accepted `sensor` and redrew itself as the
+   * capstone. The handler's guard is tested in `session.test.ts`; this is the
+   * registry half — the rails are disjoint, which is what makes the guard
+   * expressible at all.
+   */
+  it("no step id appears on two builds' rails", () => {
+    const owner = new Map<string, string>();
+    for (const build of Object.values(builds)) {
+      for (const step of stepsOwning(build!.activeStepId)) {
+        expect(owner.get(step.id) ?? build!.projectId).toBe(build!.projectId);
+        owner.set(step.id, build!.projectId);
+      }
+    }
+    /* And between them they cover every step there is: a step on no rail is
+       one `stepsOwning` answers for with the capstone's list. */
+    expect(owner.size).toBe(allStepIds.length);
   });
 });
 

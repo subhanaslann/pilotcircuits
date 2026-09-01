@@ -20,7 +20,7 @@ import {
 /**
  * Batch 8 · Every tool the product exposes, in one map.
  *
- * The two halves are written where they belong — the bench's six in
+ * The two halves are written where they belong — the bench's seven in
  * `agent/services.ts`, the library's four in `projects/tools.ts` — and joined
  * here, because there is one runner. That matters more than tidiness: the
  * runner is what serialises calls, closes each activity entry with its own

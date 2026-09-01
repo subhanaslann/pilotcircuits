@@ -1,9 +1,13 @@
 import type { Copy } from "@/content/i18n";
 import type { Line } from "@/lib/agent/line";
 import { libraryTools, type LibraryTool } from "@/lib/agent/model";
-import type { ToolContext, ToolOutcome } from "@/lib/agent/services";
 import {
-  projectBySlug,
+  refused,
+  type ToolContext,
+  type ToolOutcome,
+} from "@/lib/agent/services";
+import {
+  componentIds,
   projects,
   type ComponentId,
   type ConceptId,
@@ -12,6 +16,8 @@ import {
   type ProjectId,
 } from "@/lib/projects/catalog";
 import {
+  conceptIds,
+  difficulties,
   filterProjects,
   noFilters,
   type ProjectFilters,
@@ -35,11 +41,61 @@ import {
  * Nothing here imports React.
  */
 
-/** A project id or its slug — an agent may reasonably have either. */
+/**
+ * A project id or its slug — an agent may reasonably have either.
+ *
+ * Folded rather than compared exactly: `TRAFFIC-LIGHT` used to be refused while
+ * `traffic-light` and `trafficLight` both resolved, which is a distinction
+ * nothing in the product makes anywhere else. Both vocabularies are ASCII, so
+ * the invariant fold is the right one here — this is an identifier, not a
+ * person's search term (`filterProjects` folds with the reader's locale for
+ * exactly that reason).
+ */
 function resolve(reference: string): ProjectDef | undefined {
-  const bySlug = projectBySlug(reference);
-  if (bySlug) return bySlug;
-  return projects.find((project) => project.id === reference);
+  if (typeof reference !== "string") return undefined;
+  const wanted = reference.toLowerCase();
+  return projects.find(
+    (project) =>
+      project.slug.toLowerCase() === wanted ||
+      project.id.toLowerCase() === wanted,
+  );
+}
+
+/**
+ * One argument of `find_projects`, checked before it is written anywhere.
+ *
+ * Nothing validated these and the tool writes them **into the library's visible
+ * toolbar** — the same state the person's own clicks write. Three separate
+ * failures came out of that: `max_minutes: "twenty"` returned every project
+ * (`NaN` compares false) and left the duration button reading `Up to twenty
+ * min`; `difficulty: {}` was written into state and the toolbar then called
+ * `.includes` on a non-array, so the next click on the Difficulty popover threw
+ * during render; and a typo'd component id answered `0 projects match`, which is
+ * the same answer an honest empty query gives.
+ *
+ * A tool call must never be able to leave a route that throws on the next click.
+ */
+type Refusal = { argument: string; value: unknown; valid?: readonly string[] };
+
+function wordList<T extends string>(
+  argument: string,
+  value: unknown,
+  vocabulary: readonly T[],
+): T[] | Refusal {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) return { argument, value, valid: vocabulary };
+  const bad = value.find(
+    (entry) =>
+      typeof entry !== "string" || !(vocabulary as readonly string[]).includes(entry),
+  );
+  if (bad !== undefined) return { argument, value: bad, valid: vocabulary };
+  return value as T[];
+}
+
+function isRefusal(value: unknown): value is Refusal {
+  return (
+    typeof value === "object" && value !== null && "argument" in value
+  );
 }
 
 /** What a project looks like to a caller that cannot see the screen. */
@@ -97,16 +153,66 @@ export const libraryHandlers: LibraryHandlers = {
    */
   async find_projects(input, ctx) {
     const copy = ctx.copy;
+
+    /**
+     * Checked first, and only then written.
+     *
+     * The narrowing is **replacement**, deliberately: the effect carries a whole
+     * `ProjectFilters`, and replacement is the only semantic under which a tool
+     * can *clear* a filter — an agent asked to widen a search has to be able to.
+     * What was missing is not the merge, it is the check.
+     */
+    const raw = input as Record<string, unknown>;
+
+    const search = raw.search ?? "";
+    if (typeof search !== "string") {
+      return refused("unknownFilter", { argument: "search", value: search });
+    }
+
+    const maxMinutes = raw.max_minutes ?? null;
+    if (
+      maxMinutes !== null &&
+      (typeof maxMinutes !== "number" ||
+        !Number.isFinite(maxMinutes) ||
+        maxMinutes < 0)
+    ) {
+      return refused("unknownFilter", {
+        argument: "max_minutes",
+        value: maxMinutes,
+      });
+    }
+
+    const readyOnly = raw.ready_only ?? false;
+    if (typeof readyOnly !== "boolean") {
+      return refused("unknownFilter", {
+        argument: "ready_only",
+        value: readyOnly,
+      });
+    }
+
+    const difficulty = wordList("difficulty", raw.difficulty, difficulties);
+    if (isRefusal(difficulty)) {
+      return refused("unknownFilter", { ...difficulty });
+    }
+    const components = wordList("components", raw.components, componentIds);
+    if (isRefusal(components)) {
+      return refused("unknownFilter", { ...components });
+    }
+    const concepts = wordList("concepts", raw.concepts, conceptIds);
+    if (isRefusal(concepts)) {
+      return refused("unknownFilter", { ...concepts });
+    }
+
     await ctx.phase({ ns: "phases", k: "searchingProjects" }, 340);
 
     const next: ProjectFilters = {
       ...noFilters,
-      search: input.search ?? "",
-      difficulty: input.difficulty ?? [],
-      maxMinutes: input.max_minutes ?? null,
-      components: input.components ?? [],
-      concepts: input.concepts ?? [],
-      readyOnly: input.ready_only ?? false,
+      search,
+      difficulty,
+      maxMinutes,
+      components,
+      concepts,
+      readyOnly,
     };
 
     /* The locale matters: `İstasyon` folds differently under Turkish rules, and
@@ -167,9 +273,15 @@ export const libraryHandlers: LibraryHandlers = {
   },
 
   /**
-   * The only library tool that changes anything, and it refuses more often than
-   * it agrees: six of the seven projects are previews, and opening a workbench
-   * for one of them would be the product's first outright lie.
+   * The only library tool that changes anything, and today it never refuses.
+   *
+   * It was written when one chapter had a bench and the rest were previews, and
+   * the comment here said so. All six are `ready` now and all six have a row in
+   * the builds registry — `builds.ts` throws at boot if those two ever disagree
+   * — so the `projectNotReady` branch below is unreachable, and so is the
+   * preview screen `ProjectPrep` renders in its place. Both are kept as the seam
+   * a seventh chapter needs on the day it is added as a preview; neither has
+   * ever run.
    *
    * `mode` is accepted and recorded rather than acted on, because in this phase
    * there is nothing to act on: the board is simulated either way and the kit

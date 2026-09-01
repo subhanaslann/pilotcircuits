@@ -8,10 +8,14 @@ import {
   type FindingId,
 } from "@/lib/agent/findings";
 import { say, type Line } from "@/lib/agent/line";
-import type {
-  AgentTool,
-  CoachingLevel,
-  InspectionScope,
+import {
+  coachingOrder,
+  inspectionScopes,
+  isCoachingLevel,
+  isInspectionScope,
+  type AgentTool,
+  type CoachingLevel,
+  type InspectionScope,
 } from "@/lib/agent/model";
 import type { AgentSessionState, SessionPatch } from "@/lib/agent/session";
 import {
@@ -27,13 +31,14 @@ import { placeIn } from "@/lib/agent/placement";
 import { GRIP_AT, SEAT_AT } from "@/lib/agent/mascot";
 import {
   isHole,
+  partOf,
   partsInKit,
   type TerminalId,
 } from "@/lib/circuit/placement";
 import type { ProjectFilters } from "@/lib/projects/filter";
 
 /**
- * Batch 4 · The six workbench tools.
+ * Batch 4 · The workbench tools — seven of them since `attach_lead`.
  *
  * Each one is a plain async function of `(input, context)`. It reads the
  * session, waits out its own named phases, and returns three things: the
@@ -265,6 +270,59 @@ function placementOf(state: AgentSessionState) {
 }
 
 /**
+ * An argument this tool cannot honour, refused where the caller can read it.
+ *
+ * §9's rule 3 asks a tool for *success or a comprehensible error*, and four of
+ * these calls used to answer a nonsense argument with success: a step id from
+ * another chapter moved the bench onto it, a scope that is not a scope was
+ * echoed back as if honoured, a detail level outside the ladder was written
+ * into session state and closed all three rungs of the teaching panel, and a
+ * finding id nothing ever minted was told the finding had expired.
+ *
+ * **The sentence is the unfinished half.** `agentPanel.errors` has no line for
+ * any of the four, and this batch does not own the dictionary — so every one of
+ * them shows the declared backstop, which is at least true and is what that key
+ * exists for ("a tool reached through the browser can be handed arguments no
+ * button would produce"). What the caller actually needs is here, structured, in
+ * `result`: which argument was refused, what arrived, and what would have been
+ * accepted. When the four lines land, each site's `errorMessage` is the only
+ * thing that changes.
+ */
+export function refused(
+  reason: string,
+  detail: Record<string, unknown>,
+): ToolOutcome {
+  return {
+    status: "error",
+    result: { refused: reason, ...detail, source: "demo" },
+    errorMessage: { ns: "errors", k: "toolFailed" },
+  };
+}
+
+/**
+ * A verification that also matched what it says it looked for.
+ *
+ * `verifyStep` computes `verified` from mismatches, strays and the horn, and
+ * takes `expected` from a different source — the step's own connection count —
+ * with no clause tying the two together. `diff` filters `scene.expected` down to
+ * the step's ids, so a step whose ids the scene has never heard of yields zero
+ * mismatches: `verified: true` sitting beside `matched: 0, expected: 6`, a
+ * record contradicting itself in two adjacent fields. `verify_current_step`
+ * trusted the boolean, ticked the step, advanced, and on the last one stamped
+ * `completedAt` — six calls turning an untouched bench into a finished build
+ * with `Finish` in the foot. `registry.test.ts` names this failure mode in prose
+ * and nothing anywhere asserted against it.
+ *
+ * No-op on every real step of all six builds (`matched === expected` there by
+ * construction, and the test below pins it), and false for every step the scene
+ * cannot answer for. The clause belongs in `verifyStep` itself; this batch does
+ * not own `findings.ts`, so it is enforced here, where the claim is made.
+ */
+function fullyVerified(report: ReturnType<typeof verifyStep>): boolean {
+  return report.verified && report.matched === report.expected;
+}
+
+/**
  * What was found, named honestly: a servo a quarter turn out is not a wire, and
  * a join the sketch never named is not a mismatch either — calling it one sends
  * the person looking for the line about it that the sketch does not have. Only
@@ -276,9 +334,17 @@ function foundLine(found: { type: string }[]): Line {
   /* A part still in the box is not a connection in the wrong hole either, and
      it was being counted as one: an empty bench reported `1 connection
      mismatch found` over a finding whose own sentence says the LED has not
-     been placed. Wiring is what is left once the two named kinds are out. */
+     been placed. Wiring is what is left once the two named kinds are out —
+     and a **stray** is out too, for the reason the paragraph above gives and
+     `extrasFound` repeats in the dictionary. This arm read "not mechanical and
+     not part-not-placed", which let one missing join plus one join nobody asked
+     for be announced as `2 connection mismatches found`: the ordinary outcome
+     of moving a single lead to the wrong hole, described as two wires in the
+     wrong place. A mixed set falls through to `issuesFound`, which is true of
+     every set. */
   const allWiring = found.every(
-    (f) => f.type !== "mechanical-alignment" && f.type !== "part-not-placed",
+    (f) =>
+      f.type === "connection-mismatch" || f.type === "missing-connection",
   );
   return {
     ns: "activity",
@@ -313,10 +379,38 @@ export const handlers: ToolHandlers = {
     return { status: "ok", result: summarise(ctx.read(), ctx.copy) };
   },
 
-  async inspect_build({ scope = "current_step" }, ctx) {
+  async inspect_build(input, ctx) {
     const state = ctx.read();
     const copy = ctx.copy;
     const step = stepById(state.activeStepId);
+
+    /**
+     * The argument, checked before anything reads it.
+     *
+     * `"everything"`, `null` and `42` all fell through `scopeConnections` and
+     * `scopeKinds` to their `default` arms — the whole build, every kind — and
+     * came back as `status: "ok"` with the junk echoed in `result.scope`. On the
+     * capstone that silently *deleted* the servo finding: an unrecognised scope
+     * is admitted by `inspectionCovers`, so the finding is dropped from what the
+     * inspection keeps, and refused by `scopeChecksMechanical`, so it is never
+     * re-derived. An agent holding that id had it stop resolving with nothing
+     * anywhere saying so.
+     *
+     * Against the five names, not against `schemaFactsFor(...).scopes`. A build
+     * that does not offer `mechanical` still answers truthfully when asked —
+     * there is nothing mechanical here, so there is nothing to correct — and
+     * §9 asks for a true answer, not a refusal. A name that is not one of the
+     * five is a different thing: it is a caller that has misunderstood the tool.
+     */
+    const asked: unknown = input.scope;
+    if (asked !== undefined && !isInspectionScope(asked)) {
+      return refused("unknownScope", {
+        argument: "scope",
+        value: asked ?? null,
+        valid: [...inspectionScopes],
+      });
+    }
+    const scope: InspectionScope = asked ?? "current_step";
 
     await ctx.phase({ ns: "phases", k: "readingWiring" }, 380);
     await ctx.phase({ ns: "phases", k: "comparingSketch" }, 520);
@@ -339,6 +433,9 @@ export const handlers: ToolHandlers = {
         !inspectionCovers(finding, scope, state.activeStepId) &&
         !found.some((fresh) => fresh.id === finding.id),
     );
+
+    /* Which part a lead belongs to, for the answer below. */
+    const spec = buildFor(state.projectId)?.placement;
 
     return {
       status: "ok",
@@ -364,11 +461,20 @@ export const handlers: ToolHandlers = {
                   observed: f.otherTerminal,
                 }
               : f.type === "part-not-placed"
-                ? /* The part's own id, not its translated name: this is the
-                     tool's answer, and §9 asks a tool to report what the build
-                     is rather than what the panel happens to be printing. */
+                ? /* The lead the step names, and the part it belongs to in the
+                     spec's own id — the same `id` `get_build_context` lists
+                     under `placement.parts`, and a name `attach_lead` takes.
+                     This was `f.component`, which is the COUNTED kind:
+                     `componentOf` collapses every `led.*` to `led`, every
+                     `res.*` to `resistor` and every `wire.*` to `jumper`, so
+                     chapter two answered ten findings with three names and the
+                     two read tools described the same parts in two different
+                     vocabularies. The finding's own sentence still says what is
+                     printed on the part in your hand; this is what the tool
+                     returns to a caller that cannot see the bench. */
                   {
-                    subject: f.component,
+                    subject: f.terminal,
+                    part: (spec && partOf(spec, f.terminal)) ?? null,
                     expected: "on-bench",
                     observed: "in-kit",
                   }
@@ -383,10 +489,29 @@ export const handlers: ToolHandlers = {
       },
       patch: {
         findings: [...kept, ...found],
-        /* The credit list belongs to the findings list: these are freshly
-           derived, so nothing among them has been paid for yet. Left standing,
-           it would be a set of ids about a table that has been cleared. */
-        repaired: [],
+        /**
+         * The credit list belongs to the findings list — **scoped the same way
+         * the list is.**
+         *
+         * It was emptied outright, on the reasoning that freshly derived
+         * findings have not been paid for. But the same patch keeps
+         * out-of-scope findings alive through `kept`, so after a narrow
+         * inspection the two lists disagreed: findings that had already been
+         * counted survived and their credit did not. `commit` in
+         * `agent/placement.ts` guards double-billing with exactly this set
+         * (`const credited = new Set(state.repaired)`), so the sequence
+         * inspect → build → knock a lead loose → inspect → put it back credited
+         * one original fault twice, and `/complete` reported more issues fixed
+         * than the build ever had.
+         *
+         * Keep the credit of every finding that survived, drop the rest. A
+         * finding genuinely re-derived from scratch loses its credit, which is
+         * right: it is open again.
+         */
+        repaired: state.repaired.filter(
+          (id) =>
+            kept.some((f) => f.id === id) || found.some((f) => f.id === id),
+        ),
         /* Looking is the fact, not finding. A step inspected and clean has to
            be able to move on. */
         inspectedStepId: state.activeStepId,
@@ -411,18 +536,69 @@ export const handlers: ToolHandlers = {
   async show_correction({ finding_id, detail_level }, ctx) {
     const state = ctx.read();
     const copy = ctx.copy;
-    const finding = state.findings.find((f) => f.id === finding_id);
 
+    /**
+     * The level, checked against the ladder it is written into.
+     *
+     * This value went straight into `state.coaching`, unchecked. Anything
+     * outside the union then poisoned the panel rather than the call: the
+     * segmented control has no option to select, `coachingOrder.indexOf(level)`
+     * is `-1` so every rung renders closed — including `hint`, which is always
+     * meant to be open — and the ladder's one control offers to move the reader
+     * *down* to hint. A correction card with no sentence in it, reported as a
+     * success, and only a level change or a reset gets out of it.
+     */
+    const askedLevel: unknown = detail_level;
+    if (askedLevel !== undefined && !isCoachingLevel(askedLevel)) {
+      return refused("unknownDetailLevel", {
+        argument: "detail_level",
+        value: askedLevel ?? null,
+        valid: [...coachingOrder],
+      });
+    }
+    const level: CoachingLevel = askedLevel ?? state.coaching;
+
+    /**
+     * Two conditions, two answers. They were the wrong way round.
+     *
+     * An id nothing ever minted was refused with *"That finding is no longer
+     * open"* — which tells an agent its id has expired and invites it to
+     * re-inspect, when the cause is a typo or another build's id. Meanwhile the
+     * id of a finding the person had already put right returned `status: "ok"`,
+     * opened the findings tab and swung both cameras onto the now-correct hole.
+     * The product owned the right sentence and had attached it to the one case
+     * it does not describe, with no branch at all for the case it names.
+     */
+    const finding = state.findings.find((f) => f.id === finding_id);
     if (!finding) {
+      return refused("noSuchFinding", {
+        argument: "finding_id",
+        value: finding_id ?? null,
+        /* What a caller can do about it, without a sentence to say it in. */
+        open: state.findings
+          .filter((f) => !isResolved(f, state.scene))
+          .map((f) => f.id),
+      });
+    }
+    if (isResolved(finding, state.scene)) {
       return {
         status: "error",
+        /* The level the caller asked for, echoed with the answer: an agent that
+           asked for `exact` on a fault that is already fixed has learned
+           something about the build, and the reply says which question it is
+           the answer to. */
+        result: {
+          findingId: finding.id,
+          detailLevel: level,
+          resolved: true,
+          source: "demo",
+        },
         errorMessage: { ns: "errors", k: "unknownFinding" },
       };
     }
 
     await ctx.phase({ ns: "phases", k: "locating" }, 260);
 
-    const level = detail_level ?? state.coaching;
     const alreadyShown =
       state.highlightedFindingId === finding_id && state.coaching === level;
 
@@ -634,13 +810,60 @@ export const handlers: ToolHandlers = {
     const openCount = (r: ReturnType<typeof verifyStep>) =>
       r.expected - r.matched + (r.mechanicalOk ? 0 : 1) + r.strays;
 
-    const report = verifyStep(state.scene, state.activeStepId);
+    /* `verified` is re-derived rather than taken: see `fullyVerified`. The rest
+       of the record is the measurement exactly as it was made. */
+    const measured = verifyStep(state.scene, state.activeStepId);
+    const report = { ...measured, verified: fullyVerified(measured) };
     const open = openCount(report);
 
     if (!report.verified) {
+      /**
+       * §9: *"Başarısız: yapılandırılmış hata döndür, ilgili finding'i görünür
+       * yap."* The second half was missing entirely.
+       *
+       * The failure branch returned the report and a timeline note and nothing
+       * else: no patch, no effect, no tab change, no finding. So a person who
+       * had not run `inspect_build` first saw the activity tab — which is not
+       * the tab the panel is on — say `4 issues still open` while the Findings
+       * tab said there was nothing open on this step. The success half has
+       * always been fully honoured; this is the other one.
+       *
+       * Derived rather than only pointed at, because on the common path there
+       * is nothing to point at: findings are born in `inspect_build`, and the
+       * whole complaint is about the person who pressed Verify without looking
+       * first. Same scope, same `kept` rule and same credit scoping as an
+       * inspection, so the two tools cannot disagree about the table.
+       */
+      const found = deriveFindings(
+        state.scene,
+        "current_step",
+        state.activeStepId,
+        Date.now(),
+      );
+      const kept = state.findings.filter(
+        (finding) =>
+          !isResolved(finding, state.scene) &&
+          !inspectionCovers(finding, "current_step", state.activeStepId) &&
+          !found.some((fresh) => fresh.id === finding.id),
+      );
+      const findings = [...kept, ...found];
+      const point = found[0]?.id ?? null;
+
       return {
         status: "ok",
-        result: { ...report, source: "demo" },
+        result: {
+          ...report,
+          findings: found.map((f) => f.id),
+          source: "demo",
+        },
+        patch: {
+          findings,
+          repaired: state.repaired.filter((id) =>
+            findings.some((f) => f.id === id),
+          ),
+          ...(point ? { highlightedFindingId: point } : {}),
+          tab: found.length ? ("findings" as const) : state.tab,
+        },
         note: {
           headline: {
             ns: "activity" as const,
@@ -649,6 +872,17 @@ export const handlers: ToolHandlers = {
           },
           tone: "found" as const,
         },
+        effects: [
+          {
+            kind: "toast" as const,
+            tone: "warning" as const,
+            message: say(copy, {
+              ns: "activity",
+              k: "stepNotVerified",
+              args: [open],
+            }),
+          },
+        ],
       };
     }
 
@@ -666,7 +900,7 @@ export const handlers: ToolHandlers = {
        verification broke, or `commit` walked the active step back off it
        because a DIFFERENT step came off while the phases ran. The fresh check
        alone cannot see the second — it only ever asks about one step. */
-    if (!fresh.verified || live.activeStepId !== state.activeStepId) {
+    if (!fullyVerified(fresh) || live.activeStepId !== state.activeStepId) {
       return {
         status: "ok",
         /* `report`, not `fresh`: this is the measurement the tool actually
@@ -746,20 +980,51 @@ export const handlers: ToolHandlers = {
     const state = ctx.read();
     const copy = ctx.copy;
 
-    if (step_id === state.activeStepId) {
+    /**
+     * The step has to belong to the build on the bench.
+     *
+     * `stepById` is a GLOBAL search across all 33 ids and the handler asked it
+     * nothing else — so chapter one's bench accepted `sensor`, wrote it into
+     * `activeStepId`, and every reader downstream derives the build from the
+     * step: the rail redrew as the capstone's seven, the topbar said `of 7`, the
+     * instruction was another chapter's, and `get_build_context` reported
+     * project "Breathing Lamp" with a step about a distance sensor. There was no
+     * UI route back, because the rail the person clicks is the same derivation.
+     * Then `verify_current_step` ticked the foreign step green: `diff` filters
+     * `scene.expected`, so ids this build has never heard of yield zero
+     * mismatches (see `fullyVerified`).
+     *
+     * `webmcp.ts` publishes the right enum, and that is not the same as
+     * enforcing it — `use-webmcp.ts` says out loud that it expects hosts which
+     * do not. The rail is taken from the build's ROW rather than from
+     * `state.activeStepId`, so one bad navigate could not make the next one look
+     * legal even if this guard were ever removed.
+     */
+    const rail = stepsOwning(
+      buildFor(state.projectId)?.activeStepId ?? state.activeStepId,
+    );
+    const step = rail.find((s) => s.id === step_id);
+    if (!step) {
+      return refused("unknownStep", {
+        argument: "step_id",
+        value: step_id ?? null,
+        valid: rail.map((s) => s.id),
+      });
+    }
+
+    if (step.id === state.activeStepId) {
       return {
         status: "ok",
-        result: { stepId: step_id, source: "demo" },
+        result: { stepId: step.id, source: "demo" },
         outcome: {
           ns: "activity" as const,
           k: "alreadyOnStep" as const,
-          args: [stepById(step_id).index] as [number],
+          args: [step.index] as [number],
         },
       };
     }
 
     await ctx.phase({ ns: "phases", k: "loadingStep" }, 260);
-    const step = stepById(step_id);
 
     /**
      * Steps this jump goes **past** without their being finished.
@@ -770,10 +1035,16 @@ export const handlers: ToolHandlers = {
      * part and then jumped to the last step produced a build reporting a pass
      * with three steps still marked `Not started`, and nothing anywhere said
      * that had happened. So the call reports it and the timeline records it.
+     *
+     * The index is guarded rather than sliced with: `findIndex` answers `-1` for
+     * a step that is not in the list and `slice(0, -1)` is then *every step but
+     * the last* — so a cross-chapter jump used to report five skipped steps that
+     * were never on the path to anything, in the timeline and in the tool's own
+     * result. The refusal above makes that unreachable; the arithmetic should
+     * not be left standing either way.
      */
-    const order = stepsOwning(state.activeStepId);
-    const skipped = order
-      .slice(0, order.findIndex((s) => s.id === step.id))
+    const at = rail.findIndex((s) => s.id === step.id);
+    const skipped = (at < 0 ? [] : rail.slice(0, at))
       .filter((s) => !state.completedSteps.includes(s.id))
       .map((s) => s.id);
 
@@ -913,7 +1184,19 @@ export const handlers: ToolHandlers = {
   },
 };
 
-/** The human sentence an entry opens with, before the call has finished. */
+/**
+ * The human sentence an entry opens with, before the call has finished.
+ *
+ * **Total, for every argument a browser can send.** This is composed as an
+ * argument to `tool/start`, which sits outside the runner's try — so a throw in
+ * here does not become an error result, it escapes `execute` entirely: no
+ * activity entry, no settle, no toast, no announcement, and a raw JS
+ * `TypeError` handed to the agent as its error message. Two lines could throw:
+ * `stepById(input.step_id).index` for an id no build has, and
+ * `input.test.replace(...)` for a call with no `test` at all — which the handler
+ * has a perfectly good refusal for and never reached. A headline is what an
+ * entry opens with; deciding whether the call is recorded at all is not its job.
+ */
 export function headlineFor<K extends keyof ToolInputs>(
   name: K,
   input: ToolInputs[K],
@@ -939,26 +1222,51 @@ export function headlineFor<K extends keyof ToolInputs>(
         args: [
           {
             ref: "lead",
-            id: (input as ToolInputs["attach_lead"]).lead,
+            /* Coerced for the same reason `test` is below: the lead table
+               answers `undefined` for a missing id and the template then prints
+               the word `undefined` in the timeline. The handler is what refuses
+               a lead this build does not have. */
+            id: String((input as ToolInputs["attach_lead"]).lead ?? ""),
             case: "acc",
           },
         ],
       };
     case "verify_current_step":
       return { ns: "activity", k: "verifying", args: [step.index] };
-    case "navigate_build_step":
-      return {
-        ns: "activity",
-        k: "navigating",
-        args: [
-          stepById((input as ToolInputs["navigate_build_step"]).step_id).index,
-        ],
-      };
+    case "navigate_build_step": {
+      /* This build's rail, and `0` for anything not on it — the handler is what
+         refuses, and it needs the entry to exist first in order to say so. */
+      const asked = (input as ToolInputs["navigate_build_step"]).step_id;
+      const target = stepsOwning(state.activeStepId).find(
+        (s) => s.id === asked,
+      );
+      return { ns: "activity", k: "navigating", args: [target?.index ?? 0] };
+    }
     case "run_functional_test":
       return {
         ns: "activity",
         k: "testing",
-        args: [(input as ToolInputs["run_functional_test"]).test.replace("_", " ")],
+        /**
+         * Still the raw id, and that is a defect this batch could only half
+         * close. The Turkish timeline reads *"Ajan wiring testini çalıştırdı"*
+         * beside a device row reading `Bağlantılar okunuyor` — one screen
+         * naming one check twice, in two languages. `line.ts` has the `check`
+         * ref that fixes it and a test that proves it resolves; what it cannot
+         * fix on its own is the sentence around it. `copy.test` holds the row's
+         * *activity* — "Reading the connections", "Can the lamp breathe" — and
+         * `activity.testing` is written as `Agent ran the ${test} test`, so
+         * substituting one into the other gives "Agent ran the Can the lamp
+         * breathe test". The template has to change with the argument, and the
+         * dictionary is not this batch's to write. Coerced, at least, so a call
+         * with no `test` reaches the handler's own refusal instead of throwing
+         * before the activity entry exists.
+         */
+        args: [
+          String((input as ToolInputs["run_functional_test"]).test ?? "").replace(
+            /_/g,
+            " ",
+          ),
+        ],
       };
     /* `get_build_context` and anything a later batch adds. */
     default:
