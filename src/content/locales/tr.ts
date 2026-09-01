@@ -1909,6 +1909,9 @@ export const tr: Copy = {
     sensor: "Mesafe sensörü okunuyor",
     servo: "Bariyer servosu hareket ediyor",
     leds: "Durum LED'leri kontrol ediliyor",
+    /* The capstone's whole-build run. See the English twin: an id with no word
+       here reaches the screen as itself. */
+    full_system: "Yapımın tamamı",
     /* 1. bölümün iki kontrolü. Satır adları yapımın kendi kontrol
        kimliklerinden geliyor; sözlükte karşılığı olmayan bir kimlik ham hâliyle
        yazılır. */

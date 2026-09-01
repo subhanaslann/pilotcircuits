@@ -2443,6 +2443,12 @@ export const en = {
     sensor: "Reading distance sensor",
     servo: "Moving barrier servo",
     leds: "Checking status LEDs",
+    /* The capstone's whole-build run. Named because the timeline prints this
+       table, and an id with no word here reaches the screen as itself — which
+       is how "Agent ran the check: full system" was on screen in both
+       languages. `session.test.ts` demonstrates the fallback on a deliberately
+       undeclared id instead, so naming a real check is no longer a failure. */
+    full_system: "The whole build",
     /* Chapter one's two. A row is named by the build's own check id, and an id
        with no word here prints as itself rather than as a blank. */
     wiring: "Reading the connections",
