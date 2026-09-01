@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
-import { useBuildSession } from "@/components/build/build-provider";
+import { useBuildSessionIfAny } from "@/components/build/build-provider";
 import type { AgentSession } from "@/components/agent/use-agent-session";
 import { useCopy, useLocale } from "@/content/copy-provider";
 import {
@@ -15,7 +15,7 @@ import {
 } from "@/lib/agent/webmcp";
 import { say } from "@/lib/agent/line";
 import { schemaFactsFor } from "@/lib/agent/builds";
-import type { AgentTool } from "@/lib/agent/model";
+import { toolAnnotations, type AgentTool } from "@/lib/agent/model";
 import type { AllToolInputs } from "@/lib/agent/tools";
 import type { ProjectId } from "@/lib/projects/catalog";
 
@@ -47,6 +47,7 @@ import type { ProjectId } from "@/lib/projects/catalog";
  * session — the design lab's included — knows what the browser can do; this
  * hook only registers, and does nothing at all when there is no host.
  */
+
 /* The store behind the gate below: three constants, at module scope so the
    subscription is never torn down and re-made. Nothing ever changes it — the
    only transition it has is the one React performs itself when it compares the
@@ -67,10 +68,32 @@ export function useWebMcpTools(
    */
   given?: AgentSession,
 ) {
-  /* Called unconditionally and then discarded when a session was handed in:
-     a hook cannot be skipped, and every caller is inside the provider. */
-  const carried = useBuildSession();
+  /**
+   * Whose session this is, and why the read is the optional one.
+   *
+   * Called unconditionally and then discarded when a session was handed in — a
+   * hook cannot be skipped. It reads the provider *optionally* because the
+   * comment this replaces said "every caller is inside the provider" and that
+   * stopped being true: the design lab is deliberately outside `BuildProvider`
+   * (`build-provider.tsx` and `app/(product)/layout.tsx` both say so), so
+   * `useBuildSession`'s throw made this hook unusable on the one page that
+   * exists to demonstrate what it does — even though that page hands in a
+   * session of its own and needs nothing from the provider at all.
+   *
+   * Neither of the two is not a state to render around. A caller outside the
+   * provider that also passes nothing has asked the browser to route tool calls
+   * into a session that does not exist: there is no build to fall back to, and
+   * inventing one would register seven tools against a bench nobody is looking
+   * at. That is a wiring mistake in the caller, and it reads like one.
+   */
+  const carried = useBuildSessionIfAny();
   const session = given ?? carried;
+  if (!session) {
+    throw new Error(
+      "useWebMcpTools needs a session: render it inside <BuildProvider>, " +
+        "or pass one as the second argument.",
+    );
+  }
   const copy = useCopy();
   const { locale } = useLocale();
 
@@ -175,8 +198,15 @@ export function useWebMcpTools(
         host,
         {
           name,
+          /* Both read through the ref, like the description beside them: a
+             registration made three routes ago must print the language the
+             reader is in now, not the one they arrived in. */
+          title: live.current.copy.agentPanel.toolTitles[name],
           description: live.current.copy.agentPanel.tools[name],
           inputSchema: schemas[name] ?? librarySchemas[name] ?? {},
+          /* Not through the ref, and not per render: the hints are a property
+             of what the tool does, which no locale and no bench changes. */
+          annotations: toolAnnotations[name],
           /**
            * Nothing thrown crosses this line.
            *
@@ -186,11 +216,38 @@ export function useWebMcpTools(
            * being composed. A host that does not enforce the schema would get
            * an exception where the protocol promises a result.
            */
-          execute: async (args) => {
+          execute: async (args, options) => {
+            /**
+             * A call the caller has already cancelled does not start at all.
+             *
+             * The bridge's own half of the signal, and the cheapest one: the
+             * host aborts when the agent walks away and then discards whatever
+             * the promise settles with, so anything begun after that point runs
+             * into a void. The half that matters more is inside the run —
+             * `attach_lead` awaits two animation phases before it commits, and
+             * only the handler is in a position to decide not to commit at
+             * 900 ms of a 1160 ms seat — which is why the signal is handed to
+             * `session.run` below rather than being consumed here.
+             *
+             * Racing the signal *here* instead of passing it on would be worse
+             * than silence: the promise would settle "cancelled" while the
+             * bench went on moving, so the one caller who asked us to stop
+             * would be the only one told that we had.
+             */
+            if (options?.signal?.aborted) {
+              return asToolResult({ error: "aborted", tool: name }, true);
+            }
+
             try {
               const outcome = await live.current.session.run(
                 name as keyof AllToolInputs,
                 (args ?? {}) as never,
+                /* Rewrapped rather than forwarded: `ToolExecuteCallbackOptions`
+                   is the protocol's dictionary and this is the runner's, and
+                   only the signal is meant to cross between them. `run` reads
+                   it inside the queue, so a call cancelled while it waits its
+                   turn behind another never runs. */
+                { signal: options?.signal },
               );
               const failed = outcome.status === "error";
               if (!failed) return asToolResult(outcome.result, false);

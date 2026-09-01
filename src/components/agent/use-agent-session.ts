@@ -533,6 +533,7 @@ export function useAgentSession(options?: {
   const execute = async <K extends keyof AllToolInputs>(
     name: K,
     input: AllToolInputs[K],
+    options?: { signal?: AbortSignal },
   ) => {
     const before = latest.current;
     const generation = before.generation;
@@ -560,13 +561,46 @@ export function useAgentSession(options?: {
 
     apply({ type: "tool/start", call, headline });
 
+    const signal = options?.signal;
+
     const ctx: ToolContext = {
       read: () => latest.current,
       copy,
       locale,
+      signal,
+      /**
+       * The wait, and the one place a cancel can shorten it.
+       *
+       * Every tool's latency runs through here, so racing the signal here is
+       * the whole layer made interruptible in one function rather than eleven.
+       * The phase note still lands — the timeline says what the agent was doing
+       * when it was stopped, which is the interesting half — and only the
+       * waiting is cut short.
+       *
+       * It **resolves** rather than throwing. A throw would be caught by the
+       * runner below and turned into `toolFailed`, so an agent that cancelled
+       * politely would be told its call had crashed, and every handler would
+       * have to grow a `catch` to avoid it. Resolving hands the decision to the
+       * handler, which is the only party that knows whether it was about to
+       * write: `attach_lead` checks `ctx.signal` before it commits and every
+       * read simply finishes early, which is what a cancelled read should do.
+       *
+       * Both listeners are idempotent and both are removed on whichever fires
+       * first. The timer is not cancellable — `after` keeps only the id, for
+       * unmount — so on an abort it still runs later and resolves a promise
+       * that is already settled, which is a no-op.
+       */
       phase: async (note, ms) => {
         apply({ type: "tool/phase", callId, note });
-        await new Promise((resolve) => after(ms, () => resolve(null)));
+        if (signal?.aborted) return;
+        await new Promise((resolve) => {
+          const done = () => {
+            signal?.removeEventListener("abort", done);
+            resolve(null);
+          };
+          after(ms, done);
+          signal?.addEventListener("abort", done, { once: true });
+        });
       },
     };
 
@@ -670,11 +704,41 @@ export function useAgentSession(options?: {
     return outcome;
   };
 
+  /**
+   * One call, queued behind the last one, and cancellable in both positions.
+   *
+   * **The check is inside the `.then()`, and that placement is the whole
+   * point.** Calls are serialised, so a second `attach_lead` can sit behind a
+   * first for a second and a half before it starts — which is exactly the
+   * window in which a caller gives up. Checking before the queue would test the
+   * signal at the moment the call was *made* and then run it anyway after its
+   * wait; checking here tests it at the moment the call would *begin*.
+   *
+   * A call cancelled while queued never reaches `execute`, so it never opens an
+   * activity row, and there is nothing on screen to settle or explain: a
+   * gesture that never started is not something that happened to the bench. A
+   * call cancelled once it is running has a row, and `attach_lead` is what
+   * decides what to leave in it.
+   *
+   * The outcome shape matches the handler's own cancel, so a caller sees one
+   * answer for one event whichever side of the queue it happened on. In
+   * practice nobody reads it — WebMCP discards the result of an aborted call —
+   * and it exists so that the two paths cannot drift.
+   */
   const run = <K extends keyof AllToolInputs>(
     name: K,
     input: AllToolInputs[K],
+    options?: { signal?: AbortSignal },
   ) => {
-    const task = queue.current.then(() => execute(name, input));
+    const task = queue.current.then(
+      (): Promise<ToolOutcome> =>
+        options?.signal?.aborted
+          ? Promise.resolve({
+              status: "error",
+              result: { cancelled: true, tool: name, source: "demo" },
+            })
+          : execute(name, input, options),
+    );
     queue.current = task.catch(() => undefined);
     return task;
   };

@@ -199,12 +199,16 @@ async function call<K extends keyof AllToolInputs>(
   state: AgentSessionState,
   name: K,
   input: AllToolInputs[K],
+  /* The host's cancel, for the two tests below. Absent everywhere else, which
+     is what every caller that is not a WebMCP host passes. */
+  signal?: AbortSignal,
 ): Promise<{ outcome: ToolOutcome; next: AgentSessionState }> {
   let live = state;
   const outcome = await allHandlers[name](input as never, {
     read: () => live,
     copy: en,
     locale: "en",
+    signal,
     phase: async () => {},
   });
   live = outcome.patch
@@ -979,5 +983,72 @@ describe("the timeline headline matches the call", () => {
       ns: "activity",
       k: "nothingFound",
     });
+  });
+});
+
+/**
+ * A cancelled call does not leave a mark on somebody's build.
+ *
+ * WebMCP discards the result of an aborted call, so a tool that ignores the
+ * signal finishes into nobody: an agent that cancelled at 900 ms of
+ * `attach_lead`'s 1160 ms seat had its answer thrown away while the learner's
+ * bench moved anyway — undoably, but unannounced, and with nobody left to be
+ * told. The phases are collapsed here, so what these pin is the decision rather
+ * than the timing: the race that ends the wait early lives in
+ * `use-agent-session.ts`'s `phase`, and the audit probe measures it at 909 ms
+ * against `SEAT_AT` of 1160.
+ */
+describe("a cancelled call", () => {
+  const aborted = () => {
+    const controller = new AbortController();
+    controller.abort();
+    return controller.signal;
+  };
+
+  it("writes nothing, and says so without calling it a failure", async () => {
+    const { outcome, next } = await call(
+      open(),
+      "attach_lead",
+      { lead: "led.cathode", target: "board.GND" },
+      aborted(),
+    );
+    expect(outcome.patch).toBeUndefined();
+    expect(outcome.commits).toBeUndefined();
+    expect(outcome.result).toMatchObject({ cancelled: true });
+    /* No sentence, rather than a borrowed one: every error line this layer has
+       says the call failed, and this call did not fail. */
+    expect(outcome.errorMessage).toBeUndefined();
+    expect(next.placement["led.cathode"]).toBeNull();
+  });
+
+  it("still commits when the signal is there and never fires", async () => {
+    const { outcome, next } = await call(
+      open(),
+      "attach_lead",
+      { lead: "led.cathode", target: "board.GND" },
+      new AbortController().signal,
+    );
+    expect(outcome.commits).toBe(true);
+    expect(next.placement["led.cathode"]).toBe("board.GND");
+  });
+
+  /**
+   * And a cancelled READ lands, which is the deliberate half.
+   *
+   * `commits` is the line: it means *a gesture on the bench rather than a
+   * reading*, and `attach_lead` is the only handler that sets it. Refusing to
+   * land a read's patch would only make the screen disagree with the timeline
+   * about a camera move nobody is harmed by. Pinned so the rule is not
+   * "improved" into a blanket one later.
+   */
+  it("does not withhold a reading's patch", async () => {
+    const { outcome } = await call(
+      open(),
+      "inspect_build",
+      { scope: "all" },
+      aborted(),
+    );
+    expect(outcome.status).toBe("ok");
+    expect(outcome.patch).toBeDefined();
   });
 });

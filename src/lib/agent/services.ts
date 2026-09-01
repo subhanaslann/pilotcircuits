@@ -146,6 +146,26 @@ export interface ToolContext {
    * should not have to know whether it is the one that cares.
    */
   locale: string;
+  /**
+   * The caller's cancel, carried down from the host.
+   *
+   * WebMCP hands `execute` an `AbortSignal` and **discards the result of an
+   * aborted call**. A tool that ignores it therefore does not merely waste
+   * work: it finishes into a caller that has stopped listening, and whatever it
+   * changed on the way stays changed. `attach_lead` waits `SEAT_AT` — 1160 ms
+   * — before it writes, so an agent that cancels at 900 ms had, until this
+   * existed, its answer thrown away while the learner's bench moved anyway:
+   * undoably, but unannounced, and with nobody left to tell.
+   *
+   * Optional because three of the four callers are not a host. The panel's own
+   * buttons and the demo scenarios pass nothing and can never be cancelled,
+   * which is right — a person who has pressed a button has not asked to stop.
+   *
+   * What it does **not** do is turn a wait into a throw. `phase` resolves early
+   * on an abort and the handler decides what stopping means, because only the
+   * handler knows whether it was about to write.
+   */
+  signal?: AbortSignal;
   /** Announces a phase and waits it out. The simulated latency lives here. */
   phase: (note: Line, ms: number) => Promise<void>;
 }
@@ -895,6 +915,42 @@ export const handlers: ToolHandlers = {
 
     await ctx.phase({ ns: "phases", k: "reaching" }, GRIP_AT);
     await ctx.phase({ ns: "phases", k: "carrying" }, SEAT_AT - GRIP_AT);
+
+    /**
+     * Cancelled on the way across. Nothing is written.
+     *
+     * **The one tool this check belongs in**, and the type says why: `commits`
+     * is *"whether the patch is a gesture on the bench rather than a reading"*,
+     * and this is the only handler that sets it. A cancelled read may as well
+     * land — moving a camera onto a hole nobody asked about costs a person
+     * nothing, and refusing to would only make the screen disagree with the
+     * timeline. A cancelled *gesture* is different: it goes on the undo stack,
+     * it is counted in `assistedEdits`, and it is a mark on somebody's build.
+     * The rule is one line long — **a cancel must not land a commit** — and it
+     * covers the whole layer because exactly one tool commits.
+     *
+     * Placed here rather than earlier because the two waits above are the whole
+     * window: the phases are the ring reaching for the lead and carrying it
+     * across, and `phase` now ends them the moment the signal fires. So a
+     * cancel at 900 ms of a 1160 ms seat stops the ring where it is and leaves
+     * the lead in the hole it started in — which is the honest picture of a
+     * gesture that was called off half way, and the reason this is not checked
+     * *before* the phases as well. A `placeIn` that never ran is a bench that
+     * never moved.
+     *
+     * No `errorMessage`, deliberately: every sentence this layer can say about
+     * a failure says the *call* failed, and this call did not fail — it was
+     * called off by the one party that was listening. The activity row settles
+     * without a sentence rather than borrowing a false one. What it still owes
+     * the person is a sentence of its own — *"Agent stopped"* — and that is one
+     * key in `en.ts` / `tr.ts`, which this file does not own.
+     */
+    if (ctx.signal?.aborted) {
+      return {
+        status: "error",
+        result: { lead, target, cancelled: true, source: "demo" },
+      };
+    }
 
     const live = ctx.read();
     const outcome = placeIn(live, spec, lead, target);

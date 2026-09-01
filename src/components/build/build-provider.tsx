@@ -181,10 +181,11 @@ export function BuildProvider({ children }: { children: ReactNode }) {
 /**
  * Throws without a provider above it, unlike `useCopy`.
  *
- * The dictionary has a sensible default — English prose — so a component
- * dropped into a story on its own still renders. A build does not: a second,
- * silently created session would look like it worked and would quietly be the
- * wrong one. Failing loudly is the smaller bug.
+ * The dictionary has a sensible default — `getCopy(defaultLocale)`, which is
+ * the Turkish the product ships in, and not the English this sentence used to
+ * claim — so a component dropped into a story on its own still renders. A build
+ * does not: a second, silently created session would look like it worked and
+ * would quietly be the wrong one. Failing loudly is the smaller bug.
  */
 export function useBuild(): BuildValue {
   const value = useContext(BuildContext);
@@ -197,4 +198,27 @@ export function useBuild(): BuildValue {
 /** The session on its own, which is what most callers want. */
 export function useBuildSession(): AgentSession {
   return useBuild().session;
+}
+
+/**
+ * The same session, for the one caller that may legitimately not have one.
+ *
+ * The throw above is right for a component that *draws* a build: it cannot do
+ * its job without one, and a silently invented session would be the wrong build
+ * rather than no build. `useWebMcpTools` is the exception, because a session is
+ * an argument it already takes — the entry screen hands in its own — so "there
+ * is no provider" is a question it can answer instead of a failure it dies on.
+ *
+ * The design lab is why this exists. It is deliberately outside the provider —
+ * `app/(product)/layout.tsx` says so in writing and points here — and it is
+ * also the one page whose whole argument is that a tool count nobody can open
+ * is exactly a badge. Without an optional read it could not register the tools
+ * it was printing a number for, so it printed zero: honest, and useless.
+ *
+ * Deliberately the session and not the whole `BuildValue`. Everything else in
+ * there — the canvas handles, the filters — is something a component draws
+ * with, and for those the throw is still the right answer.
+ */
+export function useBuildSessionIfAny(): AgentSession | null {
+  return useContext(BuildContext)?.session ?? null;
 }

@@ -1,4 +1,5 @@
 import type { BuildSchemaFacts } from "@/lib/agent/builds";
+import type { McpToolAnnotations } from "@/lib/agent/model";
 import { componentIds, projects } from "@/lib/projects/catalog";
 import { conceptIds, difficulties } from "@/lib/projects/filter";
 
@@ -105,12 +106,67 @@ export interface McpToolResult {
   isError?: boolean;
 }
 
+/**
+ * The second argument the host calls `execute` with.
+ *
+ * `index.bs:1073-1074` is `dictionary ToolExecuteCallbackOptions { required
+ * AbortSignal signal; }`, and `:1077` types the callback itself as
+ * `Promise<any> (object inputObject, ToolExecuteCallbackOptions options)`. The
+ * host opens an `AbortController` per execution (`:486-497`) and hands over its
+ * signal, so on a conforming host it is always present; it is optional on this
+ * side because we are the callee, and a shim that calls with one argument must
+ * not throw its way into the result.
+ *
+ * What it is for, in the spec's own order of events: the caller cancels, the
+ * host aborts, and the host then discards whatever the promise settles with —
+ * *"If localExecutions[uuid] does not exist, then return"* (`:504-510`). So a
+ * tool that ignores the signal does not merely waste work; it finishes into a
+ * result nobody will read, and for `attach_lead` that means a bench that goes
+ * on moving after the agent has walked away.
+ */
+export interface McpToolExecuteOptions {
+  signal?: AbortSignal;
+}
+
 export interface McpToolDescriptor {
   name: string;
+  /**
+   * The name a person sees where the id would otherwise be.
+   *
+   * `USVString title` is a member of `ModelContextTool` (`index.bs:1058-1060`)
+   * and the IDL's own comment beside it says why it is a `USVString` and not a
+   * `DOMString`: it is *"for display in possibly native UIs"*. It is also the
+   * only landing place there is — `ToolAnnotations` has no `title` — so a
+   * browser listing what this page offers had nothing to print but
+   * `get_build_context`, which is a name for a function rather than for a
+   * thing. Filled from `copy.agentPanel.toolTitles`, so what a host displays is
+   * in the reader's language and in the same nouns the timeline uses.
+   */
+  title?: string;
   description: string;
   /** JSON Schema for the arguments. Hand-written; there is no generator here. */
   inputSchema: Record<string, unknown>;
-  execute: (args: Record<string, unknown>) => Promise<McpToolResult>;
+  /**
+   * What a host is told before it decides whether to call.
+   *
+   * `ToolAnnotations` (`index.bs:1067-1070`) declares two members —
+   * `readOnlyHint` and `untrustedContentHint` — and the registration algorithm
+   * reads exactly those two. The table in `model.ts` publishes five, because a
+   * bridge to a real MCP client wants all of them and WebIDL drops the other
+   * three without an error.
+   *
+   * The reason to publish at all is the default rather than the reach. Both
+   * declared members default to `false`, and `readOnlyHint: false` is a
+   * positively wrong claim about `get_build_context` and
+   * `get_project_requirements` — which is the claim this page was making by
+   * saying nothing. `model.ts` holds the reasoning for every cell, including
+   * the two rows that are corrections rather than readings.
+   */
+  annotations?: McpToolAnnotations;
+  execute: (
+    args: Record<string, unknown>,
+    options?: McpToolExecuteOptions,
+  ) => Promise<McpToolResult>;
 }
 
 /**

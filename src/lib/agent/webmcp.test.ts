@@ -1,4 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { en } from "@/content/locales/en";
+import { tr } from "@/content/locales/tr";
+import {
+  libraryTools,
+  toolAnnotations,
+  workbenchTools,
+} from "@/lib/agent/model";
 import { componentIds, projects } from "@/lib/projects/catalog";
 import { conceptIds, difficulties } from "@/lib/projects/filter";
 import { hasBench, schemaFactsFor } from "@/lib/agent/builds";
@@ -235,6 +242,74 @@ describe("no two tools share one schema object", () => {
 
     expect(first.get_build_context).not.toBe(second.get_build_context);
   });
+});
+
+/**
+ * The two tables `use-webmcp.ts` publishes from, checked against the union it
+ * publishes for.
+ *
+ * They live in `model.ts` and the locales, and neither has a test of its own —
+ * but the registration is the only thing that reads them, and a hole in either
+ * reaches a host as `title: undefined` or as no annotations at all. Eleven
+ * names, three sources, asserted where they are spent.
+ */
+describe("every registered tool has something to publish", () => {
+  const everyTool = [...workbenchTools, ...libraryTools];
+
+  it("eleven, and no more", () => {
+    expect(everyTool.length).toBe(11);
+    expect(new Set(everyTool).size).toBe(11);
+  });
+
+  it.each(everyTool)("%s has a title in both languages", (name) => {
+    for (const copy of [en, tr]) {
+      const title = copy.agentPanel.toolTitles[name];
+
+      expect(typeof title).toBe("string");
+      expect(title.trim().length).toBeGreaterThan(0);
+      /* A name, not a sentence: `title` is what a host prints in a list where
+         the id would otherwise be. */
+      expect(title.length).toBeLessThan(copy.agentPanel.tools[name].length);
+    }
+  });
+
+  it.each(everyTool)("%s has annotations", (name) => {
+    const hints = toolAnnotations[name];
+
+    expect(typeof hints.readOnlyHint).toBe("boolean");
+    /* A claim rather than a default restated: nothing in the product makes a
+       network call, and MCP's default for this one is `true`. */
+    expect(hints.openWorldHint).toBe(false);
+    expect(hints.untrustedContentHint).toBe(false);
+  });
+
+  /**
+   * The two rows that are corrections, and the omission rule.
+   *
+   * `attach_lead` is idempotent — the second identical call writes nothing —
+   * and `verify_current_step` is not, because it patches `activeStepId` and so
+   * four identical `{}` calls walk the rail. Three separate readings got this
+   * pair the wrong way round, which is the reason it is pinned here rather
+   * than left to a comment.
+   */
+  it("idempotence is the measured answer, not the intuitive one", () => {
+    expect(toolAnnotations.attach_lead.idempotentHint).toBe(true);
+    expect(toolAnnotations.attach_lead.destructiveHint).toBe(true);
+    expect(toolAnnotations.verify_current_step.idempotentHint).toBe(false);
+  });
+
+  it.each(["get_build_context", "get_project_requirements"] as const)(
+    "%s reads, so the two hints that mean nothing are absent rather than false",
+    (name) => {
+      const hints = toolAnnotations[name];
+
+      expect(hints.readOnlyHint).toBe(true);
+      /* MCP: "meaningful only when `readOnlyHint == false`". A `false` here
+         would be an answer to a question that was not asked. */
+      expect("destructiveHint" in hints).toBe(false);
+      expect("idempotentHint" in hints).toBe(false);
+    },
+  );
 });
 
 describe("a host that will not take a tool is reported as one that did not", () => {
