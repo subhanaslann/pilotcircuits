@@ -8,7 +8,7 @@ import {
   asToolResult,
   findMcpHost,
   isWebMcpAvailable,
-  librarySchemas,
+  librarySchemasFor,
   registerTool,
   workbenchSchemasFor,
   type McpRegistration,
@@ -132,10 +132,12 @@ export function useWebMcpTools(
    * narrowTools`, and `useWideEnough`'s server snapshot is `true` — *"a narrow
    * client corrects itself on hydration"* (`frame.tsx:52-58`). So a phone
    * renders the wide tree for exactly one commit, and registering inside it
-   * hands the browser `show_correction`, `attach_lead` and `run_functional_test`
-   * for a canvas the narrow layout never mounts: the tools are real, the
-   * surface they act on is not, and the call lands on the floor where
-   * `BuildProvider`'s ref handover cannot see it.
+   * hands the browser the three the narrow list leaves out — `inspect_build`,
+   * `show_correction` and `attach_lead` — for a canvas that layout never
+   * mounts: the tools are real, the surface they act on is not, and the call
+   * lands on the floor where `BuildProvider`'s ref handover cannot see it.
+   * (`run_functional_test` is *in* `narrowTools`; it needs the board, not the
+   * canvas.)
    *
    * The gate is the same mechanism as the thing it is waiting for — a store
    * whose server answer differs from its client one — so both corrections
@@ -173,10 +175,21 @@ export function useWebMcpTools(
 
     const [, build, list] = key.split(":");
     const names = list.split(",").filter(Boolean) as AgentTool[];
-    /* Built once per registration, from the build named in the key — never
-       from a render-time read, so the schemas a host holds and the key that
-       decided to give them to it cannot disagree. */
-    const schemas = workbenchSchemasFor(schemaFactsFor(build as ProjectId));
+    /**
+     * Built once per registration, from the build named in the key — never
+     * from a render-time read, so the schemas a host holds and the key that
+     * decided to give them to it cannot disagree.
+     *
+     * The dictionary reaches them the same way the tool description does, and
+     * it has to: the argument sentences are localised now, so a schema is as
+     * much a per-locale object as it is a per-build one. `key` starts with the
+     * locale, so a language change tears the tools off the host and registers
+     * them again — measured, on a spec host, as seven removals and seven
+     * re-registrations with the new dictionary in them.
+     */
+    const words = live.current.copy;
+    const schemas = workbenchSchemasFor(schemaFactsFor(build as ProjectId), words);
+    const library = librarySchemasFor(words);
 
     /**
      * One controller per effect run, and the whole teardown.
@@ -203,7 +216,7 @@ export function useWebMcpTools(
              reader is in now, not the one they arrived in. */
           title: live.current.copy.agentPanel.toolTitles[name],
           description: live.current.copy.agentPanel.tools[name],
-          inputSchema: schemas[name] ?? librarySchemas[name] ?? {},
+          inputSchema: schemas[name] ?? library[name] ?? {},
           /* Not through the ref, and not per render: the hints are a property
              of what the tool does, which no locale and no bench changes. */
           annotations: toolAnnotations[name],
@@ -269,10 +282,16 @@ export function useWebMcpTools(
                * dictionary, same words — the agent and the reader cannot be
                * told different things), and `result` is the structured refusal
                * where there is one. `result` is spread rather than nested so a
-               * caller reads `refused` / `argument` / `valid` at the top level
-               * — and it is genuinely absent on the refusals that have never
-               * carried one (`notFound`, `noPlacement`), which is why this
-               * reads it defensively instead of assuming it is there.
+               * caller reads `refused` / `argument` / `valid` at the top level.
+               *
+               * The two this used to name as carrying nothing now carry the
+               * most: the unknown project answers `{argument, value, valid}`
+               * with all six ids, and the capstone's `noPlacement` answers
+               * `{argument, value, reason: "authorPlaced"}` so an agent learns
+               * on call #1 rather than call #12 that the bench takes no writes.
+               * The defensive read stays regardless — this bridge does not get
+               * to assume a shape it does not own, and `failed` alone is still
+               * reachable from a throw.
                */
               const detail = outcome.result;
               return asToolResult(

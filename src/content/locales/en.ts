@@ -2065,6 +2065,135 @@ export const en = {
       start_project: "Build start",
     },
 
+    /**
+     * What each tool is for, at the length a model reads and nobody renders.
+     *
+     * `tools` above is the one-line sentence a person sees in the panel's
+     * inventory, and it is one line because a row is one line. This is the two
+     * or three a model wants before it decides to call: when to reach for the
+     * tool, what it will not do, and the edge that costs a wasted call if it is
+     * not known in advance. Each one is published as the object-level
+     * `description` of that tool's JSON Schema.
+     */
+    toolDocs: {
+      get_build_context:
+        "The whole bench in one call: which project is on it, where the rail " +
+        "is, and every connection currently made. It changes nothing and needs " +
+        "nothing selected first, so it is the call to make on arrival.",
+      inspect_build:
+        "Compares what is on the bench against the sketch and returns " +
+        "findings, each with an id. Those ids are what show_correction takes; " +
+        "nothing here moves a lead.",
+      show_correction:
+        "Points the workbench at one finding and says what is wrong with it, " +
+        "at the depth detail_level asks for. It explains and highlights; the " +
+        "only tool that repairs anything is attach_lead.",
+      attach_lead:
+        "The one tool that changes the build: it seats a lead in a hole, " +
+        "joins it to another lead, or — with no target — pulls it out again. " +
+        "Every refusal names the argument and the reason, and the result " +
+        "reports what the call cost in loosened, brokeJoins and leftBench.",
+      verify_current_step:
+        "Checks the current step against the sketch and marks it complete if " +
+        "it passes. A step can fail with every connection matched — " +
+        "mechanicalOk is the servo horn, strays counts joins the sketch never " +
+        "asked for — so read those before concluding the wiring is wrong.",
+      navigate_build_step:
+        "Moves the rail to another step of this build. It changes what is on " +
+        "screen and nothing else: every connection stays where it is, no step " +
+        "is ticked, and the ids it takes are this build's only.",
+      run_functional_test:
+        "Runs this build's own checks on the simulated board and reports what " +
+        "each one saw. The checks are per build, not a fixed list — test " +
+        "enumerates the ones this bench has — and a run that fails is still a " +
+        "call that succeeded.",
+      find_projects:
+        "Filters the catalogue and redraws the grid the reader is looking at. " +
+        "Every call replaces the whole filter rather than adding to it, so an " +
+        "omitted argument clears that filter — and a call with no arguments is " +
+        "the way back to all six builds.",
+      open_project:
+        "Opens a project's detail screen — its parts, its length and what it " +
+        "teaches. It navigates; it does not start the build.",
+      get_project_requirements:
+        "Answers what a project needs — parts, length, level, learning goals " +
+        "— without opening it or starting it. Nothing on screen moves.",
+      start_project:
+        "Starts a build and opens its workbench, where the seven bench tools " +
+        "are the ones registered. Both modes run on the simulated board, so " +
+        "nothing here depends on the reader owning the parts.",
+    },
+
+    /**
+     * What each argument means — and six of these describe a list.
+     *
+     * **The warning first, because it is the reason this table was the last
+     * thing moved here.** `scope`, `detail_level`, `step_id`, `test`,
+     * `components` and `concepts` each say something about the `enum` published
+     * beside them, and that enum is computed in `lib/agent/webmcp.ts` from the
+     * build on the bench and from the catalogue's own exported lists. The enum
+     * is the source of truth; this sentence is a description of it. Change one
+     * of those lists and the sentence here can go on claiming the old shape in
+     * two languages, with nothing to catch it — which is exactly the drift
+     * `attach_lead.target` was measured in, promising "another part's free
+     * lead" over an enum that listed every lead, free or not.
+     *
+     * So: when a list changes, read these. `webmcp.test.ts` pins the two that
+     * can be checked mechanically — the ladder's order, and the fact that
+     * `detail_level` never claims to default to `hint` — and the rest are
+     * prose that only a reader can keep honest.
+     *
+     * Nested by tool so a translator can see which call an argument belongs to.
+     * `project` is not, because it is genuinely one argument shared by three
+     * tools and one string is the honest way to say so.
+     */
+    toolArgs: {
+      project: "A project id — a slug is also accepted.",
+      inspect_build: {
+        scope: "How much of the build to compare. Defaults to the step.",
+      },
+      show_correction: {
+        finding_id: "An id returned by inspect_build.",
+        detail_level:
+          "How much of the answer to give away — a ladder, least to most: " +
+          "hint, explain, exact. Omitted, it follows the level the reader's " +
+          "panel is already on.",
+      },
+      attach_lead: {
+        lead: "A lead of a part in this build.",
+        target:
+          "A board hole, another lead in this build, or null to leave it " +
+          "loose. Omitting it means null: the lead comes out, every part left " +
+          "without an anchor returns to the kit — two of them, on one measured " +
+          "call — and joins made through that lead break; the result names " +
+          "them in leftBench and brokeJoins. The enum lists every lead, but a " +
+          "lead of the same part, or one already taken, is refused.",
+      },
+      navigate_build_step: {
+        step_id:
+          "A step of this build, in the order the rail shows them — the first " +
+          "is the kit check. Moving is not verifying; nothing is ticked.",
+      },
+      run_functional_test: {
+        test: "One check by id, or full_system for all of them.",
+      },
+      find_projects: {
+        search: "Free text over names and goals.",
+        difficulty:
+          "Levels a build may be at; several are OR-ed, and an empty array is " +
+          "every level.",
+        max_minutes: "Upper bound on duration.",
+        components: "Component ids the build must use at least one of.",
+        concepts: "Learning-goal ids the build must teach at least one of.",
+        ready_only: "Only builds that have a guided workbench.",
+      },
+      start_project: {
+        mode:
+          "Both run on the simulated board; the kit checklist is advisory " +
+          "either way.",
+      },
+    },
+
     knowledge: {
       title: "Quick check",
       tryAgain: "Try again",

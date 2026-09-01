@@ -12,7 +12,7 @@ import { hasBench, schemaFactsFor } from "@/lib/agent/builds";
 import {
   asToolResult,
   findMcpHost,
-  librarySchemas,
+  librarySchemasFor,
   registerTool,
   workbenchSchemasFor,
   type McpHost,
@@ -56,7 +56,7 @@ function properties(
 
 describe("every published property documents itself", () => {
   it("in the four library schemas", () => {
-    const undocumented = Object.entries(librarySchemas).flatMap(
+    const undocumented = Object.entries(librarySchemasFor(en)).flatMap(
       ([tool, schema]) =>
         properties(schema)
           .filter(([, prop]) => !prop.description)
@@ -67,7 +67,7 @@ describe("every published property documents itself", () => {
   });
 
   it.each(benches)("in every schema on %s's bench", (projectId) => {
-    const schemas = workbenchSchemasFor(schemaFactsFor(projectId));
+    const schemas = workbenchSchemasFor(schemaFactsFor(projectId), en);
     const undocumented = Object.entries(schemas).flatMap(([tool, schema]) =>
       properties(schema)
         .filter(([, prop]) => !prop.description)
@@ -80,7 +80,7 @@ describe("every published property documents itself", () => {
 
 describe("a closed set is published closed", () => {
   it("find_projects enumerates all three of its vocabularies", () => {
-    const props = Object.fromEntries(properties(librarySchemas.find_projects!));
+    const props = Object.fromEntries(properties(librarySchemasFor(en).find_projects!));
     const itemsOf = (name: string) =>
       (props[name]!.items as Record<string, unknown>).enum;
 
@@ -100,7 +100,7 @@ describe("a closed set is published closed", () => {
 
   it.each(benches)("%s publishes its own steps, checks and scopes", (id) => {
     const facts = schemaFactsFor(id)!;
-    const schemas = workbenchSchemasFor(facts);
+    const schemas = workbenchSchemasFor(facts, en);
     const enumOf = (tool: string, prop: string) =>
       (
         (schemas[tool]!.properties as Record<string, Record<string, unknown>>)[
@@ -118,7 +118,7 @@ describe("a closed set is published closed", () => {
     (id) => {
       const facts = schemaFactsFor(id)!;
       const props = Object.fromEntries(
-        properties(workbenchSchemasFor(facts).attach_lead!),
+        properties(workbenchSchemasFor(facts, en).attach_lead!),
       );
 
       expect(props.lead!.enum).toEqual(facts.leads);
@@ -134,7 +134,7 @@ describe("a closed set is published closed", () => {
 describe("attach_lead's optional argument states its default", () => {
   it.each(benches)("on %s", (id) => {
     const props = Object.fromEntries(
-      properties(workbenchSchemasFor(schemaFactsFor(id)).attach_lead!),
+      properties(workbenchSchemasFor(schemaFactsFor(id), en).attach_lead!),
     );
     const sentence = String(props.target!.description);
 
@@ -163,7 +163,7 @@ describe("attach_lead's optional argument states its default", () => {
 describe("show_correction's ladder is published, and its real default", () => {
   it.each(benches)("on %s", (id) => {
     const props = Object.fromEntries(
-      properties(workbenchSchemasFor(schemaFactsFor(id)).show_correction!),
+      properties(workbenchSchemasFor(schemaFactsFor(id), en).show_correction!),
     );
     const sentence = String(props.detail_level!.description);
 
@@ -189,7 +189,7 @@ describe("a schema says what its tool is for", () => {
     typeof schema.description === "string" && schema.description.length > 60;
 
   it("in the four library schemas", () => {
-    const silent = Object.entries(librarySchemas)
+    const silent = Object.entries(librarySchemasFor(en))
       .filter(([, schema]) => !long(schema))
       .map(([tool]) => tool);
 
@@ -197,11 +197,64 @@ describe("a schema says what its tool is for", () => {
   });
 
   it.each(benches)("in every schema on %s's bench", (id) => {
-    const silent = Object.entries(workbenchSchemasFor(schemaFactsFor(id)))
+    const silent = Object.entries(workbenchSchemasFor(schemaFactsFor(id), en))
       .filter(([, schema]) => !long(schema))
       .map(([tool]) => tool);
 
     expect(silent).toEqual([]);
+  });
+});
+
+describe("a schema is published in the reader's language", () => {
+  /**
+   * Both halves of the move, checked at the only place both are visible.
+   *
+   * A string left behind as an English literal in `webmcp.ts` and a `tr` key
+   * that still holds the English sentence fail identically here, and neither
+   * fails anywhere else: `tr.ts` is typed against `en.ts`, so a *missing* key
+   * breaks the build and a *wrong* one does not. Sentences rather than titles,
+   * so "the two are the same" is never a legitimate answer.
+   */
+  const sentences = (schemas: Record<string, Record<string, unknown>>) =>
+    Object.entries(schemas).flatMap(([tool, schema]) => [
+      [`${tool}`, String(schema.description)] as const,
+      ...properties(schema).map(
+        ([name, prop]) =>
+          [`${tool}.${name}`, String(prop.description)] as const,
+      ),
+    ]);
+
+  it.each(benches)("every sentence on %s's bench differs in tr", (id) => {
+    const english = sentences(workbenchSchemasFor(schemaFactsFor(id), en));
+    const turkish = new Map(
+      sentences(workbenchSchemasFor(schemaFactsFor(id), tr)),
+    );
+
+    const untranslated = english
+      .filter(([where, sentence]) => turkish.get(where) === sentence)
+      .map(([where]) => where);
+
+    expect(untranslated).toEqual([]);
+  });
+
+  it("and every sentence in the four library schemas", () => {
+    const english = sentences(librarySchemasFor(en));
+    const turkish = new Map(sentences(librarySchemasFor(tr)));
+
+    const untranslated = english
+      .filter(([where, sentence]) => turkish.get(where) === sentence)
+      .map(([where]) => where);
+
+    expect(untranslated).toEqual([]);
+  });
+
+  it("the shared project argument moved as one string, not three", () => {
+    const library = librarySchemasFor(en);
+    const argument = (tool: string) =>
+      (library[tool]!.properties as Record<string, unknown>).project;
+
+    expect(argument("open_project")).toBe(argument("start_project"));
+    expect(argument("get_project_requirements")).toBe(argument("open_project"));
   });
 });
 
@@ -214,7 +267,7 @@ describe("the three project arguments publish the closed set", () => {
   it.each(["open_project", "get_project_requirements", "start_project"])(
     "%s",
     (tool) => {
-      const props = Object.fromEntries(properties(librarySchemas[tool]!));
+      const props = Object.fromEntries(properties(librarySchemasFor(en)[tool]!));
 
       expect(props.project!.enum).toEqual(ids);
       expect(String(props.project!.description)).toMatch(/slug/);
@@ -229,7 +282,7 @@ describe("no two tools share one schema object", () => {
      Frozen as well as unshared, so a write is a throw rather than a silent
      corruption of the other ten. */
   it.each(benches)("on %s", (id) => {
-    const schemas = workbenchSchemasFor(schemaFactsFor(id));
+    const schemas = workbenchSchemasFor(schemaFactsFor(id), en);
 
     expect(schemas.get_build_context).not.toBe(schemas.verify_current_step);
     expect(Object.isFrozen(schemas.get_build_context)).toBe(true);
@@ -237,8 +290,8 @@ describe("no two tools share one schema object", () => {
   });
 
   it("and a second call does not hand back the first call's objects", () => {
-    const first = workbenchSchemasFor(schemaFactsFor(benches[0]!));
-    const second = workbenchSchemasFor(schemaFactsFor(benches[0]!));
+    const first = workbenchSchemasFor(schemaFactsFor(benches[0]!), en);
+    const second = workbenchSchemasFor(schemaFactsFor(benches[0]!), en);
 
     expect(first.get_build_context).not.toBe(second.get_build_context);
   });

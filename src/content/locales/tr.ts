@@ -1613,6 +1613,137 @@ export const tr: Copy = {
       start_project: "Yapım başlatma",
     },
 
+    /* Bir aracın ne işe yaradığı, modelin okuduğu ve hiçbir yerin çizmediği
+       uzunlukta. Yukarıdaki `tools` panelin envanterinde bir kişinin gördüğü
+       tek satır; bu ise modelin çağırmaya karar vermeden önce istediği iki üç
+       cümle. Her biri o aracın JSON Şeması'nın nesne düzeyindeki
+       `description` alanı olarak yayımlanıyor. */
+    toolDocs: {
+      get_build_context:
+        "Tezgâhın tamamı tek çağrıda: üstünde hangi proje var, ray nerede " +
+        "duruyor ve şu an kurulu olan her bağlantı. Hiçbir şeyi değiştirmez " +
+        "ve önceden bir şey seçilmiş olmasını gerektirmez; varışta yapılacak " +
+        "çağrı budur.",
+      inspect_build:
+        "Tezgâhtakini programla karşılaştırır ve her biri bir id taşıyan " +
+        "bulgular döndürür. show_correction'ın aldığı id'ler bunlardır; " +
+        "burada hiçbir uç yerinden oynamaz.",
+      show_correction:
+        "Atölyeyi tek bir bulguya çevirir ve detail_level'ın istediği " +
+        "derinlikte neyin yanlış olduğunu söyler. Açıklar ve işaretler; " +
+        "onaran tek araç attach_lead'dir.",
+      attach_lead:
+        "Yapımı değiştiren tek araç: bir ucu deliğe oturtur, başka bir uca " +
+        "bağlar ya da — hedef verilmezse — geri çıkarır. Her ret hangi " +
+        "argümanın ve hangi sebebin söz konusu olduğunu söyler; çağrının " +
+        "bedelini de sonuçtaki loosened, brokeJoins ve leftBench alanları " +
+        "bildirir.",
+      verify_current_step:
+        "Mevcut adımı programla karşılaştırır ve geçerse tamamlandı " +
+        "işaretler. Bütün bağlantılar eşleşse bile bir adım doğrulanmayabilir " +
+        "— mechanicalOk servo kolunu, strays programın istemediği " +
+        "bağlantıları sayar — kabloların yanlış olduğuna karar vermeden önce " +
+        "bu ikisini oku.",
+      navigate_build_step:
+        "Rayı bu yapımın başka bir adımına taşır. Yalnızca ekranda görüneni " +
+        "değiştirir: her bağlantı yerinde kalır, hiçbir adım işaretlenmez ve " +
+        "aldığı id'ler yalnızca bu yapımın id'leridir.",
+      run_functional_test:
+        "Bu yapımın kendi kontrollerini simüle kart üzerinde çalıştırır ve " +
+        "her birinin ne gördüğünü bildirir. Kontroller yapıma özeldir, sabit " +
+        "bir liste değil — test bu tezgâhtakileri sayar — ve başarısız biten " +
+        "bir çalıştırma yine de başarılı bir çağrıdır.",
+      find_projects:
+        "Kataloğu filtreler ve okurun baktığı proje ızgarasını yeniden " +
+        "çizer. Her çağrı filtrenin tamamını değiştirir, üstüne eklemez: " +
+        "verilmeyen bir argüman o filtreyi temizler — argümansız bir çağrı " +
+        "da altı yapımın tamamına dönüş yoludur.",
+      open_project:
+        "Bir projenin detay ekranını açar — parçaları, süresi ve ne " +
+        "öğrettiği. Sayfayı değiştirir; yapımı başlatmaz.",
+      get_project_requirements:
+        "Bir projenin neye ihtiyaç duyduğunu söyler — parçalar, süre, " +
+        "seviye, öğrenme hedefleri — projeyi açmadan ve başlatmadan. Ekranda " +
+        "hiçbir şey oynamaz.",
+      start_project:
+        "Bir yapımı başlatır ve atölyesini açar; orada kayıtlı olan araçlar " +
+        "tezgâhın yedi aracıdır. İki kip de simüle kart üzerinde çalışır, " +
+        "yani buradaki hiçbir şey okurun parçalara sahip olmasına bağlı " +
+        "değil.",
+    },
+
+    /* Bir argümanın ne demek olduğu — ve bunların altısı bir listeyi anlatıyor.
+
+       Önce uyarı, çünkü bu tablonun buraya en son taşınmasının sebebi o:
+       `scope`, `detail_level`, `step_id`, `test`, `components` ve `concepts`,
+       yanlarında yayımlanan `enum` hakkında bir şey söylüyor, ve o enum
+       `lib/agent/webmcp.ts` içinde tezgâhtaki yapımdan ve kataloğun kendi dışa
+       verdiği listelerden hesaplanıyor. Doğrunun kaynağı enum; buradaki cümle
+       onun bir betimlemesi. Listelerden biri değişirse buradaki cümle eski
+       şekli iki dilde birden anlatmaya devam edebilir ve bunu yakalayacak
+       hiçbir şey yoktur — `attach_lead.target` tam da bu şekilde kaymıştı:
+       serbest ya da değil her ucu listeleyen bir enum'un başında "başka bir
+       parçanın boştaki ucu" diyordu.
+
+       Yani: bir liste değiştiğinde bunları oku. Mekanik olarak kontrol
+       edilebilen ikisini `webmcp.test.ts` sabitliyor — merdivenin sırası ve
+       `detail_level`ın varsayılanının `hint` olduğunu asla iddia etmemesi —
+       gerisi yalnızca bir okurun dürüst tutabileceği düzyazı.
+
+       Araca göre gruplanmış, ki çeviren bir argümanın hangi çağrıya ait
+       olduğunu görebilsin. `project` değil: o gerçekten üç aracın paylaştığı
+       tek bir argüman ve bunu söylemenin dürüst yolu tek bir metin. */
+    toolArgs: {
+      project: "Bir proje id'si — slug da kabul edilir.",
+      inspect_build: {
+        scope:
+          "Yapımın ne kadarının karşılaştırılacağı. Varsayılan, adımdır.",
+      },
+      show_correction: {
+        finding_id: "inspect_build'in döndürdüğü bir id.",
+        detail_level:
+          "Cevabın ne kadarının verileceği — azdan çoğa bir merdiven: hint, " +
+          "explain, exact. Verilmezse okurun panelinin zaten bulunduğu " +
+          "seviyeyi izler.",
+      },
+      attach_lead: {
+        lead: "Bu yapımdaki bir parçanın ucu.",
+        target:
+          "Bir kart deliği, bu yapımdaki başka bir uç ya da ucu boşta " +
+          "bırakmak için null. Verilmemesi null demektir: uç yerinden çıkar, " +
+          "dayanağı kalmayan her parça kite geri döner — ölçülen tek bir " +
+          "çağrıda bunlardan iki tane oldu — ve o uçtan geçen bağlantılar " +
+          "kopar; sonuç bunları leftBench ve brokeJoins alanlarında söyler. " +
+          "Enum her ucu listeler, ama aynı parçanın bir ucu ya da hâlihazırda " +
+          "dolu olan bir yer reddedilir.",
+      },
+      navigate_build_step: {
+        step_id:
+          "Bu yapımın bir adımı, rayın gösterdiği sırayla — ilki kit " +
+          "kontrolüdür. Geçmek doğrulamak değildir; hiçbir şey işaretlenmez.",
+      },
+      run_functional_test: {
+        test: "Id'siyle tek bir kontrol ya da hepsi için full_system.",
+      },
+      find_projects: {
+        search: "Adlar ve hedefler üzerinde serbest metin.",
+        difficulty:
+          "Bir yapımın olabileceği seviyeler; birden fazlası VEYA ile " +
+          "birleşir, boş dizi ise her seviye demektir.",
+        max_minutes: "Süre için üst sınır.",
+        components:
+          "Yapımın en az birini kullanması gereken bileşen id'leri.",
+        concepts:
+          "Yapımın en az birini öğretmesi gereken öğrenme hedefi id'leri.",
+        ready_only: "Yalnızca rehberli atölyesi olan yapımlar.",
+      },
+      start_project: {
+        mode:
+          "İkisi de simüle kart üzerinde çalışır; kit kontrol listesi her " +
+          "hâlükârda tavsiye niteliğindedir.",
+      },
+    },
+
     knowledge: {
       title: "Kısa kontrol",
       tryAgain: "Tekrar dene",

@@ -1,5 +1,6 @@
 import type { BuildSchemaFacts } from "@/lib/agent/builds";
 import type { McpToolAnnotations } from "@/lib/agent/model";
+import type { Copy } from "@/content/i18n";
 import { componentIds, projects } from "@/lib/projects/catalog";
 import { conceptIds, difficulties } from "@/lib/projects/filter";
 
@@ -356,12 +357,37 @@ export function asToolResult(value: unknown, isError = false): McpToolResult {
    enough that a generator would be more code than it replaced, and an agent
    reads these before it reads anything else the product says.
 
-   Each one carries an object-level `description` as well as a description per
-   property. Nothing renders it — `copy.agentPanel.tools` is the sentence a
-   person sees in the panel, and it is one line because a panel row is one line
-   — so this is the place to put what a model needs and a reader does not: when
-   to call the tool, what it will not do, and the edge that costs a wasted call
-   if it is not known in advance.                                            */
+   The shape is here; every sentence in it comes from the dictionary. A schema
+   below is an arrangement of enums, types and required lists, and the prose
+   that explains them is `copy.agentPanel.toolDocs` (one per tool, published as
+   the object-level `description`) and `copy.agentPanel.toolArgs` (one per
+   argument). That is why both functions take a `Copy`: the tool `description`
+   and `title` the caller publishes were already localised, and an agent reading
+   a Turkish tool description, English argument documentation and then a Turkish
+   refusal about the argument it got wrong was reading three registers of one
+   sentence.
+
+   ## The drift this arrangement can have, and where to look for it
+
+   **Six of those argument sentences are claims about an `enum` computed here.**
+   `scope`, `detail_level`, `step_id` and `test` describe per-build lists that
+   arrive in `facts`; `components` and `concepts` describe `componentIds` and
+   `conceptIds`, imported from the files that own them. The enum is the source
+   of truth in every case — it is derived, never hand-kept — and the sentence in
+   the dictionary is a description of it that nothing checks.
+
+   So drift here looks like a sentence that is still true of last month's list.
+   It is not hypothetical: `attach_lead.target` was measured promising "another
+   part's free lead" over an enum that listed every lead, free or taken, and
+   `detail_level` named a ladder whose order appeared nowhere. Both were
+   repaired, in `en` and `tr`, on the way into the dictionary.
+
+   The rule for anyone changing one of those lists: change the sentence in both
+   locales in the same commit, and read them against each other. `webmcp.test.ts`
+   holds the two clauses a machine can check — the ladder's order, and that
+   `detail_level` never claims to default to `hint`, which two separate readings
+   of this file got wrong — and prose is otherwise only as honest as its last
+   reader.                                                                 */
 
 /**
  * A tool that takes no arguments, and still says what it is for.
@@ -391,39 +417,33 @@ const noInput = (description: string) =>
  * facts come from `schemaFactsFor`; this only shapes them.
  */
 export function workbenchSchemasFor(
-  facts?: BuildSchemaFacts,
+  facts: BuildSchemaFacts | undefined,
+  copy: Copy,
 ): Record<string, Record<string, unknown>> {
+  const docs = copy.agentPanel.toolDocs;
+  const args = copy.agentPanel.toolArgs;
+
   return {
-  get_build_context: noInput(
-    "The whole bench in one call: which project is on it, where the rail is, " +
-      "and every connection currently made. It changes nothing and needs " +
-      "nothing selected first, so it is the call to make on arrival.",
-  ),
+  get_build_context: noInput(docs.get_build_context),
   inspect_build: {
     type: "object",
-    description:
-      "Compares what is on the bench against the sketch and returns findings, " +
-      "each with an id. Those ids are what show_correction takes; nothing " +
-      "here moves a lead.",
+    description: docs.inspect_build,
     properties: {
       scope: {
         type: "string",
         enum: facts?.scopes ?? ["current_step", "wiring", "all"],
-        description: "How much of the build to compare. Defaults to the step.",
+        description: args.inspect_build.scope,
       },
     },
     additionalProperties: false,
   },
   show_correction: {
     type: "object",
-    description:
-      "Points the workbench at one finding and says what is wrong with it, at " +
-      "the depth detail_level asks for. It explains and highlights; the only " +
-      "tool that repairs anything is attach_lead.",
+    description: docs.show_correction,
     properties: {
       finding_id: {
         type: "string",
-        description: "An id returned by inspect_build.",
+        description: args.show_correction.finding_id,
       },
       detail_level: {
         type: "string",
@@ -431,11 +451,9 @@ export function workbenchSchemasFor(
         /* The ladder was legible only from a refusal, and the default was
            legible nowhere: the handler reads `askedLevel ?? state.coaching`,
            so an omitted level follows the panel the reader is looking at
-           rather than starting at the bottom. */
-        description:
-          "How much of the answer to give away — a ladder, least to most: " +
-          "hint, explain, exact. Omitted, it follows the level the reader's " +
-          "panel is already on.",
+           rather than starting at the bottom. Both facts are in the sentence
+           now, in both languages, and this enum is the ladder it names. */
+        description: args.show_correction.detail_level,
       },
     },
     required: ["finding_id"],
@@ -446,16 +464,12 @@ export function workbenchSchemasFor(
      Left open on a build with no placement, where the tool refuses anyway. */
   attach_lead: {
     type: "object",
-    description:
-      "The one tool that changes the build: it seats a lead in a hole, joins " +
-      "it to another lead, or — with no target — pulls it out again. Every " +
-      "refusal names the argument and the reason, and the result reports what " +
-      "the call cost in loosened, brokeJoins and leftBench.",
+    description: docs.attach_lead,
     properties: {
       lead: {
         type: "string",
         ...(facts?.leads.length ? { enum: facts.leads } : {}),
-        description: "A lead of a part in this build.",
+        description: args.attach_lead.lead,
       },
       target: {
         type: ["string", "null"],
@@ -481,32 +495,24 @@ export function workbenchSchemasFor(
          * something, and a hole already taken. A schema that offers a value the
          * handler will not accept has to say so, or the enum reads as a
          * promise.
+         *
+         * Both corrections now live in `copy.agentPanel.toolArgs.attach_lead`,
+         * in two languages, describing the enum built three lines above. This
+         * is the pair the schema block's drift note is about: change what goes
+         * into that enum and this sentence is the thing that silently stops
+         * being true.
          */
         default: null,
-        description:
-          "A board hole, another lead in this build, or null to leave it " +
-          "loose. Omitting it means null: the lead comes out, every part left " +
-          "without an anchor returns to the kit — two of them, on one measured " +
-          "call — and joins made through that lead break; the result names " +
-          "them in leftBench and brokeJoins. The enum lists every lead, but a " +
-          "lead of the same part, or one already taken, is refused.",
+        description: args.attach_lead.target,
       },
     },
     required: ["lead"],
     additionalProperties: false,
   },
-  verify_current_step: noInput(
-    "Checks the current step against the sketch and marks it complete if it " +
-      "passes. A step can fail with every connection matched — mechanicalOk " +
-      "is the servo horn, strays counts joins the sketch never asked for — so " +
-      "read those before concluding the wiring is wrong.",
-  ),
+  verify_current_step: noInput(docs.verify_current_step),
   navigate_build_step: {
     type: "object",
-    description:
-      "Moves the rail to another step of this build. It changes what is on " +
-      "screen and nothing else: every connection stays where it is, no step " +
-      "is ticked, and the ids it takes are this build's only.",
+    description: docs.navigate_build_step,
     properties: {
       step_id: {
         type: "string",
@@ -515,9 +521,7 @@ export function workbenchSchemasFor(
            step belonging to chapter six — and the rail obligingly redrew
            itself as the other build's. */
         enum: facts?.stepIds ?? [],
-        description:
-          "A step of this build, in the order the rail shows them — the first " +
-          "is the kit check. Moving is not verifying; nothing is ticked.",
+        description: args.navigate_build_step.step_id,
       },
     },
     required: ["step_id"],
@@ -525,18 +529,14 @@ export function workbenchSchemasFor(
   },
   run_functional_test: {
     type: "object",
-    description:
-      "Runs this build's own checks on the simulated board and reports what " +
-      "each one saw. The checks are per build, not a fixed list — test " +
-      "enumerates the ones this bench has — and a run that fails is still a " +
-      "call that succeeded.",
+    description: docs.run_functional_test,
     properties: {
       test: {
         type: "string",
         /* The checks this build actually makes. Chapter one runs `wiring` and
            `breathing`; it has neither a sensor nor a servo to test. */
         enum: facts?.tests ?? ["full_system"],
-        description: "One check by id, or full_system for all of them.",
+        description: args.run_functional_test.test,
       },
     },
     required: ["test"],
@@ -561,37 +561,52 @@ const projectIds = Object.freeze(projects.map((project) => project.id));
  * One object across the three tools that take it, because here the three really
  * do mean the same thing — unlike `noInput`, whose two users had different
  * things to say. Frozen for the reason `noInput` is now a function: a schema
- * three tools reach must not be writable by any of them.
+ * three tools reach must not be writable by any of them. One dictionary key for
+ * the same reason, and it is the one entry in `toolArgs` that is not nested
+ * under a tool.
  *
  * The enum is the id set. A slug is accepted too and the sentence says so,
  * because the handler resolves both and the product's own URLs are slugs;
  * enumerating twelve values for six builds would publish an ambiguity instead
  * of a vocabulary.
  */
-const projectArgument = Object.freeze({
-  type: "string",
-  enum: projectIds,
-  description: "A project id — a slug is also accepted.",
-});
+const projectArgument = (description: string) =>
+  Object.freeze({
+    type: "string",
+    enum: projectIds,
+    description,
+  });
 
-export const librarySchemas: Record<string, Record<string, unknown>> = {
+/**
+ * The library's four, which have no per-build facts and still have a language.
+ *
+ * A function now for the one reason `workbenchSchemasFor` always was one: what
+ * it returns depends on something the caller knows and this file does not. That
+ * used to be the build on the bench; it is now also the dictionary the reader
+ * is in.
+ */
+export function librarySchemasFor(
+  copy: Copy,
+): Record<string, Record<string, unknown>> {
+  const docs = copy.agentPanel.toolDocs;
+  const args = copy.agentPanel.toolArgs;
+  const project = projectArgument(args.project);
+
+  return {
   find_projects: {
     type: "object",
-    description:
-      "Filters the catalogue and redraws the grid the reader is looking at. " +
-      "Every call replaces the whole filter rather than adding to it, so an " +
-      "omitted argument clears that filter — and a call with no arguments is " +
-      "the way back to all six builds.",
+    description: docs.find_projects,
     properties: {
-      search: { type: "string", description: "Free text over names and goals." },
+      search: { type: "string", description: args.find_projects.search },
       difficulty: {
         type: "array",
         items: { type: "string", enum: difficulties },
-        description:
-          "Levels a build may be at; several are OR-ed, and an empty array is " +
-          "every level.",
+        description: args.find_projects.difficulty,
       },
-      max_minutes: { type: "number", description: "Upper bound on duration." },
+      max_minutes: {
+        type: "number",
+        description: args.find_projects.max_minutes,
+      },
       /**
        * Both sets are closed, and both used to be published open.
        *
@@ -612,58 +627,51 @@ export const librarySchemas: Record<string, Record<string, unknown>> = {
       components: {
         type: "array",
         items: { type: "string", enum: componentIds },
-        description: "Component ids the build must use at least one of.",
+        description: args.find_projects.components,
       },
       concepts: {
         type: "array",
         items: { type: "string", enum: conceptIds },
-        description: "Learning-goal ids the build must teach at least one of.",
+        description: args.find_projects.concepts,
       },
       ready_only: {
         type: "boolean",
-        description: "Only builds that have a guided workbench.",
+        description: args.find_projects.ready_only,
       },
     },
     additionalProperties: false,
   },
   open_project: {
     type: "object",
-    description:
-      "Opens a project's detail screen — its parts, its length and what it " +
-      "teaches. It navigates; it does not start the build.",
+    description: docs.open_project,
     properties: {
-      project: projectArgument,
+      project,
     },
     required: ["project"],
     additionalProperties: false,
   },
   get_project_requirements: {
     type: "object",
-    description:
-      "Answers what a project needs — parts, length, level, learning goals — " +
-      "without opening it or starting it. Nothing on screen moves.",
+    description: docs.get_project_requirements,
     properties: {
-      project: projectArgument,
+      project,
     },
     required: ["project"],
     additionalProperties: false,
   },
   start_project: {
     type: "object",
-    description:
-      "Starts a build and opens its workbench, where the seven bench tools " +
-      "are the ones registered. Both modes run on the simulated board, so " +
-      "nothing here depends on the reader owning the parts.",
+    description: docs.start_project,
     properties: {
-      project: projectArgument,
+      project,
       mode: {
         type: "string",
         enum: ["guided", "demo"],
-        description:
-          "Both run on the simulated board; the kit checklist is advisory either way.",
+        description: args.start_project.mode,
       },
     },
     required: ["project"],
     additionalProperties: false,
   },
-};
+  };
+}
