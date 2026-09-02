@@ -16,11 +16,10 @@ export async function generateMetadata(
 /**
  * S-04 · `/workbench/[slug]` — the workbench, on its own route.
  *
- * Only a build that has one gets one. The chapters without a bench are
- * honestly labelled previews everywhere else in the product, and a workbench
- * URL that opened an empty bench for them would be the first place that
- * stopped being true — so a benchless slug is a `404` rather than a
- * disappointment.
+ * Only a build the registry knows gets one. All six chapters have a bench
+ * today; the guard stays because the registry, not the route, is the answer
+ * to "does this chapter have a workshop", and a slug it does not know is a
+ * `404` rather than an empty bench pretending to be one.
  *
  * The page itself is thin on purpose. Everything that makes this screen the
  * hardest one in the product — four regions that each fill their own track, a

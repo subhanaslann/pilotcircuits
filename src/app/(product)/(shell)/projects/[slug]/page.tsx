@@ -31,17 +31,13 @@ export async function generateMetadata(
 /**
  * S-03 · `/projects/[slug]` — Project detail and preparation.
  *
- * **All seven get one.** The inventory names only Smart Parking Barrier here,
- * but P-11's `Preview project` notice was drawn for the other six and a single
- * static route would leave it as material nothing renders — and would leave six
- * cards in the library linking nowhere, which is the dead control §18 rules out
- * from the other direction.
- *
- * What a preview does *not* get is a step list. `buildSteps` describes one
- * build; the other six have a `stepCount` and no definitions, and writing seven
- * plausible-sounding step names would be exactly the placeholder §17 rules out.
- * They get their goals, their parts and an honest sentence about why the list
- * is not there.
+ * One route for all six chapters, and every one of them is `ready`: the step
+ * strip below is that chapter's own list, read from its entry in the bench
+ * registry. The `preview` branches stay because the catalogue's
+ * `ProjectStatus` still admits the state and P-11's notice was drawn for it —
+ * a chapter can be announced before its bench exists — but nothing in the
+ * catalogue is in that state today, and `@/lib/agent/builds` throws in
+ * development if `status` and the registry ever disagree.
  *
  * Two columns because §5 asks for a page that is information-dense and still
  * comfortable: the left one is what the build *is*, the right one is what you
@@ -66,9 +62,9 @@ export default async function ProjectDetailPage(
      step, and `stepsOwning` answers the barrier's list for any id it does not
      recognise. So `/projects/breathing-lamp` printed "4 steps · 3 parts" in the
      summary and then listed the barrier's seven underneath it — the one screen
-     in the product that stated something untrue. A chapter with no bench yet
-     has no steps of its own to name, and falls back to the same seven it
-     always did. */
+     in the product that stated something untrue. The `?? "kit"` fallback is
+     for a slug the registry does not know, which `notFound()` above has
+     already ruled out — every chapter has a bench, so it never runs. */
   const steps = toProgressSteps(
     copy,
     buildBySlug(slug)?.activeStepId ?? "kit",

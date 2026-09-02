@@ -328,7 +328,9 @@ export function projectWords(copy: Copy, id: ProjectId) {
   return copy.projects[id];
 }
 
-/** The build the dashboard offers to continue: the one with a guided bench. */
+/** The build the dashboard offers to continue: the capstone — all six have a
+ *  guided bench, and this is the one that opens mid-story, on a planted fault,
+ *  rather than on an empty bench. */
 export const featuredProjectId: ProjectId = "smartParkingBarrier";
 
 /**
