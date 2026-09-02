@@ -1,4 +1,5 @@
 import { diff, extras, isServoAligned, type CircuitScene } from "@/lib/circuit/graph";
+import { barrierSteps } from "@/lib/agent/steps";
 import { pwmPins } from "@/lib/circuit/breathing-lamp";
 import { lightDrivePins, lightLines } from "@/lib/circuit/traffic-light";
 import { nightLines, nightPins } from "@/lib/circuit/motion-night-light";
@@ -114,6 +115,24 @@ const wiringOk = (scene: CircuitScene) =>
   diff(scene).mismatches.length === 0 && extras(scene).length === 0;
 
 /**
+ * The joins one step owns, made and untouched by strays.
+ *
+ * `wiringOk` is the whole build; a row named after one part must not fail
+ * because a different part's cable was pulled. An extra is touching when it
+ * ends on one of the step's own endpoints — a stray into the same hole. A stray
+ * a hole along the same rail is still on the build, and `wiring` catches it.
+ */
+const stepJoinsOk = (scene: CircuitScene, ids: readonly string[]) => {
+  if (diff(scene, [...ids]).mismatches.length > 0) return false;
+  const ends = new Set(
+    scene.expected
+      .filter((c) => ids.includes(c.id))
+      .flatMap((c) => [c.from, c.to]),
+  );
+  return extras(scene).every((x) => !ends.has(x.from) && !ends.has(x.to));
+};
+
+/**
  * How much of the sketch is on the bench, as the dock prints it: `6 / 8`.
  *
  * Shared between chapters, and that is not the mistake this file exists to
@@ -129,11 +148,24 @@ const joinsMade = (scene: CircuitScene) => {
    Transcribed from the sequence that used to be written into the session, beat
    for beat and millisecond for millisecond: this build's film is unchanged. */
 
+/** The sensor's six joins — the third step's — and not the whole build. */
+const sensorJoins =
+  barrierSteps.find((step) => step.id === "sensor")?.connections ?? [];
+
 export const barrierRun: RunSpec = {
   checks: [
     {
-      id: "sensor",
+      id: "wiring",
       passes: wiringOk,
+      detail: joinsMade,
+      settlesAt: 1000,
+    },
+    /* This row used to be `wiringOk` for the entire build, so pulling the red
+       LED's wire read "Reading distance sensor · failed". It is the sensor's
+       own joins now; the row above carries the rest, as on every other build. */
+    {
+      id: "sensor",
+      passes: (scene) => stepJoinsOk(scene, sensorJoins),
       detail: () => `${finalReadingCm} cm`,
       settlesAt: 2000,
     },
