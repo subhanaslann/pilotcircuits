@@ -160,6 +160,15 @@ export const unoPins = {
   A3: [236.5, 191.5], A4: [246, 191.5], A5: [255.5, 191.5],
 } as const satisfies Record<string, readonly [number, number]>;
 
+/**
+ * Which way a cable leaves a header pin: out over the board's edge. The digital
+ * header is the top edge of the art (`y` 9), the power and analog headers the
+ * bottom (`y` 191.5), and a board placed anywhere on the desk keeps that.
+ */
+export function headerExit(source: keyof typeof unoPins): "up" | "down" {
+  return unoPins[source][1] < 100 ? "up" : "down";
+}
+
 /** wokwi-hc-sr04 */
 export const sensorPins = {
   vcc: [71.3, 94.5],

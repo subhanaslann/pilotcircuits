@@ -30,6 +30,13 @@ export interface CircuitNode {
   /** Breadboard address, when applicable. */
   row?: string;
   col?: number;
+  /**
+   * Which way a lead plugged here leaves the part, when the part knows: a header
+   * pin is on an edge of the board, a rail on an edge of the breadboard, a
+   * module's pins on one edge of its case. Absent, the router sends the lead
+   * away from the other end. Read by `wireExits`.
+   */
+  exit?: "up" | "down";
 }
 
 export interface Connection {

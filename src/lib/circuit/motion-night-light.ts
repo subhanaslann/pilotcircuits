@@ -8,6 +8,7 @@ import {
   pirPins,
   resistorPins,
   unoPins,
+  headerExit,
 } from "@/lib/circuit/wokwi";
 import type {
   CircuitNode,
@@ -156,6 +157,7 @@ const boardNodes: Record<NodeId, CircuitNode> = Object.fromEntries(
       id,
       kind: "board-pin" as const,
       label,
+      exit: headerExit(source),
       ...pinAt(nightBoardAt, unoPins[source]),
     },
   ]),
@@ -217,6 +219,7 @@ for (const col of columns) {
     kind: "breadboard-hole",
     label: `+${col}`,
     row: "+",
+    exit: "up",
     col,
     x: columnX(col),
     y: posRailY,
@@ -226,6 +229,7 @@ for (const col of columns) {
     kind: "breadboard-hole",
     label: `−${col}`,
     row: "-",
+    exit: "down",
     col,
     x: columnX(col),
     y: negRailY,
@@ -1455,9 +1459,13 @@ export function nightLines(scene: CircuitScene): {
 export function nightLeadRoot(
   terminal: TerminalId,
   at: { x: number; y: number },
-): { x: number; y: number } | undefined {
+): { x: number; y: number; exit?: "up" | "down" } | undefined {
   const px = ART_PINS[terminal as NightTerminal];
-  return px && terminal.startsWith("pir.") ? pinAt(at, px) : undefined;
+  /* The HC-SR501's three pins are on the bottom edge of its board, so a
+     strand leaves it downward — never up into the case. */
+  return px && terminal.startsWith("pir.")
+    ? { ...pinAt(at, px), exit: "down" }
+    : undefined;
 }
 
 /** Part numbers, printed on the parts and the same in every language. */

@@ -98,9 +98,9 @@ describe("a jumper still sags out of its holes", () => {
       const to = node(smartParkingBarrier, connection.to);
       expect(connection.medium ?? "jumper").toBe("jumper");
       expect(wirePath(from, to)).toBe(wirePath(from, to, "jumper"));
-      /* Four commands, the shape `wirePath` has always emitted: out of one
-         hole, across on a sagging curve, into the other. */
-      expect(wirePath(from, to)).toMatch(/^M .+ L .+ Q .+ L .+$/);
+      /* Five commands, the shape `wirePath` emits: out of one
+         hole, across on two cubics through the belly, into the other. */
+      expect(wirePath(from, to)).toMatch(/^M .+ L .+ C .+ C .+ L .+$/);
     }
   });
 

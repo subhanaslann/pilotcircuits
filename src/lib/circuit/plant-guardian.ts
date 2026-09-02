@@ -8,6 +8,7 @@ import {
   resistorPins,
   soilPins,
   unoPins,
+  headerExit,
 } from "@/lib/circuit/wokwi";
 import type {
   CircuitNode,
@@ -140,6 +141,7 @@ const boardNodes: Record<NodeId, CircuitNode> = Object.fromEntries(
       id,
       kind: "board-pin" as const,
       label,
+      exit: headerExit(source),
       ...pinAt(plantBoardAt, unoPins[source]),
     },
   ]),
@@ -213,6 +215,7 @@ for (const col of columns) {
     kind: "breadboard-hole",
     label: `+${col}`,
     row: "+",
+    exit: "up",
     col,
     x: columnX(col),
     y: posRailY,
@@ -222,6 +225,7 @@ for (const col of columns) {
     kind: "breadboard-hole",
     label: `−${col}`,
     row: "-",
+    exit: "down",
     col,
     x: columnX(col),
     y: negRailY,
@@ -1329,9 +1333,13 @@ export const plantStageBox = framed.stage;
 export function plantLeadRoot(
   terminal: TerminalId,
   at: { x: number; y: number },
-): { x: number; y: number } | undefined {
+): { x: number; y: number; exit?: "up" | "down" } | undefined {
   const px = ART_PINS[terminal as PlantTerminal];
-  return px && terminal.startsWith("soil.") ? pinAt(at, px) : undefined;
+  /* The probe's plug is on the top edge of its board, so a strand leaves it
+     upward. */
+  return px && terminal.startsWith("soil.")
+    ? { ...pinAt(at, px), exit: "up" }
+    : undefined;
 }
 
 /** Part numbers, printed on the parts and the same in every language. */

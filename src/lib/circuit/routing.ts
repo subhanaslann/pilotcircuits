@@ -12,22 +12,40 @@ import type { CircuitNode } from "@/lib/circuit/graph";
  * Paths are derived, never stored. Move an endpoint and the wire follows.
  */
 
-const EXIT = PITCH * 0.9;
+/**
+ * The stiff exit. 0.6 of a pitch, not 0.9: with the round cap and the 4.2-unit
+ * rim the stroke of a 9-unit stub reached 11.1 units — into the next hole on
+ * every bench (G8, D29, I10, neg7 measured at 1.0 unit or closer).
+ */
+const EXIT = PITCH * 0.6;
 /** Sag as a fraction of span, capped so long wires do not droop absurdly. */
 const SAG = 0.18;
 const MAX_SAG = PITCH * 9;
 
 /**
- * Which way each leg leaves its hole: away from the other end, straight up or
- * down. Exported because the connector housing has to sit on the same axis —
- * a housing drawn across the leg would look like the wire is lying on the pin
- * rather than plugged into it.
+ * Which way each leg leaves its hole, straight up or down. Exported because the
+ * connector housing has to sit on the same axis — a housing drawn across the
+ * leg would look like the wire is lying on the pin rather than plugged into it.
+ *
+ * A node that knows which way a lead leaves it says so (`exit`): a header pin
+ * is on an edge of the board and its cable comes in from outside that edge, a
+ * rail is on an edge of the breadboard, a module's pins are on one edge of
+ * its case. Everything else — a hole in the middle of the board — leaves away
+ * from the other end, which is the stiff lead rising before the cable droops.
+ * The old rule was "away" for everything, so a cable from the breadboard to
+ * `D13` dived under the header and came up into the pin from inside the PCB,
+ * crossing the neighbouring pin's housing at 24° on the way.
  */
 export function wireExits(from: CircuitNode, to: CircuitNode) {
-  return {
-    from: from.y <= to.y ? -EXIT : EXIT,
-    to: to.y <= from.y ? -EXIT : EXIT,
-  };
+  const of = (node: CircuitNode, other: CircuitNode) =>
+    node.exit
+      ? node.exit === "up"
+        ? -EXIT
+        : EXIT
+      : node.y <= other.y
+        ? -EXIT
+        : EXIT;
+  return { from: of(from, to), to: of(to, from) };
 }
 
 /**
@@ -66,6 +84,21 @@ const seatsALead = (node: CircuitNode) => node.kind !== "terminal";
  * and it is simply the shortest line, which is what a leg clipped to another
  * leg looks like from above.
  */
+/**
+ * Where a leg bends: straight down out of the lead's tip, straight up into the
+ * hole. One control level with the far end used to sit *beside* the tip, so a
+ * lead whose tip overhung its hole left backwards first — chapter one's
+ * resistor leg ran four units back through the resistor's own body.
+ */
+function legControls(far: CircuitNode, hole: CircuitNode) {
+  const drop = Math.abs(hole.y - far.y) / 2;
+  const down = hole.y >= far.y ? drop : -drop;
+  return {
+    tip: { x: far.x, y: far.y + down },
+    hole: { x: hole.x, y: hole.y - down },
+  };
+}
+
 function legPath(from: CircuitNode, to: CircuitNode): string {
   const bend = seatsALead(from) ? from : seatsALead(to) ? to : undefined;
   if (!bend) return `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
@@ -74,7 +107,48 @@ function legPath(from: CircuitNode, to: CircuitNode): string {
      leaves the far lead heading across, and arrives at the hole heading
      straight down into it. Never past it — a leg ends where the board is. */
   const far = bend === from ? to : from;
-  return `M ${from.x} ${from.y} Q ${bend.x} ${far.y} ${to.x} ${to.y}`;
+  const c = legControls(far, bend);
+  const [c1, c2] = bend === from ? [c.hole, c.tip] : [c.tip, c.hole];
+  return `M ${from.x} ${from.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${to.x} ${to.y}`;
+}
+
+type XY = { x: number; y: number };
+
+/**
+ * The run between the two stub tips: two cubics through a belly.
+ *
+ * A single quadratic with its control under the chord's midpoint gave the
+ * cable its droop — and turned a hairpin on each stub's tip, because the curve
+ * left the tip heading straight for the belly. Two cubics keep the droop (the
+ * belly sits where the quadratic's did, half the sag under the midpoint, with
+ * the chord's own direction as its tangent so a vertical run stays vertical
+ * there) and continue each stub for a moment before bending, so the cable
+ * leaves along its stub and arrives along the other one. Where the arrival
+ * ends is `wireExits`' business; this only follows it.
+ */
+function jumperRun(
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  exitFrom: number,
+  exitTo: number,
+) {
+  const span = Math.hypot(bx - ax, by - ay);
+  const sag = Math.min(span * SAG, MAX_SAG);
+  const belly = { x: (ax + bx) / 2, y: (ay + by) / 2 + sag / 2 };
+  const ux = span > 0 ? (bx - ax) / span : 0;
+  const uy = span > 0 ? (by - ay) / span : 1;
+  const handle = span / 4;
+  /* How far the cable keeps to its stub's axis before it bends. */
+  const reach = Math.min(EXIT * 1.5, span / 6);
+  return {
+    a1: { x: ax, y: ay + Math.sign(exitFrom) * reach },
+    a2: { x: belly.x - ux * handle, y: belly.y - uy * handle },
+    belly,
+    b1: { x: belly.x + ux * handle, y: belly.y + uy * handle },
+    b2: { x: bx, y: by + Math.sign(exitTo) * reach },
+  };
 }
 
 export function wirePath(
@@ -84,10 +158,6 @@ export function wirePath(
 ): string {
   if (medium === "leg") return legPath(from, to);
 
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const span = Math.hypot(dx, dy);
-
   const { from: exitFrom, to: exitTo } = wireExits(from, to);
 
   const ax = from.x;
@@ -95,22 +165,34 @@ export function wirePath(
   const bx = to.x;
   const by = to.y + exitTo;
 
-  const sag = Math.min(span * SAG, MAX_SAG);
-  const midX = (ax + bx) / 2;
-  const midY = (ay + by) / 2 + sag;
+  const r = jumperRun(ax, ay, bx, by, exitFrom, exitTo);
 
   return [
     `M ${from.x} ${from.y}`,
     `L ${ax} ${ay}`,
-    `Q ${midX} ${midY} ${bx} ${by}`,
+    `C ${r.a1.x} ${r.a1.y} ${r.a2.x} ${r.a2.y} ${r.belly.x} ${r.belly.y}`,
+    `C ${r.b1.x} ${r.b1.y} ${r.b2.x} ${r.b2.y} ${bx} ${by}`,
     `L ${to.x} ${to.y}`,
   ].join(" ");
+}
+
+/** A point on a cubic Bézier, `t` running 0 → 1. */
+function cubicAt(p0: XY, p1: XY, p2: XY, p3: XY, t: number): XY {
+  const u = 1 - t;
+  const a = u * u * u;
+  const b = 3 * u * u * t;
+  const c = 3 * u * t * t;
+  const d = t * t * t;
+  return {
+    x: a * p0.x + b * p1.x + c * p2.x + d * p3.x,
+    y: a * p0.y + b * p1.y + c * p2.y + d * p3.y,
+  };
 }
 
 /**
  * A point on the drawn curve, `t` running 0 → 1 from `from` to `to`.
  *
- * The same quadratic `wirePath` emits, evaluated rather than re-derived, so a
+ * The same cubic `wirePath` emits, evaluated rather than re-derived, so a
  * label placed by this sits **on the cable** at every zoom and stays there when
  * an endpoint moves.
  */
@@ -132,29 +214,23 @@ export function wirePointAt(
       };
     }
     const far = bend === from ? to : from;
-    const u = 1 - t;
-    return {
-      x: u * u * from.x + 2 * u * t * bend.x + t * t * to.x,
-      y: u * u * from.y + 2 * u * t * far.y + t * t * to.y,
-    };
+    const c = legControls(far, bend);
+    const [c1, c2] = bend === from ? [c.hole, c.tip] : [c.tip, c.hole];
+    return cubicAt(from, c1, c2, to, t);
   }
-
-  const span = Math.hypot(to.x - from.x, to.y - from.y);
-  const sag = Math.min(span * SAG, MAX_SAG);
 
   const { from: exitFrom, to: exitTo } = wireExits(from, to);
   const ax = from.x;
   const ay = from.y + exitFrom;
   const bx = to.x;
   const by = to.y + exitTo;
-  const cx = (ax + bx) / 2;
-  const cy = (ay + by) / 2 + sag;
+  const r = jumperRun(ax, ay, bx, by, exitFrom, exitTo);
 
-  const u = 1 - t;
-  return {
-    x: u * u * ax + 2 * u * t * cx + t * t * bx,
-    y: u * u * ay + 2 * u * t * cy + t * t * by,
-  };
+  /* Two segments, `t` split evenly — the belly is the halfway point, which is
+     where a label sits by default. */
+  return t < 0.5
+    ? cubicAt({ x: ax, y: ay }, r.a1, r.a2, r.belly, t * 2)
+    : cubicAt(r.belly, r.b1, r.b2, { x: bx, y: by }, t * 2 - 1);
 }
 
 /** Midpoint of the curve — where a wire's label and icon sit by default. */

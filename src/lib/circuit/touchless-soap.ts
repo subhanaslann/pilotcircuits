@@ -9,6 +9,7 @@ import {
   sensorPins,
   servoPins,
   unoPins,
+  headerExit,
 } from "@/lib/circuit/wokwi";
 import type {
   CircuitNode,
@@ -145,6 +146,7 @@ const boardNodes: Record<NodeId, CircuitNode> = Object.fromEntries(
       id,
       kind: "board-pin" as const,
       label,
+      exit: headerExit(source),
       ...pinAt(soapBoardAt, unoPins[source]),
     },
   ]),
@@ -202,6 +204,7 @@ for (const col of columns) {
     kind: "breadboard-hole",
     label: `+${col}`,
     row: "+",
+    exit: "up",
     col,
     x: columnX(col),
     y: posRailY,
@@ -211,6 +214,7 @@ for (const col of columns) {
     kind: "breadboard-hole",
     label: `−${col}`,
     row: "-",
+    exit: "down",
     col,
     x: columnX(col),
     y: negRailY,
@@ -1202,11 +1206,17 @@ export function soapLines(scene: CircuitScene): {
 export function soapLeadRoot(
   terminal: TerminalId,
   at: { x: number; y: number },
-): { x: number; y: number } | undefined {
+): { x: number; y: number; exit?: "up" | "down" } | undefined {
   const px = ART_PINS[terminal as SoapTerminal];
   const isModule =
     terminal.startsWith("sensor.") || terminal.startsWith("servo.");
-  return px && isModule ? pinAt(at, px) : undefined;
+  if (!px || !isModule) return undefined;
+  /* The HC-SR04's pins are on the bottom edge of its board, so a strand leaves
+     it downward. The servo's plug is on its side, and a side has no up or
+     down here — its strands take the ordinary rule. */
+  return terminal.startsWith("sensor.")
+    ? { ...pinAt(at, px), exit: "down" }
+    : pinAt(at, px);
 }
 
 /**

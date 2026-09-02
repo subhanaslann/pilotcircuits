@@ -5,6 +5,7 @@ import {
   sensorPins,
   servoPins,
   unoPins,
+  headerExit,
 } from "@/lib/circuit/wokwi";
 import type { CircuitNode, CircuitScene, Connection, NodeId } from "@/lib/circuit/graph";
 
@@ -52,6 +53,7 @@ BOARD_PINS.forEach(([id, source, label]) => {
     id,
     kind: "board-pin",
     label,
+    exit: headerExit(source),
     ...pinAt(layout.board, unoPins[source]),
   });
 });
@@ -122,6 +124,7 @@ for (let col = 1; col <= part.breadboard.columns; col++) {
     id: `bb.pos${col}`,
     kind: "breadboard-hole",
     row: "+",
+    exit: "up",
     col,
     x: bbOriginX + (col - 1) * PITCH,
     y: BANK_TOP - RAIL_OFFSET,
@@ -130,6 +133,7 @@ for (let col = 1; col <= part.breadboard.columns; col++) {
     id: `bb.neg${col}`,
     kind: "breadboard-hole",
     row: "-",
+    exit: "down",
     col,    x: bbOriginX + (col - 1) * PITCH,
     y: BANK_BOTTOM + RAIL_OFFSET,
   });

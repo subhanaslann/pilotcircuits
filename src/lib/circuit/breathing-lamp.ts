@@ -7,6 +7,7 @@ import {
   pin as pinAt,
   resistorPins,
   unoPins,
+  headerExit,
 } from "@/lib/circuit/wokwi";
 import type {
   CircuitNode,
@@ -124,6 +125,7 @@ const boardNodes: Record<NodeId, CircuitNode> = Object.fromEntries(
       id,
       kind: "board-pin" as const,
       label,
+      exit: headerExit(source),
       ...pinAt(lampBoardAt, unoPins[source]),
     },
   ]),
