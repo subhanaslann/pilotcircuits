@@ -2619,12 +2619,6 @@ export const en = {
     /* Said under the button, not on it: the button's job is to name where it
        goes, and this is why it goes somewhere else. */
     noBenchYet: (project: string) => `${project} has no guided bench yet.`,
-    /* Five of the six chapters have no guided bench yet, and the rail must not
-       offer one. Said here rather than implied by a disabled button (§18).
-       Which bench opens instead is no longer said here — that fact moved to
-       the button that does it. */
-    previewNote:
-      "This build has no guided workshop yet. Its kit and its steps are real.",
   },
 
   device: {

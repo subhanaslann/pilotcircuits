@@ -2106,8 +2106,6 @@ export const tr: Copy = {
     startTitle: "Çalışmaya başla",
     noBenchYet: (project: string) =>
       `${project} için rehberli tezgah henüz yok.`,
-    previewNote:
-      "Bu yapımın rehberli atölyesi henüz yok. Kiti ve adımları gerçek.",
   },
 
   device: {

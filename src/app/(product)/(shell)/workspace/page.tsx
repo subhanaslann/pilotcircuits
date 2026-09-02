@@ -7,7 +7,6 @@ import { CoachWebMcp } from "@/components/workspace/coach-webmcp";
 import { KitCase } from "@/components/workspace/kit-case";
 import { ProjectButtons } from "@/components/workspace/project-buttons";
 import { StartBuild } from "@/components/workspace/start-build";
-import { Alert } from "@/components/ui/status";
 import { useCopy } from "@/content/copy-provider";
 import type { AgentTool } from "@/lib/agent/model";
 import {
@@ -37,12 +36,10 @@ import {
  * is the same list in words, because a drawing cannot be read by everyone and
  * §18 does not allow the picture to be the only place a fact lives.
  *
- * The one thing this screen refuses to do is offer a bench that does not exist.
- * Five of the six chapters are `preview` in the catalogue: their kits are real
- * and shown, and their `/workbench/[slug]` is a `404`. So the way in lives at
- * the foot of the third column and names the bench it opens rather than the
- * chapter you happen to have selected — see `StartBuild`. The kit column keeps
- * the note about the kit; it no longer has to carry the way out as well.
+ * The way in lives at the foot of the third column and names the bench it
+ * opens — see `StartBuild`. (When five chapters were `preview`, this column
+ * also carried a note saying so; all six have a bench now, and the note went
+ * with the branch that showed it.)
  */
 /**
  * §9's route table, one row: the two tools this screen can honour.
@@ -74,7 +71,6 @@ export default function WorkspacePage() {
 
   const project = projectById(selectedId);
   const words = copy.projects[selectedId];
-  const ready = project.status === "ready";
 
   return (
     <div className="grid gap-8 py-6 lg:h-[calc(100dvh-var(--spacing-topbar))] lg:grid-cols-[300px_minmax(0,1fr)_340px] lg:overflow-hidden">
@@ -161,18 +157,7 @@ export default function WorkspacePage() {
               </li>
             ))}
           </ul>
-
-          {/* The way in used to be here, behind the case. It is a permanent
-              control on a screen for choosing what to build, so it moved out to
-              the third column where it is visible without opening anything —
-              see `StartBuild`. What stays is the note about *this* kit. */}
-          {ready ? null : (
-            <div className="mt-6">
-              <Alert tone="info" title={copy.status.preview}>
-                {copy.workspace.previewNote}
-              </Alert>
-            </div>
-          )}
+
         </div>
       </section>
 
