@@ -964,7 +964,7 @@ export const en = {
         instruction:
           "Nine parts: the board, the breadboard, the motion sensor, one LED, one 220Ω resistor and four jumper wires.",
         rationale:
-          "The sensor is the new part, and it is the first one that has to be fed. Everything before it only had to be driven.",
+          "The sensor is the new part, and it is the first one that has to be fed. Everything before it only had to be driven. Its three pins are reached with female-to-male jumpers of their own — the bench draws each as one strand.",
       },
       mnlPower: {
         name: "Bring power to both rails",
@@ -1011,7 +1011,7 @@ export const en = {
         instruction:
           "Nine parts: the board, the breadboard, the soil probe, one LED, one 220Ω resistor and four jumper wires.",
         rationale:
-          "The probe is the new part, and the board turns over to meet it: three of the four holes this build uses are on the header along the bottom edge.",
+          "The probe is the new part, and the board turns over to meet it: three of the four holes this build uses are on the header along the bottom edge. The probe's plug reaches the board on three female-to-male jumpers, drawn here as three strands.",
       },
       pgPower: {
         name: "Bring power to both rails",
@@ -1061,7 +1061,7 @@ export const en = {
         instruction:
           "Nine parts: the board, the breadboard, the distance sensor, the servo, one LED, one 220Ω resistor and three jumper wires.",
         rationale:
-          "Two new parts, and the servo is the first thing in this product that moves. It draws more than a lamp does, which is why it is fed from the rails rather than from a pin.",
+          "Two new parts, and the servo is the first thing in this product that moves. It draws more than a lamp does, which is why it is fed from the rails rather than from a pin. The sensor's four pins and the servo's plug reach the board on female-to-male jumpers of their own — the bench draws each as one strand.",
       },
       tsdPower: {
         name: "Bring power to both rails",

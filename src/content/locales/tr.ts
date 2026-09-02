@@ -741,7 +741,7 @@ export const tr: Copy = {
         instruction:
           "Dokuz parça: kart, breadboard, hareket sensörü, bir LED, bir 220Ω direnç ve dört jumper kablo.",
         rationale:
-          "Yeni parça hareket sensörü, ve beslenmesi gereken ilk parça. Ondan öncekilerin yalnızca sürülmesi yetiyordu.",
+          "Yeni parça hareket sensörü, ve beslenmesi gereken ilk parça. Ondan öncekilerin yalnızca sürülmesi yetiyordu. Sensörün üç pini karta kendi dişi-erkek jumper'larıyla ulaşıyor; tezgah her birini tek tel olarak çiziyor.",
       },
       mnlPower: {
         name: "İki raya da güç getir",
@@ -788,7 +788,7 @@ export const tr: Copy = {
         instruction:
           "Dokuz parça: kart, breadboard, toprak probu, bir LED, bir 220Ω direnç ve dört jumper kablo.",
         rationale:
-          "Yeni parça toprak probu, ve kart onu karşılamak için ters dönüyor: bu yapımın kullandığı dört deliğin üçü alt kenardaki header'da.",
+          "Yeni parça toprak probu, ve kart onu karşılamak için ters dönüyor: bu yapımın kullandığı dört deliğin üçü alt kenardaki header'da. Probun fişi karta üç dişi-erkek jumper'la ulaşıyor; burada üç tel olarak çizili.",
       },
       pgPower: {
         name: "İki raya da güç getir",
@@ -838,7 +838,7 @@ export const tr: Copy = {
         instruction:
           "Dokuz parça: kart, breadboard, mesafe sensörü, servo, bir LED, bir 220Ω direnç ve üç jumper kablo.",
         rationale:
-          "İki yeni parça, ve servo bu üründe hareket eden ilk şey. Bir lambadan daha fazla akım çekiyor; raylardan beslenmesinin sebebi de bu.",
+          "İki yeni parça, ve servo bu üründe hareket eden ilk şey. Bir lambadan daha fazla akım çekiyor; raylardan beslenmesinin sebebi de bu. Sensörün dört pini ve servonun fişi karta kendi dişi-erkek jumper'larıyla ulaşıyor; tezgah her birini tek tel olarak çiziyor.",
       },
       tsdPower: {
         name: "İki raya da güç getir",
