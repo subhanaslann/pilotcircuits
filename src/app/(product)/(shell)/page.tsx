@@ -76,22 +76,36 @@ export default async function LandingPage() {
         className="grid-paper pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-screen -translate-x-1/2"
       />
 
-      {/* The bench and the agent, side by side.
-          920 + 24 + 360 = 1304, inside the shell's 1312 of usable width — and
-          none of those three numbers is chosen here. 920 is the scene's own
-          frame (`scene-spec.ts`), 360 is the panel's own width in the workbench
-          (`tokens.ts` `layout.agentPanel`), so the entry screen is composed out
-          of the two objects at the sizes they already are.
+      {/* The bench and the agent, side by side — while both of them fit.
 
-          Below `lg` it stacks, panel last: on a phone the bench is what the
-          screen is about and a 360px column of tabs above it is not. */}
+          The ask has a measure and the bench has not: 340 is the ask's own
+          width, and the scene beside it is an SVG with a viewBox
+          (`bench-view.tsx`) that takes the width it is handed and scales to it.
+          So the bench column is the elastic one, capped at the scene's own
+          frame of 920 (`scene-spec.ts`) so that a 1360px shell still puts both
+          columns exactly where they have always been.
+
+          Both were `shrink-0` until this was measured, which is what the
+          shell's 1312 of usable width invites you to write — and 1312 is only
+          the truth at 1360. Anywhere between `lg` and 1332 the row was 1284
+          wide inside a container that was not, and the ask hung off the right
+          edge with nothing to scroll to it: the sentence that names the fault
+          and the button that clears it, both simply gone. Found in ChatGPT's
+          in-app browser, whose pane is about 1250 — the browser this product
+          is opened in for judging.
+
+          The row exists from 1120 up, which is `layout.workbenchMin`, the
+          width at which the workbench itself still keeps its canvas. Below
+          that the drawing would be under 700px and the terminal beside it
+          starts dropping the ends of its lines, so the page stacks instead and
+          gives the bench the whole column, ask last. */}
       <div className="mx-auto w-full max-w-[1304px]">
         {/* The sheet, the terminal, the bench and the panel over one session —
             see `landing-session.tsx`. Not the product's: pressing a button on
             the entry screen must not move the build waiting at the workbench. */}
         <LandingSessionProvider>
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
-          <div className="min-w-0 lg:w-[920px] lg:shrink-0">
+        <div className="flex flex-col gap-6 min-[1120px]:flex-row min-[1120px]:items-stretch">
+          <div className="min-w-0 min-[1120px]:max-w-[920px] min-[1120px]:flex-1">
             {/* The reading measure. Narrower than the bench under it, which is
                 the point: the mat runs past the text. */}
             <div className="mx-auto max-w-[760px]">
@@ -118,16 +132,24 @@ export default async function LandingPage() {
             <WorkshopScene className="mt-[14px]" />
           </div>
 
-          <RepairAsk className="lg:w-[340px] lg:shrink-0 lg:pt-[44px]" />
+          <RepairAsk className="min-[1120px]:w-[340px] min-[1120px]:shrink-0 min-[1120px]:pt-[44px]" />
         </div>
         </LandingSessionProvider>
       </div>
 
       {/* Below the bench: two bands, hairlines, no cards (rule 4). Kept on the
           bench's own column rather than centred in the shell, so the whole page
-          reads off one left edge instead of two. */}
+          reads off one left edge instead of two.
+
+          The column above is mirrored rather than restated: `mr-[364px]` is the
+          ask's 340 and the row's 24 of gap, so this measure stands under the
+          one it is continuing at every width the row can take. It was
+          `ml-[80px]` — (920 − 760) / 2, the right inset for a bench column that
+          is always 920, and 41px wrong in the 1250 pane the moment the column
+          was allowed to shrink. */}
       <div className="mx-auto w-full max-w-[1304px]">
-      <div className="mx-auto max-w-[760px] lg:mx-0 lg:ml-[80px]">
+      <div className="min-w-0 min-[1120px]:mr-[364px] min-[1120px]:max-w-[920px]">
+      <div className="mx-auto max-w-[760px]">
         <section className="border-paper-line mt-16 border-t pt-9">
           <h2 className="font-condensed text-ink text-[26px] leading-none font-bold uppercase">
             {copy.landing.coachTitle}
@@ -147,6 +169,7 @@ export default async function LandingPage() {
           </p>
           <ChapterLedger className="mt-7" />
         </section>
+      </div>
       </div>
       </div>
     </main>
