@@ -1438,6 +1438,51 @@ export const en = {
             "A hand comes near. The lamp comes on, and the servo is told where to go.",
         },
       },
+      smartParkingBarrier: {
+        parts: {
+          board: {
+            name: "The board",
+            note: "The same Uno, doing all of it at once: timing a pulse, deciding what the distance means, driving two lamps and holding the servo at an angle. Every wire on this bench ends somewhere along its two headers.",
+          },
+          breadboard: {
+            name: "The breadboard",
+            note: "Fed once from the board — 5V to the + rail, GND to the − — and everything that needs power takes it from there. Six chapters of wiring end in that habit.",
+          },
+          sensor: {
+            name: "The distance sensor",
+            note: "Two cans: one sends a pulse, the other hears it come back. Trig on D8 sends it, the answer arrives on Echo, and how long it took is how far away the car is.",
+          },
+          servo: {
+            name: "The servo",
+            note: "The barrier arm is bolted to its horn. The orange lead carries a position from D9 — an angle it is told to hold — while red and brown are only its supply.",
+          },
+          led: {
+            name: "The status lamps",
+            note: "Green for open, red for closed: the one part of this build you can read from across the room, which is why the sketch lights them before it moves anything.",
+          },
+          resistor: {
+            name: "The resistors",
+            note: "One 220Ω in series with each lamp, lying beside it on the bench. They are the only parts here with no hole of their own to check — each stands inside its lamp's own leg.",
+          },
+        },
+        purpose:
+          "A barrier that lifts for a car and closes behind it. It is the last chapter and the only one that arrives already built: the machine is on the bench, wired, with one lead in the wrong hole. What is new here is not a part — it is judgement. You read a build somebody else made, decide whether it is right, and prove it with a test.",
+        /* Six beats, and this film is the signal rather than the assembly:
+           `barrier-assembly.ts` says why, and why every placement in it is
+           empty. */
+        assembly: {
+          bench:
+            "The whole machine, standing wired: board, breadboard, sensor, servo and two lamps.",
+          power:
+            "5V and GND leave the board for the rails. Everything else feeds from there.",
+          ping: "D8 sends a pulse out through the sensor.",
+          echo:
+            "It comes back into Echo, and the board reads it on D7 — the wire this chapter is about.",
+          decide:
+            "Close enough to matter. The board lights the green lamp on D3 and lets the red one go dark.",
+          sweep: "D9 tells the horn where to stand, and the arm lifts.",
+        },
+      },
     },
   },
 

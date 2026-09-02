@@ -154,6 +154,12 @@ export const partNumbers = {
   board: "Arduino Uno",
   sensor: "HC-SR04",
   servo: "SG90",
+  /* The three the entry screen never had to name, added when this chapter got
+     its briefing: a part act prints the number off the build rather than out
+     of the dictionary, so all six parts owe one. */
+  breadboard: "Half-size",
+  led: "5 mm LED",
+  resistor: "220Ω",
 } as const;
 
 const SENSOR_PINS = ["vcc", "trig", "echo", "gnd"] as const;

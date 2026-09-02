@@ -210,6 +210,83 @@ export const partBox = {
 export type PartBoxId = keyof typeof partBox;
 
 /**
+ * Where the two 220Ω resistors lie, alongside their lamps.
+ *
+ * They are the one part of this build with no node in the graph — each sits in
+ * series inside a leg rather than between two addressable points, which is why
+ * `agent/parts.ts` cannot list them under a step either. So the drawing placed
+ * them with arithmetic of its own, written into `circuit-scene.tsx`, and
+ * nothing outside that file could say where they were. The arithmetic is here
+ * now and the drawing reads it: the briefing has to frame a part the graph
+ * cannot point at.
+ */
+export const resistorAt = (led: { x: number; y: number }) => ({
+  x: led.x - part.resistor.width - PITCH * 2,
+  y: led.y + part.led.height * 0.62,
+});
+
+const around = (
+  at: { x: number; y: number },
+  size: { width: number; height: number },
+): Rect => ({
+  x: at.x - PAD,
+  y: at.y - PAD,
+  width: size.width + PAD * 2,
+  height: size.height + PAD * 2,
+});
+
+const grown = (box: Rect, by: number): Rect => ({
+  x: box.x - by,
+  y: box.y - by,
+  width: box.width + by * 2,
+  height: box.height + by * 2,
+});
+
+const union = (boxes: readonly Rect[]): Rect => {
+  const x = Math.min(...boxes.map((b) => b.x));
+  const y = Math.min(...boxes.map((b) => b.y));
+  const right = Math.max(...boxes.map((b) => b.x + b.width));
+  const bottom = Math.max(...boxes.map((b) => b.y + b.height));
+  return { x, y, width: right - x, height: bottom - y };
+};
+
+/**
+ * What the capstone's briefing frames when its subject is a pair.
+ *
+ * This chapter has two of two of its parts — a green lamp and a red one, and a
+ * 220Ω for each — and a close-up of one of them under a caption about both
+ * would be the picture disagreeing with the words. Kept out of `partBox`
+ * deliberately: that table is the camera's, one box per detected part (W-07),
+ * and a pair is not something the vision result ever returns.
+ */
+export const barrierPairBox = {
+  leds: union([partBox.ledGreen, partBox.ledRed]),
+  /* The lamps are in this one too, and that is the point rather than slack
+     framing: a 220Ω framed to its own body fills the stage with a component
+     and a slice of the wire crossing it, and the sentence under it is about
+     what each resistor stands beside. So the pair screen shows both lamps and
+     both resistors; the lamps' own screen is the tighter shot of the two. */
+  resistors: grown(
+    union([
+      partBox.ledGreen,
+      partBox.ledRed,
+      around(resistorAt(layout.ledGreen), part.resistor),
+      around(resistorAt(layout.ledRed), part.resistor),
+    ]),
+    PITCH,
+  ),
+} as const;
+
+/**
+ * What the capstone's briefing film is framed on.
+ *
+ * The whole bench with a chapter's padding, clipped to the mat the way every
+ * other chapter's `stageBox` is — see `framing`, and `BriefingDef.stageBox`
+ * for why the film uses the clipped box rather than the padded one.
+ */
+export const barrierStageBox = framing(Object.values(partBox), PITCH * 4).stage;
+
+/**
  * Where the servo horn turns, and how far the arm reaches from it.
  *
  * Both the drawing and the inspection's crop need these, and a crop computed

@@ -45,6 +45,13 @@ import {
   soapSceneFrom,
 } from "@/lib/circuit/touchless-soap";
 import { soapAssembly } from "@/lib/circuit/touchless-soap-assembly";
+import { partNumbers as barrierNumbers } from "@/lib/circuit/smart-parking-barrier";
+import { barrierAssembly } from "@/lib/circuit/barrier-assembly";
+import {
+  barrierPairBox,
+  barrierStageBox,
+  partBox as barrierPartBox,
+} from "@/lib/circuit/geometry";
 import type { AssemblyBeat } from "@/lib/circuit/assembly";
 import type { CircuitScene } from "@/lib/circuit/graph";
 import type { Placement } from "@/lib/circuit/placement";
@@ -518,6 +525,96 @@ export const briefings: Partial<Record<ProjectId, BriefingDef>> = {
       D7: "default",
       D9: "default",
       D13: "default",
+      "220Ω": "default",
+    },
+  },
+
+  /**
+   * Chapter six, and the one row whose chapter arrives built.
+   *
+   * The other five hand over an empty bench, so their part acts draw the part
+   * *alone* against a placement and their last act is the build assembling
+   * itself. Neither is available here and neither would be true: this bench has
+   * no placement to draw from, and nothing about it is ever assembled by the
+   * person. So the two are answered the way this chapter answers everything —
+   * by showing the finished machine and moving the camera:
+   *
+   *   - `sceneFrom` ignores what it is handed and returns the build's own
+   *     `reference`, the corrected machine the Compare view already draws. One
+   *     object, so the film and the compare cannot disagree, and the bench
+   *     behind the window is that machine with the Echo lead one hole out.
+   *   - `alone` is empty on every part for the same reason. A part act is a
+   *     close-up of the built bench, framed on its subject; the stage travels
+   *     between them, which reads as one bench seen from six distances.
+   *   - the film is the signal rather than the assembly — see
+   *     `barrier-assembly.ts`.
+   */
+  smartParkingBarrier: {
+    projectId: "smartParkingBarrier",
+    words: (copy) => copy.briefing.chapters.smartParkingBarrier,
+    /* Six screens, matching `catalog.smartParkingBarrier.components` exactly,
+       and the last two are pairs: this chapter has a green lamp and a red one,
+       and a 220Ω for each (`barrierPairBox`). */
+    parts: [
+      {
+        id: "board",
+        box: barrierPartBox.board,
+        alone: {},
+        words: (copy) => copy.briefing.chapters.smartParkingBarrier.parts.board,
+        number: barrierNumbers.board,
+      },
+      {
+        id: "breadboard",
+        box: barrierPartBox.breadboard,
+        alone: {},
+        words: (copy) =>
+          copy.briefing.chapters.smartParkingBarrier.parts.breadboard,
+        number: barrierNumbers.breadboard,
+      },
+      {
+        id: "sensor",
+        box: barrierPartBox.sensor,
+        alone: {},
+        words: (copy) => copy.briefing.chapters.smartParkingBarrier.parts.sensor,
+        number: barrierNumbers.sensor,
+      },
+      {
+        id: "servo",
+        box: barrierPartBox.servo,
+        alone: {},
+        words: (copy) => copy.briefing.chapters.smartParkingBarrier.parts.servo,
+        number: barrierNumbers.servo,
+      },
+      {
+        id: "led",
+        box: barrierPairBox.leds,
+        alone: {},
+        words: (copy) => copy.briefing.chapters.smartParkingBarrier.parts.led,
+        number: barrierNumbers.led,
+      },
+      {
+        id: "resistor",
+        box: barrierPairBox.resistors,
+        alone: {},
+        words: (copy) =>
+          copy.briefing.chapters.smartParkingBarrier.parts.resistor,
+        number: barrierNumbers.resistor,
+      },
+    ],
+    stageBox: barrierStageBox,
+    assembly: barrierAssembly,
+    sceneFrom: () => builds.smartParkingBarrier!.reference,
+    /* The four pins the sketch names and the two supply rails, plus the value
+       printed on the resistors. `D6` is deliberately absent: the wrong hole is
+       the bench's business, and the briefing is about the machine that works. */
+    mono: {
+      "5V": "default",
+      GND: "default",
+      D2: "default",
+      D3: "default",
+      D7: "default",
+      D8: "default",
+      D9: "default",
       "220Ω": "default",
     },
   },

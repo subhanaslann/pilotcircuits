@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { PITCH, layout, part } from "@/lib/circuit/geometry";
+import { layout, resistorAt } from "@/lib/circuit/geometry";
 import type {
   CircuitScene,
   Highlight,
@@ -240,15 +240,11 @@ export function CircuitSceneView({
         lit={ledState?.red}
         label={showLabels ? "Closed" : undefined}
       />
-      {/* One 220Ω in series with each LED, laid alongside it on the bench. */}
-      <Resistor
-        x={layout.ledGreen.x - part.resistor.width - PITCH * 2}
-        y={layout.ledGreen.y + part.led.height * 0.62}
-      />
-      <Resistor
-        x={layout.ledRed.x - part.resistor.width - PITCH * 2}
-        y={layout.ledRed.y + part.led.height * 0.62}
-      />
+      {/* One 220Ω in series with each LED, laid alongside it on the bench.
+          Where exactly is `geometry.ts`'s answer now, because the briefing has
+          to frame these two and they have no node to be found by. */}
+      <Resistor {...resistorAt(layout.ledGreen)} />
+      <Resistor {...resistorAt(layout.ledRed)} />
 
       {/* wires */}
       {wires.map((wire) => (

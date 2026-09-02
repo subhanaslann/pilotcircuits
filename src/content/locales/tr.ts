@@ -1170,6 +1170,51 @@ export const tr: Copy = {
             "Bir el yaklaşıyor. Lamba yanıyor, ve servoya nereye gideceği söyleniyor.",
         },
       },
+      smartParkingBarrier: {
+        parts: {
+          board: {
+            name: "Kart",
+            note: "Aynı Uno, hepsini aynı anda yapıyor: bir darbeyi zamanlıyor, mesafenin ne demek olduğuna karar veriyor, iki lambayı sürüyor ve servoyu bir açıda tutuyor. Bu tezgâhtaki her kablo onun iki header'ından birinde bitiyor.",
+          },
+          breadboard: {
+            name: "Breadboard",
+            note: "Karttan bir kez besleniyor — 5V + rayına, GND − rayına — ve güce ihtiyacı olan her parça onu oradan alıyor. Altı bölümlük kablolama bu alışkanlıkta bitiyor.",
+          },
+          sensor: {
+            name: "Mesafe sensörü",
+            /* Pinler tek başına duruyor: `Sentence` mono değerini metnin
+               içinden ham eşleşmeyle ayırıyor, yani "D8'deki" yazarsak kapsül
+               ile ekin arasında bir boşluk kalıyor. */
+            note: "İki koni: biri darbeyi gönderiyor, öteki dönüşünü duyuyor. Trig ucu D8 pininden gönderiyor, cevap Echo'ya geliyor ve ne kadar sürdüğü arabanın ne kadar uzakta olduğu demek.",
+          },
+          servo: {
+            name: "Servo",
+            note: "Bariyer kolu onun boynuzuna cıvatalı. Turuncu uç D9 pininden bir konum taşıyor — tutması söylenen bir açı — kırmızı ile kahverengi ise yalnızca beslemesi.",
+          },
+          led: {
+            name: "Durum lambaları",
+            note: "Yeşil açık, kırmızı kapalı demek: bu yapımın odanın öbür ucundan okunabilen tek parçası, bu yüzden program bir şeyi kımıldatmadan önce onları yakıyor.",
+          },
+          resistor: {
+            name: "Dirençler",
+            note: "Her lambanın hattında birer 220Ω, tezgâhta lambanın yanında duruyorlar. Kontrol edilecek kendi deliği olmayan tek parça bunlar — her biri kendi lambasının bacağının içinde duruyor.",
+          },
+        },
+        purpose:
+          "Araba gelince kalkan, arkasından kapanan bir bariyer. Son bölüm ve kurulu gelen tek bölüm: makine tezgâhta, kabloları çekili ve bir ucu yanlış delikte. Burada yeni olan bir parça değil — muhakeme. Başkasının yaptığı bir yapımı okuyor, doğru olup olmadığına karar veriyor ve testle kanıtlıyorsun.",
+        assembly: {
+          bench:
+            "Makinenin tamamı, kablolu duruyor: kart, breadboard, sensör, servo ve iki lamba.",
+          power:
+            "5V ve GND karttan raylara çıkıyor. Geri kalan her şey oradan besleniyor.",
+          ping: "D8 sensör üzerinden bir darbe gönderiyor.",
+          echo:
+            "Darbe Echo'dan geri geliyor ve kart onu D7 pininde okuyor — bu bölümün üstüne kurulduğu kablo.",
+          decide:
+            "Yeterince yakın. Kart D3 pinindeki yeşil lambayı yakıyor, kırmızıyı söndürüyor.",
+          sweep: "D9 boynuza nerede duracağını söylüyor, kol kalkıyor.",
+        },
+      },
     },
   },
 
