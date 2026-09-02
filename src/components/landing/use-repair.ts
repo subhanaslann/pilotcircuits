@@ -32,8 +32,28 @@ import type { FindingId } from "@/lib/agent/findings";
  * plate and a real agent the same thing rather than two paths that happen to
  * look alike — and it is the same rule the workbench keeps, where a tool the
  * browser invokes is the same call the button beside it makes.
+ *
+ * ## And one consequence, whoever pulled it
+ *
+ * The film is a picture of the graph being put right, so the graph has to be
+ * put right — and until this pass only the plate's own `repair()` did that
+ * half. An agent's `show_correction` started the film through the effect below
+ * and nothing else: the ring seated the cable, the car passed, and the session
+ * still held the fault, so the agent's next `inspect_build` reported the wire
+ * in D6 under a picture of it in D7 — measured on the real host
+ * (`.audit/hackathon/chrome152/before/landing.json`: the second inspection
+ * returns the same finding id). With animation on it was worse: the run ends
+ * on the dip that covers the fault going back, and nothing on the agent path
+ * ever put it back, so the bench stayed painted out.
+ *
+ * Both halves now hang off the call itself, in the same effect that starts
+ * the film: the graph repair lands when the call settles, and the fault is
+ * put back — through `inject`, with the film reset under it — `TOTAL + REST`
+ * after the film started. The plate's `repair()` only makes the two calls; it
+ * no longer touches the session, so the plate and an agent cannot act twice
+ * and cannot act differently.
  */
-/** How long the working build is left standing before the fault returns. */
+/** How long the run's end frame is left standing before the fault returns. */
 const REST = 2600;
 
 export function useRepair() {
@@ -43,6 +63,17 @@ export function useRepair() {
   useWebMcpTools(["inspect_build", "show_correction"], session);
 
   /**
+   * The session, readable from a timer and from an effect that closed over an
+   * older render. `session` is a new object every render (no `useCallback`,
+   * React Compiler), and the one a ten-second timer would otherwise hold is the
+   * one from the render that armed it. Same device as `use-webmcp.ts`.
+   */
+  const live = useRef(session);
+  useEffect(() => {
+    live.current = session;
+  });
+
+  /**
    * The bench, following the session.
    *
    * Keyed on the call's id rather than on its name, so a second
@@ -50,16 +81,88 @@ export function useRepair() {
    * the sequence again instead of being swallowed as "no change".
    */
   const seen = useRef<string | null>(null);
+  /** The call whose graph repair is still owed, until it settles. */
+  const owed = useRef<{ id: string; findingId: FindingId } | null>(null);
+  /** Whether the graph has been repaired since the fault was last put back. */
+  const repaired = useRef(false);
+  /** The pending re-break, so leaving the page does not fire it into nothing. */
+  const later = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (later.current) window.clearTimeout(later.current);
+  }, []);
+
   const running = session.state.running;
 
   useEffect(() => {
+    /**
+     * The settle. Calls are serialised, so the call this hook is waiting on
+     * has settled the moment `running` is anything other than it — `null`, or
+     * already the next call in the queue. Its row in the timeline says how it
+     * settled; only a call the handler accepted has highlighted a finding the
+     * picture is about to fix, so only that one moves the graph.
+     *
+     * `repair` is what `resolve` became: the write that satisfies a finding is
+     * a demo control now, not something a learner can press, and this screen
+     * is the demo. Without it the sheet beside the bench keeps counting a
+     * finding the drawing has already resolved.
+     */
+    const waiting = owed.current;
+    if (waiting && running?.id !== waiting.id) {
+      owed.current = null;
+      const row = live.current.state.activity.find(
+        (entry) => entry.call?.id === waiting.id,
+      );
+      if (row?.status === "ok") {
+        live.current.act({ kind: "repair", findingId: waiting.findingId });
+        repaired.current = true;
+      }
+    }
+
     if (!running || running.name !== "show_correction") return;
     if (seen.current === running.id) return;
     seen.current = running.id;
 
+    /* The finding is in the call's own arguments — the same contract a WebMCP
+       client writes to — so the graph repair needs nothing the plate knows and
+       an agent does not. */
+    const findingId = running.args.finding_id;
+    owed.current =
+      typeof findingId === "string"
+        ? { id: running.id, findingId: findingId as FindingId }
+        : null;
+
+    /* A call that lands while the film is already playing joins it rather than
+       restarting it (`fix` returns early in `fixing`); the reset already armed
+       for that run stands. */
+    if (getMode() === "fixing") return;
+
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (getMode() === "done") reset(reduced);
     fix(reduced);
+
+    /**
+     * And then the fault goes back, so it can be watched again.
+     *
+     * Through `inject` rather than by rewinding: the workbench already has a
+     * control that puts one of this build's two faults back, it commits
+     * through the same reducer, and it lands in the timeline as a person
+     * moving a wire. A demo that resets by quietly editing its own history
+     * would be the one thing this screen is arguing against. Only when the
+     * graph was actually repaired — putting a fault back that never left
+     * would log a wire move nobody made.
+     *
+     * Timed from the film's start: `TOTAL` for the run, `REST` on its end
+     * frame, then the fault fades back in with the film's reset.
+     */
+    if (later.current) window.clearTimeout(later.current);
+    later.current = window.setTimeout(() => {
+      later.current = null;
+      if (repaired.current) {
+        repaired.current = false;
+        live.current.act({ kind: "inject", fault: "echo" });
+      }
+      reset(reduced);
+    }, TOTAL + REST);
   }, [running]);
 
   /**
@@ -68,19 +171,13 @@ export function useRepair() {
    * Two calls because that is the product's own shape — `show_correction` takes
    * a finding id and only `inspect_build` produces one. Reading the id off the
    * tool's *return value* rather than out of session state keeps this on the
-   * same contract a WebMCP client reads.
+   * same contract a WebMCP client reads. Nothing after the second call: the
+   * graph repair, the re-inject and the film's reset hang off the call itself,
+   * in the effect above, the same way for the plate as for an agent.
    */
-  /** The pending re-break, so leaving the page does not fire it into nothing. */
-  const later = useRef<number | null>(null);
-  useEffect(() => () => {
-    if (later.current) window.clearTimeout(later.current);
-  }, []);
-
   const repair = async () => {
     if (busy) return;
-    if (later.current) window.clearTimeout(later.current);
     setBusy(true);
-    const startedAt = performance.now();
     try {
       const looked = await session.run("inspect_build", { scope: "wiring" });
       const id = firstFinding(looked.result);
@@ -90,32 +187,6 @@ export function useRepair() {
         finding_id: id,
         detail_level: "exact",
       });
-
-      /* The cable is now in the right hole, so the graph has to agree: without
-         this the sheet beside the bench keeps counting a finding the drawing
-         has already resolved.
-
-         `repair`, which is what `resolve` became: the write that satisfies a
-         finding is a demo control now, not something a learner can press, and
-         this screen is the demo. */
-      session.act({ kind: "repair", findingId: id });
-
-      /**
-       * And then the fault goes back, so it can be watched again.
-       *
-       * Through `inject` rather than by rewinding: the workbench already has a
-       * control that puts one of this build's two faults back, it commits
-       * through the same reducer, and it lands in the timeline as a person
-       * moving a wire. A demo that resets by quietly editing its own history
-       * would be the one thing this screen is arguing against.
-       */
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const left = Math.max(0, TOTAL - (performance.now() - startedAt));
-      later.current = window.setTimeout(() => {
-        later.current = null;
-        session.act({ kind: "inject", fault: "echo" });
-        reset(reduced);
-      }, left + REST);
     } finally {
       setBusy(false);
     }
