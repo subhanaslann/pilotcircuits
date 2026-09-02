@@ -890,8 +890,11 @@ export const tr: Copy = {
       },
       leds: {
         name: "Durum LED'lerini ekle",
+        /* Says what the bench shows — see the note on the English key: the
+           frozen capstone graph has one wire per LED and the resistors are
+           drawn beside them, not in the wires. */
         instruction:
-          "Yeşil LED'i D3'e, kırmızıyı D2'ye, her birini kendi direnci üzerinden kablola.",
+          "Yeşil LED'i D3'e, kırmızıyı D2'ye kablola. Her birinin direnci tezgahta yanı başında duruyor.",
         rationale: "Yapımın ne karar verdiğini sana LED'ler söyler.",
       },
       upload: {

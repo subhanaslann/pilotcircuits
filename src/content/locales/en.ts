@@ -1129,8 +1129,12 @@ export const en = {
       },
       leds: {
         name: "Add status LEDs",
+        /* Says what the bench shows. The capstone's graph is frozen
+           (`BARRIER_SNAPSHOT`) and carries one wire per LED, anode to pin; the
+           resistors are drawn lying beside the LEDs, not in the wires. "Each
+           through its resistor" promised a join the picture does not make. */
         instruction:
-          "Wire the green LED to D3 and the red to D2, each through its resistor.",
+          "Wire the green LED to D3 and the red to D2. Each has its resistor laid beside it on the bench.",
         rationale: "The LEDs are how the build tells you what it decided.",
       },
       upload: {
