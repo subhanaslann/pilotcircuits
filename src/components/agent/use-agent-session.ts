@@ -33,6 +33,7 @@ import type { StagePatch } from "@/lib/device/run-spec";
 import {
   initialSession,
   sessionReducer,
+  SPOTLIGHT_MS,
   type AgentTab,
   type SessionAction,
   type SessionPatch,
@@ -255,6 +256,34 @@ export function useAgentSession(options?: {
     }
     /* Once. The browser does not grow the API while the page is open. */
   }, []);
+
+  /**
+   * G-17 · The spotlight lifts itself.
+   *
+   * The mark `point_at` leaves is the only thing on this bench with no event
+   * of its own to end it (`session.ts` `SPOTLIGHT_MS` says what that cost).
+   * So it is given a lifetime here, where a timer is allowed to live.
+   *
+   * The effect is keyed on the mark itself, not on a flag: the handler builds
+   * a fresh `PointedAt` on every call — including a second call naming the
+   * same thing — so a new mark cancels the old timer through the cleanup and
+   * starts its own three seconds, which is what somebody asking twice means.
+   *
+   * The identity check is for the skew `latest` exists for: the ref runs
+   * ahead of React between a tool's dispatches, so by the time this fires the
+   * bench may already be pointing somewhere else. Clearing then would take
+   * down a mark this timer was never set for.
+   */
+  useEffect(() => {
+    const mark = state.pointedAt;
+    if (!mark) return;
+    const timer = window.setTimeout(() => {
+      if (latest.current.pointedAt === mark) {
+        apply({ type: "patch", patch: { pointedAt: null } });
+      }
+    }, SPOTLIGHT_MS);
+    return () => window.clearTimeout(timer);
+  }, [state.pointedAt]);
 
   /* Ephemeral canvas theatre — not session state, because none of it survives
      a reload and none of it is anything the agent could be asked about. */

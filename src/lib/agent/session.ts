@@ -142,6 +142,9 @@ export interface AgentSessionState {
    * change, undo and redo. A spotlight that outlived the thing it framed
    * would be pointing at a hole the part is no longer in.
    *
+   * And it lifts on its own after `SPOTLIGHT_MS` even when none of those
+   * happen — see the constant.
+   *
    * Not restored by undo, for the reason `highlightedFindingId` is not: the
    * nodes it names may not be on the bench in the state being restored.
    */
@@ -231,6 +234,27 @@ export type BenchSnapshot = Pick<
 
 /** A ten-minute build does not need an unbounded history. */
 const HISTORY_LIMIT = 50;
+
+/**
+ * G-17 · How long `point_at`'s spotlight stands before it lifts itself.
+ *
+ * Every other writer of `pointedAt` takes the mark down on an **event** — a
+ * correction, a gesture, a step change, an undo. Ask *where is the resistor?*
+ * and then do nothing, and there is no such event: the crosshair and its pill
+ * stood on the board for the rest of the session, answering a question that
+ * had been answered and forgotten, and reading as a fault the bench had found
+ * rather than a place somebody asked about.
+ *
+ * Three seconds is a little over twice the ring's own flight — a `point` job
+ * is 1 380 ms in `agent/mascot.ts` — so the mark is still there for about as
+ * long again after the ring has gone home: time to follow it in, read the
+ * name and look away.
+ *
+ * The clock is not here. A reducer is pure and cannot hold a timer, so the
+ * session hook owns it (`use-agent-session.ts`) and this file owns only the
+ * number, which is the one thing both of them have to agree about.
+ */
+export const SPOTLIGHT_MS = 3000;
 
 export const snapshotOf = (state: AgentSessionState): BenchSnapshot => ({
   placement: state.placement,
