@@ -236,7 +236,11 @@ export function usePartDrag({
   const aimed = useRef<NodeId | null>(null);
 
   const offer = (list: readonly CircuitNode[]): AimTarget[] =>
-    list.map((target) => ({ id: target.id, at: aimAt(target) }));
+    list.map((target) => ({
+      id: target.id,
+      at: aimAt(target),
+      kind: target.kind,
+    }));
 
   const offered = offer(targets);
   const spacing = minSpacing(offered);

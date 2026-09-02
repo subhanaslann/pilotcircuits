@@ -1,5 +1,5 @@
 import { PITCH } from "@/lib/circuit/geometry";
-import type { NodeId } from "@/lib/circuit/graph";
+import type { NodeId, NodeKind } from "@/lib/circuit/graph";
 
 /**
  * The arithmetic of aiming, pulled out of React so it can be asserted.
@@ -113,6 +113,8 @@ export interface AimTarget {
   id: NodeId;
   /** Where the target offers itself, in scene units — not always where it is. */
   at: Point;
+  /** A hole or a pin seats a lead; a `terminal` is another lead, offered as a mark. */
+  kind?: NodeKind;
 }
 
 /**
@@ -123,23 +125,21 @@ export interface AimTarget {
  * boundary between them lands at exactly 50% of the gap rather than at the 29%
  * an overlapping pair of hit circles produced.
  *
- * **This number is set by a part's leg length, and nothing declares it.**
- * A build's `grabPoint` lifts every free lead by one constant — half a pitch
- * diagonally on the four breadboard chapters — so where a lifted mark lands
- * depends on how far the free lead is from its seated sibling, which is the
- * part's pin span. Measured on the benches we have: 6.783 (see
- * `drag-math.test.ts`, which pins it), because the LED's 10 art-px span is
- * 10.4167 scene units and lands 0.4167 off the grid.
+  * **Two spacings, two questions.** The catch radius is bounded by the closest
+ * pair of *everything on offer*, marks included, because a click resolves by
+ * the catcher it lands in rather than by the nearest candidate: two catchers
+ * that overlapped would hand a click near one hole to the mark beside it. So a
+ * free lead's lifted mark — 6.783 from the nearest hole on the breadboard, and
+ * exactly 5.0 when a resistor stands in the Uno header (`res.red.in` in `D3`
+ * puts the free `res.red.out` mark 5 units above `D8`) — still shrinks every
+ * catcher on the board while it is on offer. This is `minSpacing`.
  *
- * A part whose span is an odd multiple of half a pitch is the worst case:
- * span 15 puts the mark 5 units from a hole, `hitRadius(1, 5)` at 2.25 and
- * `zoomToAim(1, 5)` at 4.8 — 1.6x `zoom.max`, so the bench would be asking for
- * a zoom the viewport cannot give at every pick-up. `grabPoint` is per build,
- * not per part, so there is nowhere to say "this part's legs are longer"; if
- * that day comes the smallest shape is `grabPoint(node, part?)` on the spec,
- * defaulting to the build's constant. Left as a note on purpose — the tripwire
- * is the pinned number in the test, which moves the moment a new part changes
- * the spacing.
+ * The pick-up zoom asks a different question: how close must the view be for
+ * the *grid* to be aimable. It reads `gridSpacing`, the closest pair of seats
+ * alone, so a mark 5 units from a pin no longer sends every click pick-up to
+ * `zoom.max` — measured before this: 1986 of chapter two's 2340 one-lead-seated
+ * states did. Per-candidate catchers, which would let the grid keep its wider
+ * catch beside a mark, are the next step; `drag-math.test.ts` pins both.
  */
 export function minSpacing(targets: readonly AimTarget[]): number {
   let best = Infinity;
@@ -153,6 +153,18 @@ export function minSpacing(targets: readonly AimTarget[]): number {
     }
   }
   return Number.isFinite(best) ? best : PITCH;
+}
+
+/**
+ * The closest two *seats* get — the hole grid, with every lead's mark left out.
+ *
+ * What the pick-up zoom reads: 10 on a breadboard, 9.8958 in the Uno header.
+ * A list with fewer than two seats (chapter one's in-air join offers only
+ * leads) falls back to `minSpacing`, which is then the only spacing there is.
+ */
+export function gridSpacing(targets: readonly AimTarget[]): number {
+  const seats = targets.filter((target) => target.kind !== "terminal");
+  return seats.length >= 2 ? minSpacing(seats) : minSpacing(targets);
 }
 
 /** A screen-space distance in scene units at the current zoom. */

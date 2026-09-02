@@ -22,7 +22,7 @@ import { ChapterBriefing } from "@/components/workbench/briefing";
 import { WorkbenchFrame } from "@/components/workbench/frame";
 import { InspectionModal } from "@/components/workbench/inspection";
 import {
-  minSpacing,
+  gridSpacing,
   zoomToAim,
   type Aim,
 } from "@/components/canvas/drag-math";
@@ -504,15 +504,15 @@ export function Workbench({
   const closer = (terminal: TerminalId) => {
     const view = canvas.current;
     if (!spec || !view) return;
-    const marks = candidatesFor(spec, state.placement, terminal)
+    const offered = candidatesFor(spec, state.placement, terminal)
       .map((id) => maybeNode(session.scene, id))
       .filter((n) => n !== undefined)
-      .map((n) => spec.grabPoint(n));
+      .map((n) => ({ id: n.id, at: spec.grabPoint(n), kind: n.kind }));
+    const marks = offered.map((target) => target.at);
     if (marks.length < 2) return;
-    const needed = zoomToAim(
-      view.getScale(),
-      minSpacing(marks.map((at, i) => ({ id: String(i), at }))),
-    );
+    /* The grid's spacing, not the offer's: a free lead's mark five units from
+       a pin is `race`'s problem and must not send the view to `zoom.max`. */
+    const needed = zoomToAim(view.getScale(), gridSpacing(offered));
     if (needed === null) return;
     const xs = marks.map((m) => m.x);
     const ys = marks.map((m) => m.y);

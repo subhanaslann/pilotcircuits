@@ -4,6 +4,7 @@ import {
   snapRadius,
   carriedFrom,
   carriedTo,
+  gridSpacing,
   hitRadius,
   minSpacing,
   MIN_TARGET_PX,
@@ -477,7 +478,8 @@ describe("the aim survives the canvas moving under the gesture", () => {
 });
 
 /**
- * What the diagonal lift really costs, on a breadboard.
+ * What the diagonal lift really costs, on a breadboard — and what it no longer
+ * costs.
  *
  * Chapter two lifts a free lead half a pitch up and half a pitch right, and the
  * paragraph beside that constant says the mark then sits 7.071 = hypot(5, 5)
@@ -486,14 +488,13 @@ describe("the aim survives the canvas moving under the gesture", () => {
  * free lead stands one pin span from its seated sibling's hole. The LED's two
  * pins are 10 art px apart, which is 10.4167 scene units at `PX = 25/24`, so
  * the free anode is 0.4167 off the lattice and its mark lands 6.783 from the
- * nearest hole — not 7.071. Every figure downstream moves with it: the catch
- * radius is 3.052 rather than 3.18, and the pick-up zoom asks for 3.538 rather
- * than 3.39.
+ * nearest hole — not 7.071. The catch radius still comes out of that number
+ * (3.052 rather than 3.18), because a click resolves by the catcher it lands
+ * in, and two catchers that overlapped would misdeliver it.
  *
- * The conclusions the paragraph drew all survive — the catchers still do not
- * overlap, and the pick-up zoom is still over `zoom.max` and still clamped
- * there — but the file says the numbers were "computed rather than guessed, so
- * nobody 'fixes' the offset", and they were not. These are the measurements.
+ * The pick-up zoom does not. It used to be asked for 3.538 here — over
+ * `zoom.max`, so every click pick-up beside a free lead went to 3.0 — and it
+ * now reads the grid alone: 2.425 at the header's pitch.
  */
 describe("the mark a free lead offers on a breadboard", () => {
   const seated = (() => {
@@ -509,7 +510,7 @@ describe("the mark a free lead offers on a breadboard", () => {
   )
     .map((id) => lightSceneFrom(seated).nodes[id])
     .filter((n) => n !== undefined)
-    .map((n) => ({ id: n.id, at: lightGrabPoint(n) }));
+    .map((n) => ({ id: n.id, at: lightGrabPoint(n), kind: n.kind }));
 
   const spacing = minSpacing(offered);
 
@@ -518,9 +519,8 @@ describe("the mark a free lead offers on a breadboard", () => {
     expect(spacing).toBeCloseTo(6.783, 3);
   });
 
-  it("which is what the catch radius and the pick-up zoom come out of", () => {
+  it("which is what the catch radius comes out of", () => {
     expect(hitRadius(1, spacing)).toBeCloseTo(3.052, 3);
-    expect(zoomToAim(1, spacing)).toBeCloseTo(3.538, 3);
   });
 
   it("and the catchers still cannot touch, which is the point of the cap", () => {
@@ -529,31 +529,43 @@ describe("the mark a free lead offers on a breadboard", () => {
     }
   });
 
+  it("but the pick-up zoom reads the grid, and stays under zoom.max", () => {
+    expect(gridSpacing(offered)).toBeCloseTo(HEADER_PITCH, 4);
+    expect(zoomToAim(1, gridSpacing(offered))).toBeCloseTo(
+      MIN_TARGET_PX / HEADER_PITCH,
+      3,
+    );
+    expect(zoomToAim(1, gridSpacing(offered))!).toBeLessThan(zoom.max);
+    /* What it was asked for before: the mark's spacing, past the ceiling. */
+    expect(zoomToAim(1, spacing)!).toBeGreaterThan(zoom.max);
+  });
+
   /**
-   * The tripwire for the still-open half of this.
+   * The case the old note called hypothetical, and the kit reaches today.
    *
-   * `grabPoint` is one constant per build rather than per part, so the spacing
-   * above is decided by whichever part has the most awkward pin span. A span
-   * that is an odd multiple of half a pitch is the worst case: it puts the
-   * lifted mark exactly half a pitch from a hole, and the zoom the bench would
-   * have to ask for goes past `zoom.max`. Nothing in the kit does that today —
-   * this records what would, so the arithmetic is on the record before a part
-   * arrives that hits it.
+   * A resistor standing in the Uno header — `res.red.in` in `D3` — puts the
+   * mark of its free lead exactly half a pitch above `D8`: an odd multiple of
+   * half a pitch, the worst case the arithmetic has. The catchers on the board
+   * shrink to 2.25 while it is on offer, as they must; the zoom no longer
+   * follows it to 4.8.
    */
-  it("would be half a pitch for a part with a 15-unit pin span", () => {
-    /* Hole at the origin, sibling free lead one span to the right, mark lifted
-       half a pitch up and half a pitch right. Rows above and below are the same
-       distance away, so only the column offset varies. */
-    const lifted = (span: number) => {
-      const x = span + PITCH / 2;
-      return Math.hypot(Math.abs(x - Math.round(x / PITCH) * PITCH), PITCH / 2);
-    };
-    expect(lifted(PITCH)).toBeCloseTo(7.071, 3);
-    expect(lifted(10.4167)).toBeCloseTo(spacing, 3);
-    expect(lifted(15)).toBeCloseTo(5, 6);
-    expect(hitRadius(1, lifted(15))).toBeCloseTo(2.25, 6);
-    expect(zoomToAim(1, lifted(15))).toBeCloseTo(4.8, 6);
-    expect(zoomToAim(1, lifted(15))!).toBeGreaterThan(zoom.max);
+  it("a resistor in the header puts a mark exactly 5 units from D8", () => {
+    const r = tryAttach(lightPlacement, lightEmpty, "res.red.in", "board.D3");
+    const placement = r.kind === "attached" ? r.placement : lightEmpty;
+    const scene = lightSceneFrom(placement);
+    const offer: AimTarget[] = candidatesFor(
+      lightPlacement,
+      placement,
+      "led.red.cathode",
+    )
+      .map((id) => scene.nodes[id])
+      .filter((n) => n !== undefined)
+      .map((n) => ({ id: n.id, at: lightGrabPoint(n), kind: n.kind }));
+    expect(offer.some((t) => t.id === "res.red.out")).toBe(true);
+    expect(minSpacing(offer)).toBeCloseTo(5, 2);
+    expect(hitRadius(1, minSpacing(offer))).toBeCloseTo(2.25, 2);
+    expect(gridSpacing(offer)).toBeCloseTo(HEADER_PITCH, 4);
+    expect(zoomToAim(1, gridSpacing(offer))!).toBeLessThan(zoom.max);
   });
 });
 
