@@ -993,7 +993,7 @@ export const tr: Copy = {
                yerleştirilmeden söyleniyor. Tezgah bunu çizemiyor — plastiğin
                altındaki şerit görünmüyor — o yüzden tanıtım, onun
                gösterilebileceği tek yer. */
-            note: "Altında metal şeritler saklı bir delik bloğu. Beş delikten oluşan her sütun tek bir şerit, yani aynı sütuna sokulmuş iki bacak aralarında hiç kablo olmadan birbirine bağlanıyor. Kenarlardaki iki uzun hat ise ray: baştan sona bağlılar, ve toprak oraya gidiyor.",
+            note: "Altında metal şeritler saklı bir delik bloğu. Beş delikten oluşan her sütun tek bir şerit, yani aynı sütuna sokulmuş iki bacak aralarında hiç kablo olmadan birbirine bağlanıyor. Kenarlardaki iki uzun hat ise ray: baştan sona bağlılar, ve toprak oraya gidiyor. Gerçek bir tahta raylarına numara basmaz ve her kenarda böyle bir çift taşır; buradaki −6, 6. sütunun yanındaki − ray deliği demek, ve yalnızca karta bağladığın ray canlıdır.",
           },
           led: {
             name: "LED'ler",
@@ -1036,7 +1036,7 @@ export const tr: Copy = {
           },
           breadboard: {
             name: "Breadboard",
-            note: "Aynı delik bloğu, ve nihayet iki rayı da kullanılıyor. Sütunlar hâlâ tek metal şeritten beş delik; kenarlardaki iki uzun hat baştan sona bağlı, ve her birine bir kablo ulaştığı anda tahtadaki her şey karta bir kez daha gitmeden beslenip topraklanabiliyor.",
+            note: "Aynı delik bloğu, ve nihayet iki rayı da kullanılıyor. Sütunlar hâlâ tek metal şeritten beş delik; kenarlardaki iki uzun hat baştan sona bağlı, ve her birine bir kablo ulaştığı anda tahtadaki her şey karta bir kez daha gitmeden beslenip topraklanabiliyor. Gerçek bir tahta raylarına numara basmaz ve her kenarda böyle bir çift taşır; buradaki +30, 30. sütunun yanındaki + ray deliği demek, ve yalnızca bağladığın çift canlıdır.",
           },
           sensor: {
             name: "Hareket sensörü",

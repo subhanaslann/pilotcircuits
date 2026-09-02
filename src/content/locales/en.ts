@@ -1248,7 +1248,7 @@ export const en = {
                placed. The bench cannot draw it — a strip under the plastic is
                invisible — so the briefing is the only place it can be shown at
                all. */
-            note: "A block of holes with metal strips hidden underneath. Every column of five holes is one strip, so two legs pushed into the same column are joined without a wire between them. The two long lines down the edges are rails, joined from end to end — that is where ground goes.",
+            note: "A block of holes with metal strips hidden underneath. Every column of five holes is one strip, so two legs pushed into the same column are joined without a wire between them. The two long lines down the edges are rails, joined from end to end — that is where ground goes. A real board prints no numbers on its rails and carries two such pairs, one along each edge; −6 here means the − rail hole beside column 6, and only the rail you wired to the board is live.",
           },
           led: {
             name: "The LEDs",
@@ -1292,7 +1292,7 @@ export const en = {
           },
           breadboard: {
             name: "The breadboard",
-            note: "The same block of holes, with both rails used at last. The columns are still five holes of one metal strip; the two long lines down the edges are joined end to end, and once a wire reaches each of them everything on the board can be fed and grounded without another trip to the Uno.",
+            note: "The same block of holes, with both rails used at last. The columns are still five holes of one metal strip; the two long lines down the edges are joined end to end, and once a wire reaches each of them everything on the board can be fed and grounded without another trip to the Uno. A real board prints no numbers on its rails and carries two such pairs, one along each edge; +30 here means the + rail hole beside column 30, and only the pair you wired is live.",
           },
           sensor: {
             name: "The motion sensor",
