@@ -11,6 +11,8 @@ const eslintConfig = defineConfig([
     ".next/**",
     // Batch 8: the production build's own directory (see next.config.ts).
     ".next-build/**",
+    // The audit ledgers under .audit/ are probes and reports, not source.
+    ".audit/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
