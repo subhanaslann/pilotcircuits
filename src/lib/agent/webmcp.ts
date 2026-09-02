@@ -511,9 +511,9 @@ export function executeVia(
 
    ## The drift this arrangement can have, and where to look for it
 
-   **Six of those argument sentences are claims about an `enum` computed here.**
-   `scope`, `detail_level`, `step_id` and `test` describe per-build lists that
-   arrive in `facts`; `components` and `concepts` describe `componentIds` and
+   **Seven of those argument sentences are claims about an `enum` computed here.**
+   `scope`, `detail_level`, `step_id`, `test` and `point_at`'s `target` describe
+   per-build lists that arrive in `facts`; `components` and `concepts` describe `componentIds` and
    `conceptIds`, imported from the files that own them. The enum is the source
    of truth in every case — it is derived, never hand-kept — and the sentence in
    the dictionary is a description of it that nothing checks.
@@ -599,6 +599,26 @@ export function workbenchSchemasFor(
       },
     },
     required: ["finding_id"],
+    additionalProperties: false,
+  },
+  /* The things a build can be asked *where* about, enumerated: its parts, its
+     leads, its board pins and its expected connections. Holes are accepted
+     too and are deliberately not in the enum — 216 of them already sit in
+     `attach_lead`'s, and an enum that long describes a breadboard rather than
+     a tool — so the argument's sentence says so instead, as it says that a
+     pin's printed name is taken as well. Left open on a build with nothing
+     named, which today is none of the six. */
+  point_at: {
+    type: "object",
+    description: docs.point_at,
+    properties: {
+      target: {
+        type: "string",
+        ...(facts?.subjects.length ? { enum: facts.subjects } : {}),
+        description: args.point_at.target,
+      },
+    },
+    required: ["target"],
     additionalProperties: false,
   },
   /* Now that the schema knows which build it is describing, the two sets are

@@ -18,6 +18,7 @@ import type {
   CircuitNode,
   CircuitScene,
   Highlight,
+  Spotlight,
   NodeId,
 } from "@/lib/circuit/graph";
 import type { PartId, TerminalId } from "@/lib/circuit/placement";
@@ -74,6 +75,8 @@ export function BuildSceneView({
   scene: CircuitScene;
   showLabels: boolean;
   highlight?: Highlight;
+  /** C-25 · what `point_at` left on the bench, forwarded to every view. */
+  spotlight?: Spotlight;
   reference?: CircuitScene;
   successTrace?: string[];
   /** Chapter one: whether the sketch is driving the pin. */

@@ -152,6 +152,9 @@ describe("undo", () => {
       ...Object.keys(snapshotOf(state)),
       /* Deliberately outside the snapshot — see the reducer's `undo`. */
       "highlightedFindingId",
+      /* And the spotlight, for the same reason: a placement write clears it
+         rather than carrying it, and undo drops it either way. */
+      "pointedAt",
       /* Deliberately outside too — see `history`: a repair, once counted,
          stays counted, and `repaired` is what keeps it from counting twice. */
       "repairs",
@@ -784,6 +787,12 @@ describe("a refused call names what was refused", () => {
       },
     },
     {
+      name: "a name this bench has not got",
+      key: "unknownSubject",
+      run: async () =>
+        (await call(open(), "point_at", { target: "nope" })).outcome,
+    },
+    {
       name: "a write on a bench the author laid out",
       key: "noPlacement",
       run: async () =>
@@ -925,7 +934,7 @@ describe("a refused call names what was refused", () => {
    *
    * A key added to the vocabulary and never provoked is a wire value nothing
    * checks; a key provoked and not in the vocabulary is a list that has stopped
-   * describing the layer. This is what makes the fifteen-of-fifteen claim
+   * describing the layer. This is what makes the seventeen-of-seventeen claim
    * checkable rather than asserted.
    */
   it("covers every refusal the layer can reach, and no others", () => {
@@ -936,7 +945,7 @@ describe("a refused call names what was refused", () => {
      *
      * A compile-time check, written here because `model.ts` keeps the list
      * without importing anything. It is the half of the guard that catches a
-     * key `en.ts` has *deleted*; the sixteen provocations above are the half
+     * key `en.ts` has *deleted*; the seventeen provocations above are the half
      * that catches one that has been *renamed*, which fixes both sides at once
      * and would otherwise pass in silence.
      */

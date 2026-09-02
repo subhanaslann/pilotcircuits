@@ -66,14 +66,14 @@ export const labBatches: LabBatch[] = [
     id: "canvas",
     index: 3,
     slug: "canvas",
-    count: 23,
+    count: 24,
     status: "approved",
   },
   {
     id: "agent",
     index: 4,
     slug: "agent",
-    count: 15,
+    count: 16,
     status: "approved",
   },
   {

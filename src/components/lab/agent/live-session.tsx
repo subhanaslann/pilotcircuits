@@ -3,7 +3,9 @@
 import { useRef, useState } from "react";
 import { Eye, Play, RotateCcw, WifiOff } from "lucide-react";
 import { LabBlock, LabStage } from "@/components/lab/lab-primitives";
+import { CoachCorner } from "@/components/agent/coach-corner";
 import { AgentWorkspace } from "@/components/agent/workspace";
+import { useCoachMood } from "@/components/agent/use-coach-mood";
 import { useAgentSession } from "@/components/agent/use-agent-session";
 import { useWebMcpTools } from "@/components/agent/use-webmcp";
 import {
@@ -30,7 +32,7 @@ const g = { size: icon.sm, strokeWidth: icon.strokeWidth } as const;
  *
  * ## What it does not do, and why the count below is zero
  *
- * It does not hand any of those seven names to the browser. `AgentPanel`
+ * It does not hand any of those eight names to the browser. `AgentPanel`
  * defaults its inventory to the bench's own list, and the number beside the
  * pulse is a claim about *the screen it is standing on* — so with no `tools`
  * prop this page printed `7 tools on this page` over a page that registers
@@ -43,7 +45,7 @@ const g = { size: icon.sm, strokeWidth: icon.strokeWidth } as const;
  * `useBuild must be used inside <BuildProvider>` before a single pixel
  * rendered. That read is optional now — `useBuildSessionIfAny` — and the page
  * hands in the session it already had, which is the argument the hook always
- * took. So the seven are registered here for real, against a mounted canvas
+ * took. So the eight are registered here for real, against a mounted canvas
  * and a mounted panel, and the number beside the pulse is the length of the
  * list this page actually gave the browser.
  */
@@ -57,6 +59,9 @@ export function LiveSession() {
      waiting at `/workbench`. Passing it is what lets the hook run outside
      `BuildProvider` at all; without it the hook throws by design. */
   useWebMcpTools(workbenchTools, session);
+  /* The coach reads the same session the panel and the ring do, so pressing
+     Inspect below moves all three at once — which is the demonstration. */
+  const coach = useCoachMood(session);
 
   const { state, highlighted } = session;
   const inspected = state.findings.length > 0;
@@ -98,7 +103,7 @@ export function LiveSession() {
             panel scrolls its own body instead of growing the row and pushing the
             canvas past its height. */}
         <div className="flex h-[560px] items-stretch">
-          <div className="min-h-0 min-w-[380px] flex-1 overflow-hidden">
+          <div className="relative min-h-0 min-w-[380px] flex-1 overflow-hidden">
             <CanvasViewport
               ref={canvas}
               ariaLabel={t.canvasLabel}
@@ -114,6 +119,15 @@ export function LiveSession() {
                 test={session.test}
               />
             </CanvasViewport>
+            {/* G-16 · in the corner the sketch put it, on its own plate because
+                this canvas has no shelf. */}
+            <CoachCorner
+              ground="mat"
+              mood={coach.mood}
+              line={coach.line}
+              detail={coach.detail}
+              className="absolute top-3 right-3"
+            />
           </div>
 
           {/* The panel is assembled once, in `agent/workspace.tsx`, and

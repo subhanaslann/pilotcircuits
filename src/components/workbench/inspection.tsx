@@ -5,7 +5,7 @@ import {
   CanvasViewport,
   type CanvasHandle,
 } from "@/components/canvas/canvas-viewport";
-import { AgentMascot } from "@/components/canvas/agent-mascot";
+import { AgentMascotLayer } from "@/components/canvas/agent-mascot";
 import { BuildSceneView } from "@/components/canvas/build-scene";
 import { matBox } from "@/components/canvas/desk-surface";
 import { FindingRow } from "@/components/agent/finding";
@@ -227,7 +227,6 @@ export function InspectionModal({
                 ring are already saying the same thing at that distance. So the
                 overlay belongs to the framing, and hands over when the framing
                 stops being one. */}
-            <AgentMascot />
             {cameraScale <= OVERLAY_MAX_SCALE ? (
               <VisionOverlay
                 nodes={detected}
@@ -252,6 +251,13 @@ export function InspectionModal({
               />
             ) : null}
           </CanvasViewport>
+          {/* The same flight, seen from the camera. A sibling of the viewport
+              inside the frame's own `relative` box, so it lies exactly over
+              the picture; scene anchors resolve through THIS pane's handle,
+              and the shelf and the lamp — which the camera has not got —
+              resolve to its corner. Not `primary`: the bench's layer is where
+              the ring is, and this is a view of it. */}
+          <AgentMascotLayer canvas={camera} screenFallback="corner" />
         </CameraFrame>
 
         <div className="flex min-h-0 flex-col gap-4">

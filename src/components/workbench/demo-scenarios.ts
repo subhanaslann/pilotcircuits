@@ -3,7 +3,7 @@ import type { Copy } from "@/content/i18n";
 import type { InspectionScope } from "@/lib/agent/model";
 import { stepTotalFor, stepsOwning, type StepId } from "@/lib/agent/steps";
 import { buildFor, schemaFactsFor } from "@/lib/agent/builds";
-import type { PlacementSpec } from "@/lib/circuit/placement";
+import { partsInKit, type PlacementSpec } from "@/lib/circuit/placement";
 
 /**
  * W-10 · The nine scenarios, §10.
@@ -239,6 +239,29 @@ export function demoScenarios(
     },
   };
 
+  /**
+   * G-17 · the bench answering *where* — the question `point_at` exists for.
+   *
+   * The first part still in the kit, if there is one, so the film shows the
+   * honest half of the answer first: the toast says it is in the box and the
+   * camera stays put. Once everything is on the bench it points at the first
+   * part instead, and the camera goes to it. Same call, same argument a host
+   * would send; nothing here is a second path.
+   */
+  const agentPoints: DemoScenario = {
+    id: "agent-point",
+    group: "wiring",
+    label: copy.demo.pointAt,
+    run: async () => {
+      const spec = buildFor(session.state.projectId)?.placement;
+      if (!spec) return;
+      const target =
+        partsInKit(spec, session.state.placement)[0] ?? spec.parts[0];
+      if (!target) return;
+      await session.run("point_at", { target });
+    },
+  };
+
   const wiringFix: DemoScenario = {
     id: "fix-wiring",
     group: "wiring",
@@ -290,7 +313,7 @@ export function demoScenarios(
      * on the state the demo opens in. `Agent seats the next lead` is this
      * bench's real equivalent and it is already here.
      */
-    return [reset, agentPlaces, runTest, finish];
+    return [reset, agentPlaces, agentPoints, runTest, finish];
   }
 
   return [

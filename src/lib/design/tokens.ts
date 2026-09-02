@@ -104,6 +104,23 @@ export const wireNeutral = {
 } as const;
 
 /** The moulded housing on a jumper end — see `Connector` in `wire.tsx`. */
+/**
+ * The agent's own colour, on the bench.
+ *
+ * The accent, and deliberately not lifted: the ring used to carry `#4D94FF`
+ * so it would read over the board's blue, and the coach figure arrived in
+ * the accent — two blues for one agent. What carries the legibility over the
+ * board is the dark halo under the ring, not the tint, so the halo stays and
+ * the tint is the accent everywhere the agent is drawn: the flying ring, the
+ * mark it leaves behind (`overlays/spotlight.tsx`) and the ring around a
+ * shelf tile. Not in the material palette: a part is a thing you could hold,
+ * and the agent is not one of them.
+ */
+export const agent = {
+  mark: "#1677FF",
+  halo: "#08131F",
+} as const;
+
 export const connector = {
   body: "var(--color-connector)",
   bodyMuted: "var(--color-connector-muted)",

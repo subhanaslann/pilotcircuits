@@ -105,6 +105,26 @@ export interface Highlight {
   subject?: string;
 }
 
+/**
+ * C-25 · What `point_at` leaves on the bench: the places it named, and the
+ * word for them.
+ *
+ * Not a `Highlight`, because it is a different claim. A highlight says *this
+ * is wrong* and draws the disc, the crosshair and the callout between them; a
+ * spotlight says *this is here* and draws the ring's own docked pose with the
+ * name over it. They are cleared by different rules too (`session.ts`,
+ * `pointedAt` beside `highlightedFindingId`), and a person reading a
+ * correction card must not lose it because they asked where the resistor was.
+ */
+export interface Spotlight {
+  /** Every node the tool named that is on the bench: a part's leads, one pin, a connection's two ends. */
+  nodes: NodeId[];
+  /** The name, already in the reader's language. */
+  label: string;
+  /** Rule 13: set when the label is something the hardware prints (`D7`, `F7`). */
+  mono?: boolean;
+}
+
 /* --- Queries ------------------------------------------------------------- */
 
 export function node(scene: CircuitScene, id: NodeId): CircuitNode {

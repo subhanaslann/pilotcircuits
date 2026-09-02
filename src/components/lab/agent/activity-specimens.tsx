@@ -21,7 +21,7 @@ import { workbenchTools } from "@/lib/agent/model";
  *
  * The sentences are the shipping ones, carried as `Line`s exactly as the
  * running session carries them. The lab used to keep its own copy of these
- * eleven strings; a specimen written in different words from the product is a
+ * twelve strings; a specimen written in different words from the product is a
  * specimen of something the product does not do.
  *
  * **And so are the payloads.** The clause above was asserted for the sentences

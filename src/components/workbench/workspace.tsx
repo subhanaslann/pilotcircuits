@@ -6,6 +6,8 @@ import {
   CanvasViewport,
   type CanvasHandle,
 } from "@/components/canvas/canvas-viewport";
+import { AgentMascotLayer } from "@/components/canvas/agent-mascot";
+import { COACH_PLATE_HEIGHT } from "@/components/agent/coach-corner";
 import { CaretViewport } from "@/components/canvas/overlays/seat-picker";
 import { Button, IconButton } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/choice";
@@ -53,6 +55,7 @@ export function CanvasWorkspace({
   fitBox,
   overlay,
   kit,
+  coach,
   instructionRef,
   className,
   children,
@@ -127,6 +130,14 @@ export function CanvasWorkspace({
    * behind it is not ready for.
    */
   kit?: ReactNode;
+  /**
+   * G-16 · the coach, when there is no shelf for it to stand on.
+   *
+   * With a kit the shelf carries it (`KitStrip`'s `trailing`); this is the
+   * capstone's case, where it stands on the mat at the same corner on a plate
+   * of its own, and the view switch moves down to make room.
+   */
+  coach?: ReactNode;
   /** The instruction heading, so whatever was covering this can hand focus back. */
   instructionRef?: Ref<HTMLHeadingElement>;
   className?: string;
@@ -284,6 +295,12 @@ export function CanvasWorkspace({
         >
           {kit}
 
+          {!kit && coach ? (
+            <div className="pointer-events-auto absolute top-3 right-3">
+              {coach}
+            </div>
+          ) : null}
+
           {/* Below the shelf when there is one. The offset is the shelf's own
               exported height, so the two cannot drift apart. */}
           <div
@@ -345,7 +362,13 @@ export function CanvasWorkspace({
 
           <div
             className="pointer-events-auto absolute right-3"
-            style={{ top: kit ? KIT_STRIP_HEIGHT + 12 : 12 }}
+            style={{
+              top: kit
+                ? KIT_STRIP_HEIGHT + 12
+                : coach
+                  ? COACH_PLATE_HEIGHT + 24
+                  : 12,
+            }}
           >
             <SegmentedControl<CanvasView>
               size="sm"
@@ -382,6 +405,16 @@ export function CanvasWorkspace({
             {children}
           </CaretViewport>
         </CanvasViewport>
+
+        {/* The agent, over everything in the well — the shelf included, which
+            is where a carry starts. Screen space rather than a child of the
+            viewport's transform: the ring keeps its size at every zoom and
+            can stand on a shelf tile, which is not on the bench. Above the
+            furniture (`z-10`) so it can cross the shelf; below the overlay
+            (`z-20`), which is standing in front of the whole region. Inert to
+            the pointer, so the bench under it keeps its gestures. It draws
+            nothing at all unless the agent is mid-call. */}
+        <AgentMascotLayer canvas={canvas} primary />
       </div>
 
       {/* Above the floating toolbar and the view switch — `SegmentedControl`'s

@@ -915,7 +915,12 @@ export function useAgentSession(options?: {
             }
           : { ns: "user", k: "refittedHorn" };
 
-      apply({ type: "patch", patch: { scene, highlightedFindingId: null } });
+      /* A gesture on the bench, so the spotlight goes with the highlight: the
+         wire it framed may be the one that just moved. */
+      apply({
+        type: "patch",
+        patch: { scene, highlightedFindingId: null, pointedAt: null },
+      });
       apply({
         type: "log",
         entry: {
@@ -1208,6 +1213,9 @@ export function useAgentSession(options?: {
               : f,
           ),
           highlightedFindingId: resolved ? null : finding.id,
+          /* One mark at a time — `AgentSessionState.pointedAt` says why every
+             write to the highlight, set or clear, takes the spotlight off. */
+          pointedAt: null,
         },
       });
       apply({
@@ -1326,6 +1334,7 @@ export function useAgentSession(options?: {
         patch: {
           ...outcome.patch,
           highlightedFindingId: null,
+          pointedAt: null,
           /* `placeIn` counts its own repairs from the drop in open findings;
              the servo has no placement to count, so it says so here. */
           repairs: outcome.patch.repairs ?? current.repairs + 1,

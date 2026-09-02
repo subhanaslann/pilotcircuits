@@ -5,6 +5,7 @@ import type {
   CircuitNode,
   CircuitScene,
   Highlight,
+  Spotlight,
   NodeId,
 } from "@/lib/circuit/graph";
 import { cn } from "@/lib/utils/cn";
@@ -25,6 +26,7 @@ import {
   TargetPinMark,
   WrongPinMark,
 } from "@/components/canvas/overlays/pin-rings";
+import { SpotlightOverlay } from "@/components/canvas/overlays/spotlight";
 import { SeatPicker } from "@/components/canvas/overlays/seat-picker";
 import {
   CarriedLeadMark,
@@ -156,6 +158,7 @@ export function LampSceneView({
   scene,
   showLabels,
   highlight,
+  spotlight,
   lit = false,
   breathing = false,
   entering,
@@ -174,6 +177,8 @@ export function LampSceneView({
   scene: CircuitScene;
   showLabels: boolean;
   highlight?: Highlight;
+  /** C-25 · what `point_at` left on the bench. */
+  spotlight?: Spotlight;
   /** Whether the sketch is driving the pin. */
   lit?: boolean;
   /** Swelling and fading rather than simply on — what a PWM pin buys. */
@@ -812,6 +817,21 @@ export function LampSceneView({
              place the callout stopped speaking the board's language — and it
              would have to fit the same 13 mono characters. */
           subject={highlight?.subject ?? errorPin.label ?? errorPin.id}
+        />
+      ) : null}
+
+      {/* C-25 · what `point_at` left here. Marked where the marks are, like the
+          two above, and drawn after them so a spotlight on a pin the agent is
+          also correcting does not hide the verdict. A node the tool named that
+          has since left the bench is skipped rather than thrown on. */}
+      {spotlight ? (
+        <SpotlightOverlay
+          at={spotlight.nodes
+            .map((id) => maybeNode(scene, id))
+            .filter((n) => n !== undefined)
+            .map((n) => markAt(n))}
+          label={spotlight.label}
+          mono={spotlight.mono}
         />
       ) : null}
     </>

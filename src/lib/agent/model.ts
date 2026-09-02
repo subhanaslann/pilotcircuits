@@ -1,7 +1,7 @@
 /**
  * Batch 4 · The agent's vocabulary.
  *
- * The seven tools the workbench exposes, and the one axis the product teaches
+ * The eight tools the workbench exposes, and the one axis the product teaches
  * on. Nothing here touches React or the DOM: in Batch 7 a WebMCP callback
  * invoked by the browser has to be able to reach every one of these without a
  * hook.
@@ -18,6 +18,18 @@ export const workbenchTools = [
   "get_build_context",
   "inspect_build",
   "show_correction",
+  /**
+   * G-17 · the one tool that answers *where*.
+   *
+   * `show_correction` points at a fault and needs a finding to do it. This one
+   * points at a thing — a part, a lead, a pin, a hole, a connection — because
+   * the question a beginner asks most is not "what is wrong" but "which one is
+   * the resistor", and until now the only answer the bench had was a camera
+   * that could frame a finding. It moves the camera and leaves a mark; it
+   * changes nothing in the build. Listed beside the correction because that is
+   * the tool it is the sibling of, and declaration order is display order.
+   */
+  "point_at",
   /**
    * Batch 9 · the one tool with hands.
    *
@@ -48,7 +60,7 @@ export type WorkbenchTool = (typeof workbenchTools)[number];
 /**
  * Batch 8 · The four the library and the project page expose.
  *
- * Named here, beside the bench's seven, so that the one thing every layer needs
+ * Named here, beside the bench's eight, so that the one thing every layer needs
  * — *what is this tool called* — has a single declaration with no imports behind
  * it. The handlers live where their screen does (`lib/projects/tools.ts`); this
  * is only the vocabulary.
@@ -83,6 +95,11 @@ export const toolKind: Record<AgentTool, ToolKind> = {
   get_build_context: "read",
   inspect_build: "read",
   show_correction: "change",
+  /* A spotlight is a mark on the bench and a camera that moved — the same
+     reading `show_correction` gets. A hollow pad beside a correction's filled
+     one would draw two calls that do the same thing to the screen as two
+     different kinds of thing. */
+  point_at: "change",
   attach_lead: "change",
   verify_current_step: "change",
   navigate_build_step: "change",
@@ -94,6 +111,60 @@ export const toolKind: Record<AgentTool, ToolKind> = {
   open_project: "change",
   get_project_requirements: "read",
   start_project: "change",
+};
+
+/**
+ * What the agent is **doing to the bench** while a tool runs — the vocabulary
+ * the coach figure and its caption speak.
+ *
+ * Three tables now describe one tool, and they answer three questions that
+ * were measured to disagree. `toolKind` says which pad the timeline fills;
+ * `toolAnnotations` says what a host may assume before calling; this says what
+ * a *person watching* should be told the agent is up to. `verify_current_step`
+ * is the row that keeps them apart: it is a `change` to the timeline (it ticks
+ * a step), not read-only to a host (it advances the rail), and to the person
+ * it is the agent **looking** — the ring reads the step's pins, and nothing on
+ * the bench moves until the verdict lands.
+ *
+ * Five verbs, and not twelve. The whole point of a category is that a viewer
+ * learns the faces once: a figure with a different expression per tool would
+ * be a figure with twelve expressions, which is the same as none.
+ *
+ * `find_projects` is `looking` rather than `moving`: a search is a read of the
+ * catalogue that also narrows a control, and to the person it is the agent
+ * scanning the shelf, not walking somewhere. The three that change the route
+ * or the rail are the ones that walk.
+ *
+ * The ring in `lib/agent/mascot.ts` speaks the first three of these under its
+ * own names (`read` / `point` / `carry`); `mascot.test.ts` pins that the two
+ * vocabularies agree on every tool that gets a ring.
+ */
+export const toolActs = [
+  "looking",
+  "showing",
+  "touching",
+  "testing",
+  "moving",
+] as const;
+
+export type ToolAct = (typeof toolActs)[number];
+
+export const toolAct: Record<AgentTool, ToolAct> = {
+  get_build_context: "looking",
+  inspect_build: "looking",
+  show_correction: "showing",
+  /* The coach's pointing face, and the correction's verb: to the person
+     watching, an agent framing a part and an agent framing a fault are both
+     an agent pointing at the bench. */
+  point_at: "showing",
+  attach_lead: "touching",
+  verify_current_step: "looking",
+  navigate_build_step: "moving",
+  run_functional_test: "testing",
+  find_projects: "looking",
+  open_project: "moving",
+  get_project_requirements: "looking",
+  start_project: "moving",
 };
 
 /**
@@ -125,7 +196,7 @@ export interface McpToolAnnotations {
 }
 
 /**
- * The eleven rows, measured rather than reasoned about.
+ * The twelve rows, measured rather than reasoned about.
  *
  * **Not derived from `toolKind`, and the two cannot be merged.** `toolKind` is
  * a drawing hint — it says which pad the timeline fills — and `inspect_build`
@@ -134,7 +205,7 @@ export interface McpToolAnnotations {
  * toast. Deriving one from the other would tell a host it is safe to call that
  * tool unattended. Two questions, two tables, one comment saying so.
  *
- * The rule applied to all eleven: **a page tool's environment is the page.** A
+ * The rule applied to all twelve: **a page tool's environment is the page.** A
  * tool that writes no session key but leaves a verdict on the device panel for
  * the life of the page has modified its environment.
  *
@@ -160,7 +231,7 @@ export interface McpToolAnnotations {
  *   by a timer, unlike `trace`. The pass/fail sits there for the life of the
  *   page.
  *
- * `openWorldHint` is `false` on all eleven and that is a claim, not a default
+ * `openWorldHint` is `false` on all twelve and that is a claim, not a default
  * restated: there is no network call anywhere in `services.ts` or `tools.ts`,
  * and MCP's default is `true`. `untrustedContentHint` is `false` for the same
  * kind of reason — every payload is built here, from the product's own model,
@@ -187,6 +258,21 @@ export const toolAnnotations: Record<AgentTool, McpToolAnnotations> = {
     destructiveHint: false,
     idempotentHint: true,
     openWorldHint: false,
+    untrustedContentHint: false,
+  },
+  point_at: {
+    /* It writes `pointedAt` and moves the camera, and a page tool's
+       environment is the page. */
+    readOnlyHint: false,
+    /* Nothing in the build moves; the mark goes with the next gesture rather
+       than needing an undo. */
+    destructiveHint: false,
+    /* The second identical call writes the same spotlight and answers
+       `changed: false`, the way `show_correction` does. */
+    idempotentHint: true,
+    /* Answered from the scene and the spec, like every row above. */
+    openWorldHint: false,
+    /* Every field is composed here, from the product's own model. */
     untrustedContentHint: false,
   },
   attach_lead: {
@@ -283,7 +369,7 @@ export type InspectionScope = (typeof inspectionScopes)[number];
  * been *deleted*; only a list like this one stops a key that has been *moved*.
  *
  * The reachable set, so the assertion in `session.test.ts` can be total: it
- * provokes all sixteen and checks each against this list, both directions. The
+ * provokes all seventeen and checks each against this list, both directions. The
  * two unreachable refusals are deliberately out — `noBench` (a ready project
  * with no build row, which `builds.ts` throws at boot to prevent) and
  * `projectNotReady` (all six are `ready`) — because a list nothing can reach is
@@ -300,6 +386,8 @@ export const toolErrorKeys = [
   "noSuchFinding",
   "unknownDetailLevel",
   "unknownFinding",
+  /* point_at */
+  "unknownSubject",
   /* attach_lead — eight, the largest refusal surface in the product */
   "noPlacement",
   "unknownLead",

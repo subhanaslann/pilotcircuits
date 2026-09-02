@@ -1226,6 +1226,11 @@ export const tr: Copy = {
     previewAngle: "Doğru açıyı önizle",
     correctionHighlighted: "Düzeltme vurgulandı",
     stepVerified: "Adım doğrulandı",
+    /* G-17 · `point_at`in söyleyebileceği iki şey. Toast bir kez okunup
+       gidiyor, o yüzden çevrilmiş adı alıyor; zaman çizelgesindeki kopyası
+       `Ref` üzerinden geçiyor ve yeniden çevriliyor. */
+    pointedAt: (label: string) => `${label} işaret ediliyor`,
+    pointedAtKit: (label: string) => `${label} hâlâ kitte`,
     finish: "Yapımı bitir",
     whyThisPin: "Neden D7?",
 
@@ -1267,6 +1272,7 @@ export const tr: Copy = {
     injectEcho: "Yanlış Echo bağlantısını uygula",
     markWiringFixed: "Kabloyu düzeltilmiş say",
     agentAttach: "Ajan sıradaki ucu taksın",
+    pointAt: "Ajan bir parçayı işaret etsin",
     jumpServo: "Servo sorununa atla",
     injectServo: "Servo yönü hatasını uygula",
     markServoRemounted: "Servoyu yeniden takılmış say",
@@ -1335,6 +1341,7 @@ export const tr: Copy = {
       comparingSketch: "Programla karşılaştırılıyor",
       checkingAlignment: "Mekanik hizalama kontrol ediliyor",
       locating: "Bağlantı bulunuyor",
+      pointing: "Tezgahta buluyor",
       reaching: "Uca uzanılıyor",
       carrying: "Uç taşınıyor",
       rereading: "Gözlenen bağlantılar yeniden okunuyor",
@@ -1343,6 +1350,20 @@ export const tr: Copy = {
       runningTest: "Test dizisi çalışıyor",
       searchingProjects: "Proje kütüphanesinde aranıyor",
       readingProject: "Proje okunuyor",
+    },
+
+    coach: {
+      offline: "Bir ajan bekliyor",
+      idle: "Dinliyor",
+      looking: "Yapımını okuyor",
+      thinking: "Düşünüyor",
+      showing: "Gösteriyor",
+      touching: "Tezgahı kurcalıyor",
+      testing: "Test ediyor",
+      moving: "Geziniyor",
+      found: "Bir şey buldu",
+      passed: "Tamamdır",
+      failed: "Olmadı",
     },
 
     activity: {
@@ -1382,6 +1403,19 @@ export const tr: Copy = {
          işaret etti" demek, zaman çizelgesinin başka bir eylemi anlatması. */
       showingCorrectionPart: "Ajan parçanın gireceği yeri işaret etti",
       showingCorrectionAlignment: "Ajan servo kolunu işaret etti",
+
+      /* G-17 · işaretçi. Özne, adı çevrilen bir şeyse `Ref` olarak geliyor
+         (parça, uç), donanımın yazdığı bir şeyse düz metin (`D7`, `bb.f7`,
+         bir bağlantının iki ucu). İki nokta üst üsteden sonra, çünkü çevrilen
+         ad -i eki alamaz — `testing` ile aynı kaçış. Kit satırı cevabın
+         dürüst yarısı: tezgahta çerçevelenecek bir şey yok, kamera kımıldamadı,
+         bakılacak yer raf. */
+      pointing: (subject: string) => `Ajan şunu işaret etti: ${subject}`,
+      pointedAt: (subject: string) => `${subject} atölyede vurgulandı`,
+      pointedAtKit: (subject: string) =>
+        `${subject} hâlâ kitte — tezgahta çerçevelenecek bir şey yok`,
+      alreadyPointedAt: "Zaten orayı işaret ediyordu",
+      connectionName: (from: string, to: string) => `${from} → ${to}`,
 
       /* Ajanın elleriyle yaptığı tek şey. Cümleler kişinin kendi
          hareketlerininkiyle aynı yapıda ama ajanın ağzından — kim yaptıysa
@@ -1492,6 +1526,11 @@ export const tr: Copy = {
          söylüyor; bu ise öyle bir id'yi hiçbir şeyin taşımadığını. Eskiden
          ikisi tek cümleydi — hem de anlatmadığı duruma iliştirilmiş. */
       noSuchFinding: "Bu id'de bir bulgu yok — id'leri inspect_build veriyor.",
+      /* G-17 · `point_at`in tek reddi. `noSuchFinding` gibi çağıranı adları
+         sayan araca yolluyor; id'lerin kendisi `result.validSample` içinde,
+         bir listenin ait olduğu yerde. */
+      unknownSubject:
+        "Bu yapımda o adda bir şey yok — id'leri get_build_context veriyor.",
       unknownFilter: (filter: string) =>
         `Bu, ${filter} filtresinin kabul ettiği bir değer değil.`,
       toolFailed: "Bu çağrı tamamlanamadı.",
@@ -1580,6 +1619,11 @@ export const tr: Copy = {
          okuyan bir ajan doğru ucu zaten içinde olduğu deliğe yolluyor. */
       show_correction:
         "Bir bulguyu atölyede işaret eder. focused bakılacak pinleri sıralar — önce olması gereken yer, sonra şu anki yeri.",
+      /* G-17 · kardeşi: düzeltmeye bir bulgu, buna bir ad gerekiyor. Tek
+         satırlık cümle bir host listesinin taşımak zorunda olduğu iki şeyi
+         söylüyor — kamerayı çevirdiğini ve hiçbir şeyi değiştirmediğini. */
+      point_at:
+        "Atölyeyi bir parçaya, uca, pine, deliğe ya da bağlantıya çevirir: kamera onu çerçeveler, işaret bir sonraki harekete kadar kalır. Yapımda hiçbir şeyi değiştirmez.",
       /* İki yarı da, ve her birinin bedeli.
 
          Bu cümle yalnızca takan yarıyı anıyordu, oysa aracın varsayılanı söken
@@ -1635,6 +1679,7 @@ export const tr: Copy = {
       get_build_context: "Yapım bağlamı",
       inspect_build: "Yapım incelemesi",
       show_correction: "Düzeltme",
+      point_at: "İşaret",
       attach_lead: "Uç taşıma",
       verify_current_step: "Adım kontrolü",
       navigate_build_step: "Adım geçişi",
@@ -1664,6 +1709,14 @@ export const tr: Copy = {
         "Atölyeyi tek bir bulguya çevirir ve detail_level'ın istediği " +
         "derinlikte neyin yanlış olduğunu söyler. Açıklar ve işaretler; " +
         "onaran tek araç attach_lead'dir.",
+      point_at:
+        "*Nerede* sorusuna cevap verir: tezgâhtaki tek bir şeyi vurgular ve " +
+        "kamerayı üstüne çevirir — bir parça, onun bir ucu, karttaki bir pin, " +
+        "breadboard'daki bir delik ya da beklenen bir bağlantı. Yapımda " +
+        "hiçbir şey değişmez. target bir parça id'si, bir uç id'si, bir pin " +
+        "id'si ya da üstünde yazan adı (D7, GND), bir delik id'si ya da bir " +
+        "bağlantı id'si alır; id'leri get_build_context sayar. Hâlâ kitte " +
+        "olan bir parça öyle bildirilir ve kamera yerinde kalır.",
       attach_lead:
         "Yapımı değiştiren tek araç: bir ucu deliğe oturtur, başka bir uca " +
         "bağlar ya da — hedef verilmezse — geri çıkarır. Her ret hangi " +
@@ -1699,7 +1752,7 @@ export const tr: Copy = {
         "hiçbir şey oynamaz.",
       start_project:
         "Bir yapımı başlatır ve atölyesini açar; orada kayıtlı olan araçlar " +
-        "tezgâhın yedi aracıdır. İki kip de simüle kart üzerinde çalışır, " +
+        "tezgâhın sekiz aracıdır. İki kip de simüle kart üzerinde çalışır, " +
         "yani buradaki hiçbir şey okurun parçalara sahip olmasına bağlı " +
         "değil.",
     },
@@ -1737,6 +1790,18 @@ export const tr: Copy = {
           "Cevabın ne kadarının verileceği — azdan çoğa bir merdiven: hint, " +
           "explain, exact. Verilmezse okurun panelinin zaten bulunduğu " +
           "seviyeyi izler.",
+      },
+      point_at: {
+        /* `webmcp.ts`in `facts.subjects`ten kurduğu enum'u anlatıyor — parçalar,
+           uçlar, pinler, bağlantılar — ve handler'ın kabul edip enum'un
+           saymadığı iki biçimi. Bu tablonun başındaki kayma notu burada da
+           geçerli. */
+        target:
+          "Neyin işaret edileceği: bir parça id'si, bir uç id'si, karttaki " +
+          "bir pinin id'si ya da üstünde yazan adı (büyük-küçük harf fark " +
+          "etmez), bir breadboard delik id'si ya da beklenen bir bağlantının " +
+          "id'si. Enum parçaları, uçları, pinleri ve bağlantıları sayar; " +
+          "delikler ve pin adları da kabul edilir.",
       },
       attach_lead: {
         lead: "Bu yapımdaki bir parçanın ucu.",

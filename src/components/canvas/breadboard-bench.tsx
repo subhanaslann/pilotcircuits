@@ -6,6 +6,7 @@ import type {
   CircuitScene,
   Connection,
   Highlight,
+  Spotlight,
   NodeId,
 } from "@/lib/circuit/graph";
 import type { PartId, TerminalId } from "@/lib/circuit/placement";
@@ -27,6 +28,7 @@ import {
   TargetPinMark,
   WrongPinMark,
 } from "@/components/canvas/overlays/pin-rings";
+import { SpotlightOverlay } from "@/components/canvas/overlays/spotlight";
 import {
   MARK_GROUND,
   SeatPicker,
@@ -236,6 +238,7 @@ export function BreadboardBenchView<Live = void>({
   scene,
   showLabels,
   highlight,
+  spotlight,
   entering,
   targets,
   picking,
@@ -263,6 +266,8 @@ export function BreadboardBenchView<Live = void>({
   scene: CircuitScene;
   showLabels: boolean;
   highlight?: Highlight;
+  /** C-25 · what `point_at` left on the bench. */
+  spotlight?: Spotlight;
   /**
    * A part that has just arrived, drawn coming down onto the bench.
    *
@@ -1118,6 +1123,21 @@ export function BreadboardBenchView<Live = void>({
              would be the one place the callout stopped speaking the board's
              own language. */
           subject={highlight?.subject ?? errorPin.label ?? errorPin.id}
+        />
+      ) : null}
+
+      {/* C-25 · what `point_at` left here. Marked where the marks are, like the
+          two above, and drawn after them so a spotlight on a pin the agent is
+          also correcting does not hide the verdict. A node the tool named that
+          has since left the bench is skipped rather than thrown on. */}
+      {spotlight ? (
+        <SpotlightOverlay
+          at={spotlight.nodes
+            .map((id) => maybeNode(scene, id))
+            .filter((n) => n !== undefined)
+            .map((n) => markAt(n))}
+          label={spotlight.label}
+          mono={spotlight.mono}
         />
       ) : null}
     </>

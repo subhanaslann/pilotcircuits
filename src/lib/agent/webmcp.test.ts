@@ -23,7 +23,7 @@ import {
 } from "@/lib/agent/webmcp";
 
 /**
- * The eleven schemas, as a contract rather than as prose.
+ * The twelve schemas, as a contract rather than as prose.
  *
  * `webmcp.ts`'s own header says an agent reads these before it reads anything
  * else the product says, and the two ways that sentence had stopped being true
@@ -161,6 +161,52 @@ describe("attach_lead's optional argument states its default", () => {
        refuses on sight. A schema that offers a value the handler will not take
        has to say so. */
     expect(sentence).toMatch(/refused/);
+  });
+});
+
+describe("point_at publishes what this bench can be asked where about", () => {
+  /**
+   * The enum is the four families `subjectsOf` derives — parts, leads, pins,
+   * connections — and deliberately not the holes: 216 of them already sit in
+   * `attach_lead`'s enum, and the argument's sentence says holes are taken
+   * anyway. One literal of each family, so a renamed id fails here rather
+   * than in a demo.
+   */
+  it("on the traffic light: a part, a lead, a pin and a connection, and no holes", () => {
+    const facts = schemaFactsFor("trafficLight")!;
+    const schema = workbenchSchemasFor(facts, en).point_at!;
+    const props = Object.fromEntries(properties(schema));
+    const values = props.target!.enum as string[];
+
+    expect(schema.required).toEqual(["target"]);
+    expect(values).toEqual(facts.subjects);
+    expect(values).toContain("ledRed");
+    expect(values).toContain("led.red.anode");
+    expect(values).toContain("board.D13");
+    expect(values).toContain("tl.c.gnd.pin");
+    expect(values.some((id) => id.startsWith("bb."))).toBe(false);
+    expect(facts.holes.some((id) => id.startsWith("bb."))).toBe(true);
+    /* And the sentence says what the enum leaves out. */
+    expect(String(props.target!.description)).toMatch(/holes/);
+  });
+
+  it.each(benches)("%s offers its pins and connections, and parts only where it has a kit", (id) => {
+    const facts = schemaFactsFor(id)!;
+    const props = Object.fromEntries(
+      properties(workbenchSchemasFor(facts, en).point_at!),
+    );
+    const values = props.target!.enum as string[];
+
+    expect(values.some((v) => v.startsWith("board."))).toBe(true);
+    expect(values.length).toBe(new Set(values).size);
+    for (const lead of facts.leads) expect(values).toContain(lead);
+    /* The capstone has no kit, so no part ids — its terminals are offered as
+       leads instead, and its connections are the sketch's. */
+    if (id === "smartParkingBarrier") {
+      expect(values).toContain("sensor.echo");
+      expect(values).toContain("c.sensor.echo");
+      expect(values).not.toContain("sensor");
+    }
   });
 });
 
@@ -313,9 +359,9 @@ describe("no two tools share one schema object", () => {
 describe("every registered tool has something to publish", () => {
   const everyTool = [...workbenchTools, ...libraryTools];
 
-  it("eleven, and no more", () => {
-    expect(everyTool.length).toBe(11);
-    expect(new Set(everyTool).size).toBe(11);
+  it("twelve, and no more", () => {
+    expect(everyTool.length).toBe(12);
+    expect(new Set(everyTool).size).toBe(12);
   });
 
   it.each(everyTool)("%s has a title in both languages", (name) => {

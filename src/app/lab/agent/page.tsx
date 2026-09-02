@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LabSection } from "@/components/lab/lab-primitives";
 import { PanelSpecimens } from "@/components/lab/agent/panel-specimens";
+import { CoachSpecimens } from "@/components/lab/agent/coach-specimens";
 import { GuidanceSpecimens } from "@/components/lab/agent/guidance-specimens";
 import { FindingSpecimens } from "@/components/lab/agent/finding-specimens";
 import { ActivitySpecimens } from "@/components/lab/agent/activity-specimens";
@@ -21,6 +22,7 @@ export default async function AgentPage() {
   const sections = [
     { id: "g-live", title: t.live.title },
     { id: "g-panel", title: t.panel.title },
+    { id: "g-coach", title: t.coach.title },
     { id: "g-guidance", title: t.guidance.title },
     { id: "g-findings", title: t.findings.title },
     { id: "g-activity", title: t.activity.title },
@@ -75,6 +77,15 @@ export default async function AgentPage() {
           description={t.panel.description}
         >
           <PanelSpecimens />
+        </LabSection>
+
+        <LabSection
+          id="g-coach"
+          code="G-16"
+          title={t.coach.title}
+          description={t.coach.description}
+        >
+          <CoachSpecimens />
         </LabSection>
 
         <LabSection

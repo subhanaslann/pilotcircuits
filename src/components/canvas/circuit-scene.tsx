@@ -2,8 +2,13 @@
 
 import { useMemo } from "react";
 import { PITCH, layout, part } from "@/lib/circuit/geometry";
-import type { CircuitScene, Highlight } from "@/lib/circuit/graph";
-import { comparedTo, node } from "@/lib/circuit/graph";
+import type {
+  CircuitScene,
+  Highlight,
+  Spotlight,
+} from "@/lib/circuit/graph";
+import { comparedTo, maybeNode, node } from "@/lib/circuit/graph";
+import { SpotlightOverlay } from "@/components/canvas/overlays/spotlight";
 import { placeWireLabels } from "@/lib/circuit/routing";
 import { useCopy } from "@/content/copy-provider";
 import { DeskSurface } from "@/components/canvas/desk-surface";
@@ -47,6 +52,7 @@ export function CircuitSceneView({
   scene,
   showLabels,
   highlight,
+  spotlight,
   ledState,
   servoGhost = false,
   reference,
@@ -56,6 +62,8 @@ export function CircuitSceneView({
   scene: CircuitScene;
   showLabels: boolean;
   highlight?: Highlight;
+  /** C-25 · what `point_at` left on the bench. */
+  spotlight?: Spotlight;
   ledState?: { green: boolean; red: boolean };
   /** Draws the expected servo position behind the current one. */
   servoGhost?: boolean;
@@ -292,6 +300,21 @@ export function CircuitSceneView({
           wrong={node(scene, highlight.errorPin)}
           target={node(scene, highlight.targetPin)}
           subject={highlight.subject ?? "Wire"}
+        />
+      ) : null}
+
+      {/* C-25 · what `point_at` left here. Drawn after the correction marks,
+          so a spotlight on a pin the agent is also correcting does not hide
+          the verdict. A node the tool named that this scene no longer holds
+          is skipped rather than thrown on. */}
+      {spotlight ? (
+        <SpotlightOverlay
+          at={spotlight.nodes
+            .map((id) => maybeNode(scene, id))
+            .filter((n) => n !== undefined)
+            .map((n) => ({ x: n.x, y: n.y }))}
+          label={spotlight.label}
+          mono={spotlight.mono}
         />
       ) : null}
     </>

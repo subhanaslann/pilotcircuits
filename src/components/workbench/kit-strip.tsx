@@ -9,10 +9,11 @@ import { SoilProbe } from "@/components/canvas/parts/soil-probe";
 import { UltrasonicSensor } from "@/components/canvas/parts/ultrasonic";
 import { MicroServo } from "@/components/canvas/parts/micro-servo";
 import { usePartDrag } from "@/components/canvas/use-part-drag";
+import { useMascotCarrying } from "@/components/workbench/use-mascot-carrying";
 import type { Aim } from "@/components/canvas/drag-math";
 import { PITCH } from "@/lib/circuit/geometry";
 import { boxOf, frame } from "@/lib/circuit/wokwi";
-import { connector, wireRoles } from "@/lib/design/tokens";
+import { agent, connector, wireRoles } from "@/lib/design/tokens";
 import type { CircuitNode, NodeId } from "@/lib/circuit/graph";
 import type { PartId, TerminalId } from "@/lib/circuit/placement";
 import type { KitId } from "@/lib/projects/catalog";
@@ -351,6 +352,23 @@ const shelfScale = (component: KitId) => {
     : SHELF_SCALE;
 };
 
+/**
+ * A part's shelf drawing, measured — for the one other thing that draws it.
+ *
+ * The agent's ring picks a part off its tile and carries it (`agent-mascot.tsx`),
+ * and to close on the anchor mark it needs the box the mark is written in and
+ * the pixels per scene unit the tile draws that box at. `undefined` for a
+ * component with no artwork of its own: the fallback icon has no box to find
+ * a mark in, and the ring then comes for the tile and carries nothing rather
+ * than carrying a guess.
+ */
+export function shelfArt(
+  component: KitId,
+): { box: { width: number; height: number }; scale: number } | undefined {
+  const kit = KIT_ART[component];
+  return kit ? { box: kit.box, scale: shelfScale(component) } : undefined;
+}
+
 /** What separates two rows, in CSS pixels — Tailwind's `gap-4` on the `<ul>`. */
 export const KIT_SHELF_GAP = 16;
 
@@ -433,7 +451,26 @@ export function KitStrip({
   onNear,
   scale,
   className,
+  trailing,
+  spotlight,
 }: {
+  /**
+   * G-16 · what stands at the far end of the shelf: the coach.
+   *
+   * A slot rather than the figure itself, because what the coach is doing is
+   * the session's answer and this is a shelf. It is a flex sibling of the
+   * tile row and not something floated over it, so the tiles scroll under a
+   * shorter row instead of sliding beneath the figure.
+   */
+  trailing?: ReactNode;
+  /**
+   * C-25 · the part `point_at` was asked about while it is still in the box.
+   *
+   * There is no hole on the bench to mark, so the mark goes around the tile,
+   * and the shelf scrolls the tile into view first — a ring around a part
+   * that is off the end of the shelf would be an answer nobody can see.
+   */
+  spotlight?: PartId;
   /** One word, printed on the shelf. */
   caption: string;
   /** Only what is still in the box. A placed part is drawn on the bench. */
@@ -537,7 +574,30 @@ export function KitStrip({
     ? parts.find((part) => part.terminal === held.id)
     : undefined;
 
+  /* The part the AGENT has hold of, when `attach_lead` starts on this shelf.
+     Its tile fades exactly as a person's own drag fades theirs — the ring is
+     carrying the drawing, so the drawing leaves the box. Nothing about the
+     person's gesture reads this. */
+  const carriedByRing = useMascotCarrying();
+
   const shelf = useRef<HTMLUListElement>(null);
+
+  /* Nearest edge, so a tile already in view does not move; instant under
+     reduced motion, since the tile is the only thing a person needs and a
+     smooth scroll is decoration on the way to it. */
+  useEffect(() => {
+    if (!spotlight) return;
+    const tile = shelf.current?.querySelector<HTMLElement>(
+      `[data-kit-part="${CSS.escape(spotlight)}"]`,
+    );
+    tile?.scrollIntoView({
+      inline: "nearest",
+      block: "nearest",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
+  }, [spotlight]);
 
   /**
    * Which end of the shelf is running off the edge, if either.
@@ -645,7 +705,7 @@ export function KitStrip({
           className="flex min-w-0 flex-1 items-center gap-4 overflow-x-auto"
         >
           {parts.map((part) => (
-            <li key={part.part} className="shrink-0">
+            <li key={part.part} className="relative shrink-0">
               <button
                 type="button"
                 aria-label={part.name}
@@ -654,12 +714,20 @@ export function KitStrip({
                    so the name the screen reader already gets is offered to the
                    pointer as well. A stopgap, not the fix; see `KIT_ART`. */
                 title={part.name}
+                /* Named for the agent: `use-agent-mascot.ts` finds the tile a
+                   carry starts on by this, scrolls it into view and measures
+                   it, so the ring closes on the part where the person sees
+                   it. */
+                data-kit-part={part.part}
                 className={cn(
                   "focus-visible:ring-focus duration-instant grid touch-none place-items-center rounded-lg p-1.5",
                   "cursor-grab transition-colors hover:bg-white/10 active:cursor-grabbing",
                   /* Off the shelf, not gone: the space stays, so the row does
-                     not close up under the cursor mid-drag. */
-                  held?.id === part.terminal && held.moved && "opacity-20",
+                     not close up under the cursor mid-drag. The same fade
+                     whether the hand is the person's or the agent's. */
+                  ((held?.id === part.terminal && held.moved) ||
+                    carriedByRing === part.part) &&
+                    "opacity-20",
                 )}
                 style={{ height: PART_HEIGHT + 12 }}
                 {...bind(part.terminal)}
@@ -685,9 +753,11 @@ export function KitStrip({
                   mark={part.mark}
                 />
               </button>
+              {spotlight === part.part ? <TileSpotlight /> : null}
             </li>
           ))}
         </ul>
+        {trailing ? <div className="shrink-0 pl-1">{trailing}</div> : null}
       </div>
 
       {/* The part in hand, over the bench — **at the size it will be when it
@@ -769,6 +839,56 @@ function PartArt({
     >
       {kit.art(uid)}
       {mark ? <AnchorMark {...mark} scale={drawn} base={base} /> : null}
+    </svg>
+  );
+}
+
+/**
+ * The same drawing, riding in the agent's ring.
+ *
+ * `PartArt` for a layer that is itself an `<svg>`: a nested `<svg>` placed by
+ * `x`/`y` rather than an HTML element placed by CSS, hung from the anchor
+ * mark exactly as the person's own carried ghost is (`carriedAt`) — the mark
+ * is where the ring has closed, so the leg the ring holds is the leg that
+ * lands. `scale` is pixels per scene unit and changes across the travel: the
+ * tile's own scale as it leaves the shelf, the bench's zoom as it arrives,
+ * because over the bench the question is *does this go there*, and that is
+ * only answerable against the board underneath at the board's own size.
+ *
+ * Nothing for a component with no artwork; see `shelfArt`.
+ */
+export function CarriedPartArt({
+  component,
+  uid,
+  mark,
+  at,
+  scale,
+}: {
+  component: KitId;
+  uid: string;
+  mark?: { x: number; y: number; label?: string };
+  /** Where the mark goes, in the layer's pixels. */
+  at: { x: number; y: number };
+  scale: number;
+}) {
+  const kit = KIT_ART[component];
+  if (!kit) return null;
+  const grip = mark ?? { x: kit.box.width / 2, y: kit.box.height / 2 };
+
+  return (
+    <svg
+      aria-hidden="true"
+      x={at.x - grip.x * scale}
+      y={at.y - grip.y * scale}
+      width={kit.box.width * scale}
+      height={kit.box.height * scale}
+      viewBox={`0 0 ${kit.box.width} ${kit.box.height}`}
+      overflow="visible"
+    >
+      {kit.art(uid)}
+      {mark ? (
+        <AnchorMark {...mark} scale={scale} base={shelfScale(component)} />
+      ) : null}
     </svg>
   );
 }
@@ -897,5 +1017,44 @@ function AnchorMark({
         </>
       ) : null}
     </g>
+  );
+}
+
+/**
+ * C-25 · the ring's docked pose, around a tile.
+ *
+ * `point_at` on a part still in the box has no hole to close on, so the mark
+ * is left on the shelf instead: the same open ring and the four arms the
+ * flying ring grows when it lands, stretched to the tile's rounded box. Sized
+ * in percentages, because a tile is as wide as its part — a resistor is twice
+ * an LED — and this must not know which. The rect's box is a CSS geometry
+ * property (SVG 2), which is what lets it be `100% − 3px` without measuring.
+ * Not a control, like every other mark the agent leaves: the button under it
+ * is still the thing to pick up.
+ */
+function TileSpotlight() {
+  const box = {
+    x: 1.5,
+    y: 1.5,
+    rx: 10,
+    style: { width: "calc(100% - 3px)", height: "calc(100% - 3px)" },
+  } as const;
+  const arms = [
+    { x: "50%", y: -7.5, width: 2.4, height: 6, transform: "translate(-1.2 0)" },
+    { x: "50%", y: "100%", width: 2.4, height: 6, transform: "translate(-1.2 1.5)" },
+    { x: -7.5, y: "50%", width: 6, height: 2.4, transform: "translate(0 -1.2)" },
+    { x: "100%", y: "50%", width: 6, height: 2.4, transform: "translate(1.5 -1.2)" },
+  ] as const;
+  return (
+    <svg
+      aria-hidden="true"
+      className="motion-safe:motion-pop pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+    >
+      <rect {...box} fill="none" stroke={agent.halo} strokeWidth={5} opacity={0.45} />
+      <rect {...box} fill="none" stroke={agent.mark} strokeWidth={2.4} />
+      {arms.map((arm, index) => (
+        <rect key={index} {...arm} rx={1.2} fill={agent.mark} />
+      ))}
+    </svg>
   );
 }

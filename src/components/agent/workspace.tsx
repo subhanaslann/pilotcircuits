@@ -54,7 +54,7 @@ export function AgentWorkspace({
   /**
    * G-15's list, for the screen this panel is actually standing on.
    *
-   * Defaulted by `AgentPanel` to the bench's own seven, which is right for the
+   * Defaulted by `AgentPanel` to the bench's own eight, which is right for the
    * wide workbench and wrong for the narrow one: below the breakpoint the
    * canvas is unmounted and only four tools are registered, so `7 tools
    * available` was the panel counting a list the browser had never been handed.

@@ -113,6 +113,24 @@ const en = {
     nothingOpen: "Nothing open",
   },
 
+  coach: {
+    title: "The coach figure",
+    description:
+      "A face for the agent, on the bench. It changes with the tool the browser is calling and says in a word what the ring only points at — the first thing on screen a newcomer reads as the agent.",
+    silhouettesTitle: "Three bodies, one face",
+    silhouettesNote:
+      "The first draft borrowed another company's mascot — a cloud head with a terminal for a face — and was stopped for it. These three come from things the product already draws. Halo is a ball with the bench ring floating over it, index dot and crosshair arms included: the same agent that lands on a hole. Pad is the ball inside the ring, a plated pad with a face, and it has no arms — the ring's own arms come out when it points. Lamp is a 5 mm LED with eyes, dome, flange and two legs of unequal length, and it lights up while a test runs.",
+    moodsTitle: "Eleven moods",
+    moodsNote:
+      "Five are the acts in model.ts — one verb per tool, eleven tools. Thinking is not an act but a phase of looking: the face only thinks while the handler is comparing, because the page cannot see the model think between calls, and a face that pretended to would be a badge measuring nothing. The last three are held for under two seconds after a call lands, read off the note the runner logs beside it.",
+    silhouette: "Body",
+    silhouettes: { halo: "Halo", pad: "Pad", lamp: "Lamp" },
+    phaseOf: "during",
+    inPlaceTitle: "On the shelf, and on the mat",
+    inPlaceNote:
+      "On a chapter with a kit the coach is the last thing on the shelf and the shelf is its plate. The capstone has no shelf, so it brings the shelf's colours with it. Either way it stands at the top right of the well, where the sketch put it, and the phase under the word is the same sentence the timeline prints under a running row.",
+  },
+
   activity: {
     title: "Activity and tool details",
     description:
@@ -236,6 +254,24 @@ const tr: Section = {
       "Çözülen bir bulgu yok olmaz — yerinde durum değiştirir. Tıklayınca kaybolan bir satır, kullanıcının olduğunu hiç görmediği bir değişikliktir; oysa bu panel ajanın yaptığı işi görünür kılmak için var.",
     openResolved: "Açık → çözüldü",
     nothingOpen: "Açık bulgu yok",
+  },
+
+  coach: {
+    title: "Koç figürü",
+    description:
+      "Ajana tezgahta bir yüz. Tarayıcının çağırdığı araçla birlikte değişiyor ve halkanın yalnızca işaret ettiğini tek kelimeyle söylüyor — ekranda yeni gelen birinin ajan diye okuduğu ilk şey.",
+    silhouettesTitle: "Üç gövde, tek yüz",
+    silhouettesNote:
+      "İlk taslak başka bir şirketin maskotunu ödünç almıştı — bulut kafa, yüz yerine terminal — ve o yüzden durduruldu. Bu üçü ürünün zaten çizdiği şeylerden geliyor. Hale, üstünde tezgah halkası uçan bir top: işaret noktası ve artı kolları dahil, deliğe konan ajanın ta kendisi. Ped, halkanın içindeki top; yüzü olan bir kaplama ped, kolu yok, işaret ederken halkanın kendi kolları çıkıyor. Lamba, gözleri olan 5 mm'lik bir LED: kubbe, flanş ve boyu eşit olmayan iki bacak; test koşarken yanıyor.",
+    moodsTitle: "On bir ruh hâli",
+    moodsNote:
+      "Beşi model.ts'teki eylemler — araç başına bir fiil, on bir araç. Düşünmek bir eylem değil, bakmanın bir aşaması: yüz yalnızca handler karşılaştırırken düşünüyor, çünkü sayfa iki çağrı arasında modelin düşündüğünü göremez ve görüyormuş gibi yapan bir yüz, hiçbir şey ölçmeyen bir rozet olurdu. Son üçü çağrı bittikten sonra iki saniyeden az tutuluyor ve koşucunun yanına yazdığı nottan okunuyor.",
+    silhouette: "Gövde",
+    silhouettes: { halo: "Hale", pad: "Ped", lamp: "Lamba" },
+    phaseOf: "aşamasında",
+    inPlaceTitle: "Rafta ve matın üstünde",
+    inPlaceNote:
+      "Kiti olan bir bölümde koç rafın son ögesi ve raf onun plakası. Kapstone'da raf yok, o yüzden rafın renklerini yanında getiriyor. İki durumda da kuyunun sağ üstünde, eskizin koyduğu yerde duruyor; kelimenin altındaki aşama, zaman çizelgesinin koşan satırın altına bastığı cümlenin aynısı.",
   },
 
   activity: {

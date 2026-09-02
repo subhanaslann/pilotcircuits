@@ -226,6 +226,11 @@ function commit(
           }
         : {}),
       highlightedFindingId: null,
+      /* And the spotlight with it. A placement write is the one thing that can
+         move what `point_at` framed — the lead it pointed at may now be in
+         another hole, or back in the box — so the mark is stale the moment a
+         commit lands, whoever landed it. */
+      pointedAt: null,
     },
     changed: effects.changed,
     effects,

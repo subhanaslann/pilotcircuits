@@ -28,7 +28,7 @@ import type { ProjectId } from "@/lib/projects/catalog";
  *   page changes."* — an effect with a teardown, which is what this is.
  *
  *   *"Tools are only registered on the pages where they can be used."* — the
- *   caller passes its own list. The wide workbench registers all seven; the
+ *   caller passes its own list. The wide workbench registers all eight; the
  *   narrow one registers the four that still have a surface to move; the
  *   library registers the two that can narrow a grid. A `show_correction`
  *   reachable from the dashboard would point at a canvas that is not mounted,

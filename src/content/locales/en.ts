@@ -1554,6 +1554,11 @@ export const en = {
     previewAngle: "Preview correct angle",
     correctionHighlighted: "Correction highlighted",
     stepVerified: "Step verified",
+    /* G-17 · the two things `point_at` can say. A toast is read once and
+       gone, so it takes the rendered name; the timeline's copy of the same
+       fact goes through a `Ref` and re-translates. */
+    pointedAt: (label: string) => `Pointing at ${label}`,
+    pointedAtKit: (label: string) => `${label} is still in the kit`,
     whyThisPin: "Why D7?",
     /* G-14's foot, once every step is closed. The build does not throw the
        person out of the workbench when the last tick lands — it offers the
@@ -1620,6 +1625,9 @@ export const en = {
     /* Batch 9 · the only way to watch `attach_lead` without an MCP client
        attached. Same call, same arguments, same ring. */
     agentAttach: "Let the agent attach the next lead",
+    /* G-17 · `point_at` without a client: the first part still in the box,
+       or the first part on the bench once the box is empty. */
+    pointAt: "Let the agent point at a part",
     jumpServo: "Jump to servo issue",
     injectServo: "Inject servo orientation error",
     markServoRemounted: "Mark servo as remounted",
@@ -1696,6 +1704,10 @@ export const en = {
       comparingSketch: "Comparing against the sketch",
       checkingAlignment: "Checking the mechanical alignment",
       locating: "Locating the connection",
+      /* G-17 · `point_at`'s one beat. Shorter than a correction's because
+         there is nothing to work out — the name resolves before the wait — and
+         the wait is only what gives the person time to see the ring leave. */
+      pointing: "Finding it on the bench",
       /* Batch 9 · the two beats of a carry, and they are the ring's own: the
          wait is what the animation is made of, not padding in front of it. */
       reaching: "Reaching for the lead",
@@ -1708,6 +1720,24 @@ export const en = {
          reader nothing to read, and these run against local data. */
       searchingProjects: "Searching the project library",
       readingProject: "Reading the project",
+    },
+
+    /* Batch 10 · what the coach figure's caption says in each mood. One short
+       clause each: it sits beside a 56px face on the kit shelf and has to be
+       read at a glance from across the bench. The tool name is not here — it
+       is mono, and it lives in the developer details where it belongs. */
+    coach: {
+      offline: "Waiting for an agent",
+      idle: "Listening",
+      looking: "Reading your build",
+      thinking: "Thinking it over",
+      showing: "Pointing at it",
+      touching: "Working on the bench",
+      testing: "Running the test",
+      moving: "Moving on",
+      found: "Found something",
+      passed: "Looks good",
+      failed: "That did not work",
     },
 
     /* Timeline sentences. Human language first; the tool name lives in the
@@ -1765,6 +1795,21 @@ export const en = {
          either is the timeline describing a different act. */
       showingCorrectionPart: "Agent pointed at where the part goes",
       showingCorrectionAlignment: "Agent pointed at the servo horn",
+
+      /* G-17 · the pointer. The subject arrives as a `Ref` where its name is
+         translated — a part, a lead — and as printed text where it is
+         hardware: `D7`, `bb.f7`, a connection's two ends. The kit line is
+         the honest half of the answer: nothing on the bench to frame, so the
+         camera did not move and the shelf is where to look. */
+      pointing: (subject: string) => `Agent pointed at ${subject}`,
+      pointedAt: (subject: string) => `${subject} highlighted on the workbench`,
+      pointedAtKit: (subject: string) =>
+        `${subject} is still in the kit — nothing on the bench to frame`,
+      alreadyPointedAt: "Already pointing there",
+      /* A connection, end by end: each end arrives as a lead ref or as the
+         word printed on a pin, so the join reads the way the findings list
+         prints it rather than as two graph addresses. */
+      connectionName: (from: string, to: string) => `${from} → ${to}`,
 
       /* The one thing the agent does with hands. Same shape as the person's
          own four sentences, in the agent's voice — the timeline has to say
@@ -1883,6 +1928,11 @@ export const en = {
          sentence, attached to the case it does not describe. */
       noSuchFinding:
         "No finding has that id — the ids come from inspect_build.",
+      /* G-17 · `point_at`'s one refusal. It points the caller at the tool
+         that lists the names, the way `noSuchFinding` does; the ids
+         themselves stay in `result.validSample`, where a list belongs. */
+      unknownSubject:
+        "Nothing in this build goes by that name — get_build_context lists the ids.",
       unknownFilter: (filter: string) =>
         `That is not a value the ${filter} filter accepts.`,
 
@@ -2012,6 +2062,11 @@ export const en = {
          other way round sends the correct lead to the hole it is already in. */
       show_correction:
         "Points at a finding on the workbench. focused lists the pins to look at — where it belongs before where it is now.",
+      /* G-17 · the sibling: a correction needs a finding, this needs a name.
+         The one-line sentence says the two things a host's list has to carry
+         — that it moves the camera, and that it changes nothing. */
+      point_at:
+        "Points the workbench at a part, a lead, a pin, a hole or a connection: the camera frames it and a mark stays until the next gesture. Changes nothing in the build.",
       /* Both halves, and what each one costs.
 
          This sentence named only the additive half while the tool's default is
@@ -2074,6 +2129,7 @@ export const en = {
       get_build_context: "Build context",
       inspect_build: "Build inspection",
       show_correction: "Correction",
+      point_at: "Pointer",
       attach_lead: "Lead move",
       verify_current_step: "Step check",
       navigate_build_step: "Step navigation",
@@ -2107,6 +2163,14 @@ export const en = {
         "Points the workbench at one finding and says what is wrong with it, " +
         "at the depth detail_level asks for. It explains and highlights; the " +
         "only tool that repairs anything is attach_lead.",
+      point_at:
+        "Answers *where is it*: highlights one thing on the bench and moves " +
+        "the camera onto it — a part, one of its leads, a board pin, a " +
+        "breadboard hole or an expected connection. Nothing in the build " +
+        "changes. target takes a part id, a lead id, a pin id or its printed " +
+        "name (D7, GND), a hole id or a connection id; get_build_context " +
+        "lists the ids. A part still in the kit is reported as such and the " +
+        "camera stays where it is.",
       attach_lead:
         "The one tool that changes the build: it seats a lead in a hole, " +
         "joins it to another lead, or — with no target — pulls it out again. " +
@@ -2138,7 +2202,7 @@ export const en = {
         "Answers what a project needs — parts, length, level, learning goals " +
         "— without opening it or starting it. Nothing on screen moves.",
       start_project:
-        "Starts a build and opens its workbench, where the seven bench tools " +
+        "Starts a build and opens its workbench, where the eight bench tools " +
         "are the ones registered. Both modes run on the simulated board, so " +
         "nothing here depends on the reader owning the parts.",
     },
@@ -2177,6 +2241,17 @@ export const en = {
           "How much of the answer to give away — a ladder, least to most: " +
           "hint, explain, exact. Omitted, it follows the level the reader's " +
           "panel is already on.",
+      },
+      point_at: {
+        /* Describes the enum built in `webmcp.ts` from `facts.subjects` —
+           parts, leads, pins, connections — and the two forms the handler
+           takes that the enum does not list. The drift note at the top of
+           this table applies. */
+        target:
+          "What to point at: a part id, a lead id, a board pin id or its " +
+          "printed name (case does not matter), a breadboard hole id, or an " +
+          "expected-connection id. The enum lists the parts, leads, pins and " +
+          "connections; holes and printed pin names are accepted as well.",
       },
       attach_lead: {
         lead: "A lead of a part in this build.",

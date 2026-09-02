@@ -788,3 +788,187 @@
     opacity: 1;
   }
 }
+
+/* ============================================================================
+   Batch 10 · The coach figure's motion
+   ----------------------------------------------------------------------------
+   Small, looping, and each one a *verb*: the figure bobs at rest, its cursor
+   blinks, its eyes scan, its dots type, its arm points, its hands fiddle, the
+   ring's dot runs while it works and the ring closes when it points. The
+   SVG groups these run on set `transform-box: fill-box` and their own origin
+   inline, so a rotation turns an arm at the shoulder rather than the whole
+   drawing at its corner. Reduced motion collapses them all through the global
+   rule above, and the caption beside the face carries the word (rule 7).
+   ========================================================================== */
+
+@keyframes cp-coach-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes cp-coach-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cp-coach-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.12);
+  }
+}
+
+@keyframes cp-coach-dock {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes cp-coach-scan {
+  0%,
+  100% {
+    transform: translateX(-3px);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes cp-coach-typing {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+@keyframes cp-coach-tilt {
+  to {
+    transform: rotate(-7deg);
+  }
+}
+
+@keyframes cp-coach-point {
+  to {
+    transform: rotate(95deg);
+  }
+}
+
+@keyframes cp-coach-hands {
+  0%,
+  100% {
+    transform: rotate(-18deg);
+  }
+  50% {
+    transform: rotate(18deg);
+  }
+}
+
+@keyframes cp-coach-march {
+  0%,
+  100% {
+    transform: translateX(-2px);
+  }
+  50% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes cp-coach-lean {
+  to {
+    transform: rotate(6deg);
+  }
+}
+
+@keyframes cp-coach-hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-5px);
+  }
+  60% {
+    transform: translateY(0);
+  }
+  80% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes cp-coach-slump {
+  to {
+    transform: translateY(3px) rotate(4deg);
+  }
+}
+
+@keyframes cp-coach-flash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+
+@utility coach-bob {
+  animation: cp-coach-bob 2.6s var(--ease-in-out-soft) infinite;
+}
+@utility coach-orbit {
+  animation: cp-coach-orbit 1.4s linear infinite;
+}
+@utility coach-orbit-fast {
+  animation: cp-coach-orbit 0.55s linear infinite;
+}
+@utility coach-blink {
+  animation: cp-coach-blink 4.2s var(--ease-in-out-soft) infinite;
+}
+@utility coach-dock {
+  animation: cp-coach-dock var(--duration-deliberate) var(--ease-overshoot) both;
+}
+@utility coach-scan {
+  animation: cp-coach-scan 1.6s var(--ease-in-out-soft) infinite;
+}
+@utility coach-typing {
+  animation: cp-coach-typing 1.2s var(--ease-in-out-soft) infinite;
+}
+@utility coach-tilt {
+  animation: cp-coach-tilt var(--duration-deliberate) var(--ease-out-soft) forwards;
+}
+@utility coach-point {
+  animation: cp-coach-point var(--duration-deliberate) var(--ease-overshoot) forwards;
+}
+@utility coach-hands {
+  animation: cp-coach-hands 0.5s var(--ease-in-out-soft) infinite;
+}
+@utility coach-march {
+  animation: cp-coach-march 0.7s var(--ease-in-out-soft) infinite;
+}
+@utility coach-lean {
+  animation: cp-coach-lean var(--duration-deliberate) var(--ease-out-soft) forwards;
+}
+@utility coach-hop {
+  animation: cp-coach-hop 0.9s var(--ease-out-soft) 1;
+}
+@utility coach-slump {
+  animation: cp-coach-slump var(--duration-deliberate) var(--ease-out-soft) forwards;
+}
+@utility coach-flash {
+  animation: cp-coach-flash 0.6s var(--ease-in-out-soft) infinite;
+}

@@ -35,6 +35,7 @@ const toolPurposes = (copy: Copy): Record<AgentTool, string> => ({
   get_build_context: copy.agentPanel.tools.get_build_context,
   inspect_build: copy.agentPanel.tools.inspect_build,
   show_correction: copy.agentPanel.tools.show_correction,
+  point_at: copy.agentPanel.tools.point_at,
   attach_lead: copy.agentPanel.tools.attach_lead,
   verify_current_step: copy.agentPanel.tools.verify_current_step,
   navigate_build_step: copy.agentPanel.tools.navigate_build_step,

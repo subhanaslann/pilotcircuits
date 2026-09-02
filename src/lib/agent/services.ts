@@ -7,7 +7,9 @@ import {
   verifyStep,
   type FindingId,
 } from "@/lib/agent/findings";
-import { say, type Line } from "@/lib/agent/line";
+import { say, type Line, type Ref } from "@/lib/agent/line";
+import type { CircuitScene } from "@/lib/circuit/graph";
+import { PITCH } from "@/lib/circuit/geometry";
 import {
   coachingOrder,
   inspectionScopes,
@@ -17,7 +19,12 @@ import {
   type CoachingLevel,
   type InspectionScope,
 } from "@/lib/agent/model";
-import type { AgentSessionState, SessionPatch } from "@/lib/agent/session";
+import { partNameOf } from "@/lib/agent/parts";
+import type {
+  AgentSessionState,
+  PointedAt,
+  SessionPatch,
+} from "@/lib/agent/session";
 import {
   nextStep,
   stepById,
@@ -25,10 +32,15 @@ import {
   stepsOwning,
   type StepId,
 } from "@/lib/agent/steps";
-import { isServoAligned, maybeNode, type NodeId } from "@/lib/circuit/graph";
-import { buildFor } from "@/lib/agent/builds";
+import {
+  isServoAligned,
+  maybeNode,
+  type NodeId,
+  type NodeKind,
+} from "@/lib/circuit/graph";
+import { buildFor, subjectsOf } from "@/lib/agent/builds";
 import { projectById } from "@/lib/projects/catalog";
-import { placeIn } from "@/lib/agent/placement";
+import { placeIn, type PlacementCommit } from "@/lib/agent/placement";
 import { GRIP_AT, SEAT_AT } from "@/lib/agent/mascot";
 import {
   attachmentOf,
@@ -36,12 +48,14 @@ import {
   isHole,
   partOf,
   partsInKit,
+  type PartId,
+  type PlacementSpec,
   type TerminalId,
 } from "@/lib/circuit/placement";
 import type { ProjectFilters } from "@/lib/projects/filter";
 
 /**
- * Batch 4 · The workbench tools — seven of them since `attach_lead`.
+ * Batch 4 · The workbench tools — eight of them since `point_at`.
  *
  * Each one is a plain async function of `(input, context)`. It reads the
  * session, waits out its own named phases, and returns three things: the
@@ -198,6 +212,14 @@ export interface ToolInputs {
   get_build_context: Record<string, never>;
   inspect_build: { scope?: InspectionScope };
   show_correction: { finding_id: FindingId; detail_level?: CoachingLevel };
+  /**
+   * A part id of the placement spec, a lead id, a board pin's id or printed
+   * name, a breadboard hole id, or an expected connection's id. One field,
+   * because the person asks one question — *where is it* — and the resolver
+   * tells the families apart; a schema with five optional arguments would
+   * make the caller do that first.
+   */
+  point_at: { target: string };
   attach_lead: { lead: TerminalId; target?: NodeId | null };
   verify_current_step: Record<string, never>;
   navigate_build_step: { step_id: StepId };
@@ -433,6 +455,285 @@ function foundLine(found: { type: string }[]): Line {
           : "issuesFound",
     args: [found.length],
   };
+}
+
+/* --- The pointer ---------------------------------------------------------- */
+
+/**
+ * The subject of a `point_at`, as a `Line` argument.
+ *
+ * A `Ref` where the word is translated — a part, a lead — so the timeline
+ * re-renders it in whichever language the reader switches to, and printed
+ * text where it is hardware: a pin's label, a hole's id, a connection's two
+ * ends. §14: nothing in state is a sentence, and a part's name frozen at call
+ * time would be one.
+ */
+type SubjectName = Extract<Ref, { ref: "part" | "lead" | "line" }> | string;
+
+/**
+ * A connection, named end by end: a lead by its name in the reader's language,
+ * a pin or a hole by what is printed on it. Composed as a `line` ref so the
+ * timeline resolves the lead refs when it prints, the way every other subject
+ * is carried — `wire.gnd.pin -> board.GND` in a rendered sentence was the one
+ * place this tool leaked the graph. A lead still in the kit has no node and is
+ * a lead ref all the same; only a node that is not a terminal prints its label.
+ */
+function connectionName(
+  scene: CircuitScene,
+  ends: [NodeId, NodeId],
+): Extract<Ref, { ref: "line" }> {
+  const end = (id: NodeId): string | Ref => {
+    const node = maybeNode(scene, id);
+    if (node && node.kind !== "terminal") return node.label ?? id;
+    return { ref: "lead", id: id as TerminalId, case: "nom" };
+  };
+  return {
+    ref: "line",
+    line: {
+      ns: "activity",
+      k: "connectionName",
+      args: [end(ends[0]), end(ends[1])],
+    },
+  };
+}
+
+/** What `locate` found: enough for the patch, the effects and the sentence. */
+export interface Located {
+  kind: PointedAt["kind"];
+  where: PointedAt["where"];
+  nodes: NodeId[];
+  part?: PartId;
+  name: SubjectName;
+}
+
+/**
+ * What a name means on this bench, or `null` for a name it has not got.
+ *
+ * One resolver for the handler and for the headline, so the timeline cannot
+ * open a row on a subject the call then refuses. It takes no dictionary,
+ * which is what lets the headline use it: the name comes back as a `Line`
+ * argument, and the one caller that needs words asks `labelOf`.
+ *
+ * Five families, tried in the order an id is least ambiguous. A part id and a
+ * lead id are the placement spec's; a node id is answered by its kind, which
+ * is also how the capstone's terminals are reached — it has no spec, so its
+ * parts are not addressable, but `sensor.echo` is a node of its scene; an
+ * expected connection is the sketch's; and last a printed name, case-folded,
+ * because `D7` is what a person says and `board.D7` is what the graph calls
+ * it. Pins are tried before holes by label, so `GND` finds the board's pin
+ * and not a rail hole that happens to print the same word.
+ *
+ * **On the bench** means *has a node in the scene* — the reading
+ * `findings.ts` uses, because `sceneFrom` emits a node for a lead only when
+ * its part has a path to a board hole. A part with no lead on the bench is in
+ * the kit, and then there is nothing to frame: `nodes` is empty and `part`
+ * says which shelf tile to ring instead.
+ */
+export function locate(state: AgentSessionState, target: string): Located | null {
+  const spec = buildFor(state.projectId)?.placement;
+  const scene = state.scene;
+  const onBench = (id: NodeId) => maybeNode(scene, id) !== undefined;
+
+  if (spec && spec.parts.includes(target)) {
+    const leads = spec.terminalsOf[target] ?? [];
+    const nodes = leads.filter(onBench);
+    return {
+      kind: "part",
+      where: nodes.length ? "bench" : "kit",
+      nodes,
+      part: target,
+      /* Through its first lead, which is how `partNameOf` names a part: the
+         id is the spec's and the dictionary keys names by lead prefix. */
+      name: { ref: "part", lead: leads[0] ?? target },
+    };
+  }
+
+  const node = maybeNode(scene, target);
+  if (spec?.terminals.includes(target) || node?.kind === "terminal") {
+    const part = spec ? partOf(spec, target) : undefined;
+    return {
+      kind: "lead",
+      where: node ? "bench" : "kit",
+      nodes: node ? [target] : [],
+      ...(part ? { part } : {}),
+      name: { ref: "lead", id: target, case: "nom" },
+    };
+  }
+  if (node?.kind === "board-pin" || node?.kind === "breadboard-hole") {
+    return {
+      kind: node.kind === "board-pin" ? "pin" : "hole",
+      where: "bench",
+      nodes: [target],
+      name: node.label ?? target,
+    };
+  }
+
+  const connection = scene.expected.find((c) => c.id === target);
+  if (connection) {
+    const ends: [NodeId, NodeId] = [connection.from, connection.to];
+    const nodes = ends.filter(onBench);
+    /* A join with neither end on the bench is a join between parts in the
+       box; the tile to ring is whichever of them the spec knows. */
+    const part =
+      spec && !nodes.length
+        ? ends.map((end) => partOf(spec, end)).find((p) => p !== undefined)
+        : undefined;
+    return {
+      kind: "connection",
+      where: nodes.length ? "bench" : "kit",
+      nodes,
+      ...(part ? { part } : {}),
+      name: connectionName(scene, ends),
+    };
+  }
+
+  const printed = target.toLowerCase();
+  const byLabel = (kind: NodeKind) =>
+    Object.values(scene.nodes).find(
+      (n) => n.kind === kind && n.label?.toLowerCase() === printed,
+    );
+  const labelled = byLabel("board-pin") ?? byLabel("breadboard-hole");
+  if (labelled) {
+    return {
+      kind: labelled.kind === "board-pin" ? "pin" : "hole",
+      where: "bench",
+      nodes: [labelled.id],
+      name: labelled.label ?? labelled.id,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * The subject rendered now, in the reader's language — for the result and
+ * the toast, which are read once. The same two tables `line.ts` resolves a
+ * `Ref` through, so the toast and the timeline cannot name one thing twice.
+ */
+function labelOf(copy: Copy, name: SubjectName): string {
+  if (typeof name === "string") return name;
+  if (name.ref === "line") return say(copy, name.line);
+  if (name.ref === "lead") return copy.build.leads[name.id] ?? name.id;
+  return partNameOf(copy, name.lead);
+}
+
+/**
+ * How far apart the named places stand, in scene units: the longer side of
+ * their box, and zero for fewer than two of them on the bench.
+ *
+ * What decides a connection's framing. A join whose lead is seated in its
+ * hole names two nodes at one place, and *fitting* that box ran the zoom to
+ * its limit — the correction's framing again, by another road.
+ */
+function spreadOf(scene: CircuitScene, ids: NodeId[]): number {
+  const found = ids
+    .map((id) => maybeNode(scene, id))
+    .filter((n) => n !== undefined);
+  if (found.length < 2) return 0;
+  const xs = found.map((n) => n.x);
+  const ys = found.map((n) => n.y);
+  return Math.max(
+    Math.max(...xs) - Math.min(...xs),
+    Math.max(...ys) - Math.min(...ys),
+  );
+}
+
+/**
+ * Whether two spotlights frame the same thing — by what was resolved, not by
+ * what was typed, so `D7` after `board.D7` is the same answer and says so.
+ */
+function sameSpot(a: PointedAt, b: PointedAt): boolean {
+  return (
+    a.kind === b.kind &&
+    a.where === b.where &&
+    a.part === b.part &&
+    a.nodes.length === b.nodes.length &&
+    a.nodes.every((id, index) => id === b.nodes[index])
+  );
+}
+
+/**
+ * The bench's own no, composed once for the two places `attach_lead` can hear
+ * it.
+ *
+ * It used to be built where the write happened, after the two phases — so a
+ * lead that could never land was carried across the bench for the whole seat
+ * and only then refused. The question is now asked twice: as a dry run on the
+ * state read at the top, before the ring leaves, and again on the live state
+ * after the wait, because the bench may have moved meanwhile. One function
+ * rather than two copies, so the two sites cannot drift: the ladder below has
+ * fallen through to the wrong sentence once already (`wireEnd`, when it
+ * arrived), and a second copy would be a second place to miss a rung.
+ *
+ * The five ways the bench says no, and not one of them is an argument error:
+ * `lead` and `target` both named something real and the model is what refused.
+ * So the payload is not `{argument, value, valid}` — it is the gesture and the
+ * thing standing in its way.
+ *
+ * `occupant` is the one fact the sentences could not carry and the one a
+ * caller needs to get past the refusal: `holeTaken` names the hole and not the
+ * lead sitting in it, and `leadNotFree` names neither. With it,
+ * `attach_lead(occupant, null)` is the call that clears the way. Always a node
+ * id, and `null` where nothing is in the way at all — a part cannot meet its
+ * own other end (`sameCircuitPart`), a jumper only ever lives in a hole
+ * (`wireEnd`), and `leadAlreadyThere` is the seat already holding the very
+ * lead that asked for it.
+ */
+function benchRefusal(
+  outcome: PlacementCommit,
+  spec: PlacementSpec,
+  /** The state the placement was asked against — never an older read. */
+  read: AgentSessionState,
+  lead: TerminalId,
+  target: NodeId | null,
+): ToolOutcome {
+  const occupant =
+    target === null
+      ? null
+      : outcome.refusal === "holeTaken"
+        ? /* Whose lead is in that hole, ignoring this one — the same test
+             `tryAttach` refused on. */
+          (inbound(spec, read.placement, target).find((u) => u !== lead) ??
+          null)
+        : outcome.refusal === "leadNotFree"
+          ? /* What the target lead is engaged with, whichever side stored the
+               edge: the hole it sits in, or the lead clipped onto it.
+               `attach_lead(target, null)` frees it either way. */
+            (attachmentOf(spec, read.placement, target) ?? null)
+          : null;
+
+  return refused(
+    outcome.refusal === "holeTaken"
+      ? {
+          ns: "errors" as const,
+          k: "holeTaken" as const,
+          args: [
+            (target ? maybeNode(read.scene, target)?.label : undefined) ??
+              target ??
+              "",
+          ] as [string],
+        }
+      : outcome.refusal === "leadNotFree"
+        ? { ns: "errors" as const, k: "leadNotFree" as const }
+        : outcome.refusal === "sameCircuitPart"
+          ? { ns: "errors" as const, k: "sameCircuitPart" as const }
+          : /* A cable end asked to clip onto a leg. It gets its own rung rather
+               than sharing `sameCircuitPart`, because the two refusals teach
+               opposite things: that one says a part cannot meet itself, this
+               one says a jumper only ever lives in a hole — and an agent told
+               the wrong one will retry the same gesture with a different part
+               and be refused again. A rung missed here is not a compile error
+               either: every arm below falls through to `leadAlreadyThere`,
+               which is the one sentence in this ladder that claims the write
+               succeeded. */
+            outcome.refusal === "wireEnd"
+              ? { ns: "errors" as const, k: "wireEnd" as const }
+              : /* Changed nothing and refused nothing: the lead is already
+                   exactly where it was asked to go. Not a failure, but not a
+                   write either, and the caller has to be able to tell. */
+                { ns: "errors" as const, k: "leadAlreadyThere" as const },
+    { lead, target, occupant },
+  );
 }
 
 /* --- The handlers -------------------------------------------------------- */
@@ -808,6 +1109,10 @@ export const handlers: ToolHandlers = {
       },
       patch: {
         highlightedFindingId: finding.id,
+        /* One mark at a time: a correction takes the spotlight off, the way
+           a spotlight is taken off by everything that writes the highlight.
+           `AgentSessionState.pointedAt` holds the rule. */
+        pointedAt: null,
         coaching: level,
         tab: "findings" as const,
       },
@@ -830,6 +1135,155 @@ export const handlers: ToolHandlers = {
           message: copy.workbench.correctionHighlighted,
         },
       ],
+    };
+  },
+
+  /**
+   * G-17 · The one call that answers *where*.
+   *
+   * `show_correction` can only frame a finding, and the question a beginner
+   * asks most often has no finding behind it: *which one is the resistor*,
+   * *where does D7 come out*. This points the bench at a thing by name — a
+   * part, one of its leads, a board pin, a breadboard hole, an expected
+   * connection — moves the camera onto it and leaves a mark the canvas draws
+   * until the next gesture. Nothing in the build changes, so it does not
+   * commit and the undo stack never sees it.
+   *
+   * The name is checked before the phase, not after: a name this bench has
+   * not got is an argument error, and the ring must not leave for a place
+   * that does not exist. The phase is one beat and shorter than a
+   * correction's, because there is nothing to work out — the wait is what
+   * gives the person time to see the ring go.
+   *
+   * A part still in the kit is the honest half of the answer. It has no node
+   * on the bench, so there is nothing to frame: the camera stays where it is,
+   * the toast says *in the kit*, and `pointedAt.part` is what the shelf
+   * rings instead. `where` is what tells a caller which half it got.
+   */
+  async point_at({ target }, ctx) {
+    const state = ctx.read();
+    const copy = ctx.copy;
+    const build = buildFor(state.projectId);
+
+    if (!build) {
+      /* Unreachable, for the reason `run_functional_test` gives, and routed
+         through `refused()` for the same reason. */
+      return refused(
+        { ns: "errors", k: "noBench" },
+        { project: state.projectId },
+      );
+    }
+
+    /* `unknown`, because a host that does not enforce the schema can hand
+       this anything, and `locate` takes a string. */
+    const asked: unknown = target;
+    const found =
+      typeof asked === "string" && asked ? locate(state, asked) : null;
+    if (!found) {
+      /* A sample of each family and the count, the shape `unknownTarget`
+         set: the set this is answered out of is every part, lead, pin and
+         connection plus every hole, and listing it would spend more on one
+         mistake than the registration spends on the tool. `count` is the
+         named ids; a pin's printed name is an alias of one of them and is
+         not counted twice. */
+      const subjects = subjectsOf(build);
+      const holes = Object.values(state.scene.nodes).filter(
+        (n) => n.kind === "breadboard-hole",
+      ).length;
+      return refused(
+        { ns: "errors", k: "unknownSubject" },
+        {
+          argument: "target",
+          value: asked ?? null,
+          validSample: [
+            ...subjects.parts.slice(0, 6),
+            ...subjects.leads.slice(0, 6),
+            ...subjects.pins.slice(0, 4),
+          ],
+          count:
+            subjects.parts.length +
+            subjects.leads.length +
+            subjects.pins.length +
+            subjects.connections.length +
+            holes,
+        },
+      );
+    }
+    const name = asked as string;
+
+    await ctx.phase({ ns: "phases", k: "pointing" }, 260);
+
+    /* Re-read after the wait, the way every handler does: the person may have
+       put the part down, or picked it up, while the ring was on its way. The
+       name cannot stop resolving — a spec's ids and a board's pins do not
+       come and go — so the fallback only satisfies the type. */
+    const live = ctx.read();
+    const at = locate(live, name) ?? found;
+    const label = labelOf(copy, at.name);
+    const spotlight: PointedAt = {
+      target: name,
+      kind: at.kind,
+      where: at.where,
+      nodes: at.nodes,
+      ...(at.part ? { part: at.part } : {}),
+      label,
+    };
+    const already =
+      live.pointedAt !== null && sameSpot(live.pointedAt, spotlight);
+    const inKit = at.where === "kit";
+
+    const effects: SessionEffect[] = [
+      {
+        kind: "toast",
+        tone: "info",
+        message: inKit
+          ? copy.workbench.pointedAtKit(label)
+          : copy.workbench.pointedAt(label),
+      },
+    ];
+    if (!inKit) {
+      effects.unshift(
+        at.kind === "connection" && spreadOf(live.scene, at.nodes) > PITCH * 4
+          ? /* Fit, no scale: a connection's two ends can be a board's width
+               apart, and a fixed zoom would frame one of them. Only when
+               they are — a single pin, or a lead seated in the very hole it
+               is joined to, is one place, and fitting one place runs the
+               zoom to its limit, which is the correction's framing and not
+               this tool's. */
+            { kind: "focus", nodes: at.nodes, padding: 90 }
+          : /* A spotlight frames; a correction zooms. `PIN_FOCUS` is 2.9
+               because a callout has to be legible over one pin. Here the
+               person asked where something is, and the answer is the thing
+               in its surroundings — a part at 2.9 fills the view and the
+               board it stands in is gone. */
+            { kind: "focus", nodes: at.nodes, padding: 110, scale: 1.6 },
+      );
+    }
+
+    return {
+      status: "ok",
+      result: {
+        target: name,
+        kind: at.kind,
+        where: at.where,
+        label,
+        nodes: at.nodes,
+        /* Whether this call moved the spotlight — `show_correction`'s
+           `changed`, for the same reader: two identical calls used to be
+           byte-identical there, and the caller was the one party never told
+           nothing had happened. The patch lands either way. */
+        changed: !already,
+        source: "demo",
+      },
+      patch: { pointedAt: spotlight },
+      outcome: already
+        ? { ns: "activity" as const, k: "alreadyPointedAt" as const }
+        : {
+            ns: "activity" as const,
+            k: inKit ? ("pointedAtKit" as const) : ("pointedAt" as const),
+            args: [at.name] as [SubjectName],
+          },
+      effects,
     };
   },
 
@@ -913,6 +1367,28 @@ export const handlers: ToolHandlers = {
       );
     }
 
+    /**
+     * Refused before the ring leaves, when it can be.
+     *
+     * The five refusals in `benchRefusal` are decided by the model, not by the
+     * wait — a hole that is taken now is taken in 1160 ms too, barring the
+     * person — and answering them after the phases meant the ring performed
+     * the whole reach and carry for a lead that was never going to land:
+     * 1253 ms to a `holeTaken`, measured in a real Chrome, with the bench
+     * animating under an answer that was already no. So the placement is
+     * asked once here, as a dry run against the state read at the top, and
+     * the refusal is the same object the post-phase site builds. Nothing is
+     * written: `placeIn` is pure and a declined patch is empty.
+     *
+     * The post-phase ask stays, and so does its position after the abort
+     * check below: the bench is not disabled while a tool runs, so a hole free
+     * now can be taken by the time the ring arrives, and a cancel must still
+     * not land a commit. This only stops a carry the model has already
+     * refused.
+     */
+    const dry = placeIn(state, spec, lead, target);
+    if (!dry.changed) return benchRefusal(dry, spec, state, lead, target);
+
     await ctx.phase({ ns: "phases", k: "reaching" }, GRIP_AT);
     await ctx.phase({ ns: "phases", k: "carrying" }, SEAT_AT - GRIP_AT);
 
@@ -955,69 +1431,12 @@ export const handlers: ToolHandlers = {
     const live = ctx.read();
     const outcome = placeIn(live, spec, lead, target);
 
+    /* The bench moved during the carry — a hole free at the top is taken now,
+       or the person picked the very lead up. The same refusal as the dry run
+       above, from the same function, against the state the write was asked
+       of. */
     if (!outcome.changed) {
-      /**
-       * The five ways the bench says no, and not one of them is an argument
-       * error: `lead` and `target` both named something real and the model is
-       * what refused. So the payload is not `{argument, value, valid}` — it is
-       * the gesture and the thing standing in its way.
-       *
-       * `occupant` is the one fact the sentences could not carry and the one a
-       * caller needs to get past the refusal: `holeTaken` names the hole and not
-       * the lead sitting in it, and `leadNotFree` names neither. With it,
-       * `attach_lead(occupant, null)` is the call that clears the way. Always a
-       * node id, and `null` where nothing is in the way at all — a part cannot
-       * meet its own other end (`sameCircuitPart`), a jumper only ever lives in
-       * a hole (`wireEnd`), and `leadAlreadyThere` is the seat already holding
-       * the very lead that asked for it.
-       */
-      const occupant =
-        target === null
-          ? null
-          : outcome.refusal === "holeTaken"
-            ? /* Whose lead is in that hole, ignoring this one — the same test
-                 `tryAttach` refused on. */
-              (inbound(spec, live.placement, target).find((u) => u !== lead) ??
-              null)
-            : outcome.refusal === "leadNotFree"
-              ? /* What the target lead is engaged with, whichever side stored
-                   the edge: the hole it sits in, or the lead clipped onto it.
-                   `attach_lead(target, null)` frees it either way. */
-                (attachmentOf(spec, live.placement, target) ?? null)
-              : null;
-
-      return refused(
-        outcome.refusal === "holeTaken"
-          ? {
-              ns: "errors" as const,
-              k: "holeTaken" as const,
-              args: [
-                (target ? maybeNode(live.scene, target)?.label : undefined) ??
-                  target ??
-                  "",
-              ] as [string],
-            }
-          : outcome.refusal === "leadNotFree"
-            ? { ns: "errors" as const, k: "leadNotFree" as const }
-            : outcome.refusal === "sameCircuitPart"
-              ? { ns: "errors" as const, k: "sameCircuitPart" as const }
-              : /* A cable end asked to clip onto a leg. It gets its own rung
-                   rather than sharing `sameCircuitPart`, because the two
-                   refusals teach opposite things: that one says a part cannot
-                   meet itself, this one says a jumper only ever lives in a hole
-                   — and an agent told the wrong one will retry the same gesture
-                   with a different part and be refused again. A rung missed
-                   here is not a compile error either: every arm below falls
-                   through to `leadAlreadyThere`, which is the one sentence in
-                   this ladder that claims the write succeeded. */
-                outcome.refusal === "wireEnd"
-                  ? { ns: "errors" as const, k: "wireEnd" as const }
-                  : /* Changed nothing and refused nothing: the lead is already
-                       exactly where it was asked to go. Not a failure, but not
-                       a write either, and the caller has to be able to tell. */
-                    { ns: "errors" as const, k: "leadAlreadyThere" as const },
-        { lead, target, occupant },
-      );
+      return benchRefusal(outcome, spec, live, lead, target);
     }
 
     const { effects } = outcome;
@@ -1214,7 +1633,7 @@ export const handlers: ToolHandlers = {
           repaired: live.repaired.filter((id) =>
             findings.some((f) => f.id === id),
           ),
-          ...(point ? { highlightedFindingId: point } : {}),
+          ...(point ? { highlightedFindingId: point, pointedAt: null } : {}),
           tab: found.length ? ("findings" as const) : live.tab,
         },
         note: {
@@ -1269,6 +1688,7 @@ export const handlers: ToolHandlers = {
           ? {}
           : { completedAt: Date.now() }),
         highlightedFindingId: null,
+        pointedAt: null,
         /* The findings that belonged to the step that just closed. Carrying
            them into the next one would let the panel claim every connection
            matches on a step the agent has not looked at — the resolved rows go
@@ -1424,6 +1844,9 @@ export const handlers: ToolHandlers = {
       patch: {
         activeStepId: step.id,
         highlightedFindingId: null,
+        /* A step change, so the spotlight goes: what it framed belonged to
+           the step the person was looking at. */
+        pointedAt: null,
         inspectedStepId: null,
         tab: "guidance" as const,
       },
@@ -1627,6 +2050,22 @@ export function headlineFor<K extends keyof ToolInputs>(
         ns: "activity",
         k: "attachingLead",
         args: [{ ref: "lead", id: lead, case: "acc" }],
+      };
+    }
+    case "point_at": {
+      /* The subject named the way the outcome will name it — a `Ref` for a
+         translated word, printed text for hardware — off the same resolver
+         the handler uses, so the row cannot open on a thing the call then
+         refuses. A name this bench has not got opens on the id as typed, and
+         no name at all on the generic line; the handler's `unknownSubject`
+         is what says which. */
+      const target = (input as ToolInputs["point_at"]).target;
+      if (typeof target !== "string" || !target)
+        return { ns: "activity", k: "calledTool" };
+      return {
+        ns: "activity",
+        k: "pointing",
+        args: [locate(state, target)?.name ?? target],
       };
     }
     case "verify_current_step":

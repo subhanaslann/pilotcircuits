@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { AgentWorkspace } from "@/components/agent/workspace";
 import type { AgentSession } from "@/components/agent/use-agent-session";
 import { type CanvasHandle } from "@/components/canvas/canvas-viewport";
-import { AgentMascot } from "@/components/canvas/agent-mascot";
 import {
   BuildSceneView,
   declaredBodyAt,
@@ -28,6 +27,8 @@ import {
 } from "@/components/canvas/drag-math";
 import { KitStrip } from "@/components/workbench/kit-strip";
 import { useAgentMascot } from "@/components/workbench/use-agent-mascot";
+import { CoachCorner } from "@/components/agent/coach-corner";
+import { useCoachMood } from "@/components/agent/use-coach-mood";
 import { StepRail, type KitRow } from "@/components/workbench/step-rail";
 import { WorkbenchTopbar } from "@/components/workbench/topbar";
 import {
@@ -39,10 +40,12 @@ import { useCopy } from "@/content/copy-provider";
 import { clockOf } from "@/lib/agent/activity";
 import type { AgentTool } from "@/lib/agent/model";
 import { partNameOf, stepParts } from "@/lib/agent/parts";
+import type { PointedAt } from "@/lib/agent/session";
+import type { Copy } from "@/content/i18n";
 import { stepAside, stepWords } from "@/lib/agent/steps";
 import type { BriefingDef } from "@/lib/agent/briefings";
 import { zoom as zoomLimits } from "@/lib/circuit/geometry";
-import { maybeNode, type NodeId } from "@/lib/circuit/graph";
+import { maybeNode, type NodeId, type Spotlight } from "@/lib/circuit/graph";
 import {
   anchorsFor,
   attachmentOf,
@@ -229,9 +232,14 @@ export function Workbench({
    * Watches the session rather than any of the controls below, so a call that
    * arrives through WebMCP is exactly as visible as one made by pressing the
    * button beside it — which is the claim the whole product rests on, finally
-   * made in the one register nobody can miss.
+   * made in the one register nobody can miss. The canvas handle is for
+   * measuring the shelf and the coach figure against the well; the ring's
+   * layer itself is mounted by `CanvasWorkspace`.
    */
-  useAgentMascot(session);
+  useAgentMascot(session, canvas);
+  /* And its face. Same session, so the figure on the shelf, the ring on the
+     bench and the pulse in the panel are one call seen three ways. */
+  const coach = useCoachMood(session);
 
   const railRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -349,6 +357,17 @@ export function Workbench({
   /* --- The kit, on a build the person assembles ------------------------- */
 
   const spec = build.placement;
+
+  /**
+   * C-25 · what `point_at` left on the bench, in the reader's language.
+   *
+   * `pointedAt.label` is the word at call time. A part's or a lead's name is
+   * translated, so it is looked up again here — the way `findingWords` does
+   * for a finding — and a language switch does not leave a Turkish pill on an
+   * English bench. A pin's printed name, a hole's address and a connection's
+   * two ends are hardware text and stay as they are, in mono (rule 13).
+   */
+  const spotlight = spotlightOf(copy, state.pointedAt);
 
   /**
    * Where each module's case stands once it is placed, asked once.
@@ -951,6 +970,18 @@ export function Workbench({
     spec && view !== "reference" && inKit.length > 0 ? (
       <KitStrip
         caption={copy.workbench.kit.tray}
+        /* A part asked about while it is still in the box: the ring goes
+           around its tile, since there is no hole on the bench to mark. */
+        spotlight={
+          state.pointedAt?.where === "kit" ? state.pointedAt.part : undefined
+        }
+        trailing={
+          <CoachCorner
+            mood={coach.mood}
+            line={coach.line}
+            detail={coach.detail}
+          />
+        }
         parts={inKit.map((part) => ({
           part,
           /* The lead a drag off the shelf commits. The build decides it — a
@@ -1125,6 +1156,14 @@ export function Workbench({
             fitBox={build.fitBox}
             instructionRef={instructionRef}
             kit={kitShelf}
+            coach={
+              <CoachCorner
+                ground="mat"
+                mood={coach.mood}
+                line={coach.line}
+                detail={coach.detail}
+              />
+            }
             overlay={
               briefing ? (
                 <ChapterBriefing
@@ -1148,6 +1187,7 @@ export function Workbench({
               scene={scene}
               showLabels={scale >= zoomLimits.labelThreshold}
               highlight={highlighted?.highlight}
+              spotlight={spotlight}
               reference={view === "compare" ? referenceScene : undefined}
               successTrace={session.trace}
               /* The lamp's own flag where there is a lamp, the capstone's
@@ -1212,12 +1252,6 @@ export function Workbench({
               }
               onCancelPick={() => pick(null)}
             />
-
-            {/* Last, so it stands on the bench rather than under it — and
-                inside the viewport's transform, which is what lets it land on
-                a hole rather than near one. It draws nothing at all unless the
-                agent is mid-call. */}
-            <AgentMascot />
           </CanvasWorkspace>
         }
         dock={
@@ -1316,4 +1350,36 @@ export function Workbench({
       <ToastViewport toasts={session.toasts} onDismiss={session.dismissToast} />
     </>
   );
+}
+
+/**
+ * The spotlight the scene draws for `pointedAt`, or nothing.
+ *
+ * Only for a subject on the bench: a part in the kit has no node to mark, and
+ * the shelf rings its tile instead. The word is re-derived for the two kinds
+ * whose name is a dictionary entry; the other three print what the hardware
+ * prints. `mono` follows the same line — rule 13.
+ */
+function spotlightOf(
+  copy: Copy,
+  pointed: PointedAt | null,
+): Spotlight | undefined {
+  if (!pointed || pointed.where !== "bench" || pointed.nodes.length === 0) {
+    return undefined;
+  }
+  const label =
+    pointed.kind === "lead"
+      ? ((copy.build.leads as Record<string, string | undefined>)[
+          pointed.target
+        ] ?? pointed.label)
+      : pointed.kind === "part"
+        ? partNameOf(copy, pointed.nodes[0])
+        : pointed.label;
+  return {
+    nodes: pointed.nodes,
+    label,
+    /* A pin's printed name and a hole's address; a connection is named end
+       by end in the reader's language and is set like a part. */
+    mono: pointed.kind === "pin" || pointed.kind === "hole",
+  };
 }

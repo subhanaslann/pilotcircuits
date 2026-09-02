@@ -3,9 +3,9 @@ import type { Finding, FindingId } from "@/lib/agent/findings";
 import type { Line } from "@/lib/agent/line";
 import type { CoachingLevel } from "@/lib/agent/model";
 import type { StepId } from "@/lib/agent/steps";
-import type { CircuitScene } from "@/lib/circuit/graph";
+import type { CircuitScene, NodeId } from "@/lib/circuit/graph";
 import { buildFor, defaultBuild, type BuildDef } from "@/lib/agent/builds";
-import type { Placement } from "@/lib/circuit/placement";
+import type { PartId, Placement } from "@/lib/circuit/placement";
 import type { ProjectId } from "@/lib/projects/catalog";
 
 /**
@@ -129,6 +129,23 @@ export interface AgentSessionState {
   /** What the agent knows — see `findings.ts` for why these are not the same. */
   findings: Finding[];
   highlightedFindingId: FindingId | null;
+  /**
+   * What `point_at` is pointing the bench at — the spotlight, as distinct from
+   * the correction above.
+   *
+   * A finding highlight says *this is wrong*; this says *this is where it is*,
+   * which is the answer to "where is the resistor?" and has no finding behind
+   * it. The two are separate keys because they are drawn differently and
+   * cleared on different rules — but they are **one mark at a time**: every
+   * write to `highlightedFindingId`, set or clear, also clears this, and so
+   * does every gesture on the bench (`commit` in `agent/placement.ts`), a step
+   * change, undo and redo. A spotlight that outlived the thing it framed
+   * would be pointing at a hole the part is no longer in.
+   *
+   * Not restored by undo, for the reason `highlightedFindingId` is not: the
+   * nodes it names may not be on the bench in the state being restored.
+   */
+  pointedAt: PointedAt | null;
   coaching: CoachingLevel;
 
   /** What was done, and by whom. */
@@ -177,6 +194,28 @@ export interface AgentSessionState {
 }
 
 /**
+ * The spotlight `point_at` leaves on the bench.
+ *
+ * `nodes` is what the canvas frames and marks — empty when `where` is `kit`,
+ * because a part in the box has no node on the bench, and then `part` is what
+ * the kit shelf rings instead. `label` is the name the toast used, kept so a
+ * mark can caption itself without re-deriving it; for a `part` or a `lead` it
+ * is the dictionary's word at the moment of the call, so a renderer that has
+ * to survive a language switch should re-derive it from `part` or `nodes[0]`
+ * through `partNameOf` rather than print this.
+ */
+export interface PointedAt {
+  /** The argument as it arrived: a part id, a lead id, a pin id or its printed name, a hole id, or a connection id. */
+  target: string;
+  kind: "part" | "lead" | "pin" | "hole" | "connection";
+  where: "bench" | "kit";
+  nodes: NodeId[];
+  /** The part this is about, in the placement spec's own id — absent on the capstone and for a pin or a hole. */
+  part?: PartId;
+  label: string;
+}
+
+/**
  * Exactly what `commit` writes and undo may take back, and nothing else.
  *
  * Kept in step with `agent/placement.ts`'s `commit` by construction: if that
@@ -216,6 +255,7 @@ export function initialSession(build: BuildDef = defaultBuild): AgentSessionStat
     inspectedStepId: null,
     findings: [],
     highlightedFindingId: null,
+    pointedAt: null,
     coaching: "hint",
     activity: [],
     running: null,
@@ -255,6 +295,7 @@ export type SessionPatch = Partial<
     | "inspectedStepId"
     | "findings"
     | "highlightedFindingId"
+    | "pointedAt"
     | "coaching"
     | "tab"
     | "webMcpAvailable"
@@ -412,8 +453,10 @@ export function sessionReducer(
         ...previous,
         /* Not restored: the highlight is about what the agent is pointing at
            now, and it has to be dropped either way because the pin it names
-           may not be on the bench in the state being restored. */
+           may not be on the bench in the state being restored. The spotlight
+           goes with it, for the same reason. */
         highlightedFindingId: null,
+        pointedAt: null,
         history: {
           past: state.history.past.slice(0, -1),
           future: [snapshotOf(state), ...state.history.future],
@@ -428,6 +471,7 @@ export function sessionReducer(
         ...state,
         ...next,
         highlightedFindingId: null,
+        pointedAt: null,
         history: {
           past: [...state.history.past, snapshotOf(state)].slice(-HISTORY_LIMIT),
           future: state.history.future.slice(1),

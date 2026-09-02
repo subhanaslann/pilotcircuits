@@ -54,10 +54,44 @@ export interface CanvasHandle {
    * cannot make honest.
    */
   toScene: (clientX: number, clientY: number) => { x: number; y: number };
+  /**
+   * A scene point, in CSS pixels from this element's top-left.
+   *
+   * The inverse of `toScene`, for the agent's ring, which is drawn in a layer
+   * over this element rather than inside its transform. Read off the layer's
+   * **computed** transform rather than off `view.current`: `apply` writes the
+   * target and lets a CSS transition carry the picture there over
+   * `--duration-deliberate`, so for 350 ms after `focusOn` the ref says where
+   * the hole will be and the screen shows where it is. A ring that landed on
+   * the ref's answer sat on empty mat while the hole slid in under it.
+   */
+  fromScene: (x: number, y: number) => { x: number; y: number };
+  /** This element's box on the screen, for measuring screen anchors against. */
+  getBounds: () => DOMRect | null;
 }
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * The transform the browser is showing right now, or `null` when it cannot
+ * say — before the first `apply`, or anywhere without a layout engine.
+ */
+function liveTransform(layer: SVGGElement): DOMMatrixReadOnly | null {
+  if (
+    typeof getComputedStyle !== "function" ||
+    typeof DOMMatrixReadOnly !== "function"
+  ) {
+    return null;
+  }
+  const value = getComputedStyle(layer).transform;
+  if (!value || value === "none") return null;
+  try {
+    return new DOMMatrixReadOnly(value);
+  } catch {
+    return null;
+  }
 }
 
 export function CanvasViewport({
@@ -232,6 +266,18 @@ export function CanvasViewport({
         y: (clientY - rect.top - y) / k,
       };
     },
+    fromScene: (x, y) => {
+      const layer = layerRef.current;
+      const live = layer ? liveTransform(layer) : null;
+      if (live) {
+        /* The origin is `0 0` (see `apply`), so the matrix applies as is. */
+        const point = live.transformPoint({ x, y });
+        return { x: point.x, y: point.y };
+      }
+      const { x: vx, y: vy, k } = view.current;
+      return { x: vx + x * k, y: vy + y * k };
+    },
+    getBounds: () => svgRef.current?.getBoundingClientRect() ?? null,
   }));
 
   /**

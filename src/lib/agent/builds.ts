@@ -323,6 +323,50 @@ export interface BuildSchemaFacts {
   leads: string[];
   holes: string[];
   scopes: InspectionScope[];
+  /**
+   * Every named thing `point_at` can be asked about — parts, leads, board pins
+   * and expected connections, in that order. Breadboard holes are accepted by
+   * the tool and deliberately not here: see `subjectsOf`.
+   */
+  subjects: string[];
+}
+
+/**
+ * What `point_at` can be asked about on this build, by family.
+ *
+ * Four lists and not one, because the refusal samples each family separately
+ * — a caller that misspelt a part should be shown what a part id looks like,
+ * not six leads — and `schemaFactsFor` flattens them into the published enum.
+ *
+ * Parts and leads come from the placement spec where there is one, in the
+ * order the steps ask for them. The capstone has no spec — its parts are laid
+ * out by the author and are not addressable as parts — but its terminals are
+ * nodes of the reference scene, so they are offered as leads there and
+ * resolved the same way. Pins are read from the reference scene rather than
+ * the opening one because an assembled chapter opens with an empty bench; the
+ * board is on it either way, so the two agree, and the reference is the one
+ * that cannot be empty. Connections are the sketch's own ids.
+ *
+ * Breadboard holes are not a family: 216 of them already sit in
+ * `attach_lead`'s enum, and an enum that long describes a breadboard rather
+ * than a tool. The tool takes them anyway, and the argument's sentence says
+ * so.
+ */
+export function subjectsOf(build: BuildDef): {
+  parts: string[];
+  leads: string[];
+  pins: string[];
+  connections: string[];
+} {
+  const nodes = Object.values(build.reference.nodes);
+  return {
+    parts: [...(build.placement?.parts ?? [])],
+    leads: build.placement
+      ? [...build.placement.terminals]
+      : nodes.filter((n) => n.kind === "terminal").map((n) => n.id),
+    pins: nodes.filter((n) => n.kind === "board-pin").map((n) => n.id),
+    connections: build.reference.expected.map((c) => c.id),
+  };
 }
 
 export function schemaFactsFor(
@@ -333,6 +377,7 @@ export function schemaFactsFor(
 
   const steps = stepsOwning(build.activeStepId);
   const turns = steps.some((step) => step.checksMechanical);
+  const subjects = subjectsOf(build);
 
   return {
     stepIds: steps.map((step) => step.id),
@@ -348,6 +393,12 @@ export function schemaFactsFor(
       ...(build.placement ? (["placement"] as const) : []),
       ...(turns ? (["mechanical"] as const) : []),
       "all",
+    ],
+    subjects: [
+      ...subjects.parts,
+      ...subjects.leads,
+      ...subjects.pins,
+      ...subjects.connections,
     ],
   };
 }
