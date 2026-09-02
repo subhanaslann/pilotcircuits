@@ -134,7 +134,7 @@ describe("race", () => {
   });
 
   /**
-   * The user's symptom 5, as a test: aiming at GND must not land in D13.
+   * The fifth reported symptom, as a test: aiming at GND must not land in D13.
    *
    * With a 40-unit catch and the pointer-as-aim-point, a drop meant for `GND`
    * resolved against nine candidates and the winner depended on where inside

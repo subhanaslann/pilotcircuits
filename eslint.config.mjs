@@ -11,8 +11,6 @@ const eslintConfig = defineConfig([
     ".next/**",
     // The production build's own directory (see next.config.ts).
     ".next-build/**",
-    // Local scratch directory, never source.
-    ".audit/**",
     "out/**",
     "build/**",
     "next-env.d.ts",

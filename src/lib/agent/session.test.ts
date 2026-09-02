@@ -1058,8 +1058,8 @@ describe("the timeline headline matches the call", () => {
  * bench moved anyway — undoably, but unannounced, and with nobody left to be
  * told. The phases are collapsed here, so what these pin is the decision rather
  * than the timing: the race that ends the wait early lives in
- * `use-agent-session.ts`'s `phase`, and the audit probe measures it at 909 ms
- * against `SEAT_AT` of 1160.
+ * `use-agent-session.ts`'s `phase`, and it was measured at 909 ms against
+ * `SEAT_AT` of 1160.
  */
 describe("a cancelled call", () => {
   const aborted = () => {

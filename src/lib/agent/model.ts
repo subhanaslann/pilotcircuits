@@ -211,7 +211,7 @@ export const toolAct: Record<AgentTool, ToolAct> = {
  * to a real MCP client forwards all five, and the day one exists it should not
  * have to re-derive three of them from behaviour. And a hint stated is a hint
  * that can be checked: every cell below was measured, and two of them are
- * corrections to a table three separate readings got wrong.
+ * corrections to a table that had been wrong since it was written.
  *
  * `destructiveHint` and `idempotentHint` are optional because MCP defines them
  * as *"meaningful only when `readOnlyHint == false`"*. Omitted, not set to

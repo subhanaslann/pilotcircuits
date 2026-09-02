@@ -1421,9 +1421,9 @@ export function useAgentSession(options?: {
    * from chapter one to chapter two without a reload and the dock still holds
    * the lamp's serial log and its three verdict rows, the canvas is still
    * carrying whatever the last film left lit, and any beat still in flight
-   * fires into a bench that is no longer the one it was measuring. The WebMCP
-   * audit named this case exactly; nothing failed, which is what made it worth
-   * writing down.
+   * fires into a bench that is no longer the one it was measuring. This case
+   * was gone looking for deliberately; nothing failed, which is what made it
+   * worth writing down.
    *
    * The same cleanup `reset` does, minus the announcement — nobody pressed
    * anything, and "the board is back to the beginning" is not what happened.

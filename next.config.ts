@@ -31,8 +31,8 @@ const nextConfig: NextConfig = {
    * was not installed, and a production build contained exactly one
    * `memo_cache_sentinel`, in `react-dom`. Nothing was visibly broken, because
    * every hot path happens to be hand-memoised; what was broken is that the
-   * rule the code is written to was false, and self-propagating into every
-   * session brief that quoted it.
+   * rule the code is written to was false, and had propagated into every
+   * later comment that quoted it.
    *
    * Made true rather than retracted. The alternative — deleting the comments
    * and adding the dependency arrays they refused — is a larger change to more
@@ -43,8 +43,8 @@ const nextConfig: NextConfig = {
   /**
    * Origin-keying, asked for rather than assumed.
    *
-   * **This is hardening, not a fix for anything observed.** The finding it comes
-   * from claimed `navigator.modelContext` would be behind a `SecurityError`
+   * **This is hardening, not a fix for anything observed.** The claim behind it
+   * was that `navigator.modelContext` would be behind a `SecurityError`
    * gate on an origin that is not origin-keyed; measured in the browser on this
    * dev server, with no header sent at all, `window.originAgentCluster` is
    * already `true`, so nothing in the product reaches that gate today and
@@ -67,8 +67,8 @@ const nextConfig: NextConfig = {
    * tools=(self)` would buy nothing and cost one thing: a Chrome without the
    * WebMCP flag does not recognise the feature name and prints a console
    * warning for it on every response. (This comment used to say the spec
-   * defined no such feature; it does, and the sentence was written from the
-   * very finding that quoted it.)
+   * defined no such feature. It does — the sentence was written before that
+   * part of `index.bs` was read.)
    */
   async headers() {
     return [

@@ -393,8 +393,8 @@ describe("every registered tool has something to publish", () => {
    *
    * `attach_lead` is idempotent — the second identical call writes nothing —
    * and `verify_current_step` is not, because it patches `activeStepId` and so
-   * four identical `{}` calls walk the rail. Three separate readings got this
-   * pair the wrong way round, which is the reason it is pinned here rather
+   * four identical `{}` calls walk the rail. This pair has been read the wrong
+   * way round more than once, which is the reason it is pinned here rather
    * than left to a comment.
    */
   it("idempotence is the measured answer, not the intuitive one", () => {

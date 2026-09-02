@@ -61,8 +61,8 @@ export const REACTION_MS = 1800;
  * A real host calls a tool and is answered in a few hundred milliseconds —
  * `get_build_context` is 420 ms end to end, and the phases inside
  * `inspect_build` are 380, 520 and 340. Shown as they happen, "Reading your
- * build" was on screen for less time than it takes to read it, and the user
- * said so. So the face is a *presentation* of the session rather than a
+ * build" was on screen for less time than it takes to read it — a flicker,
+ * not a sentence. So the face is a *presentation* of the session rather than a
  * mirror of it: whatever it shows, it shows for at least this long, and a
  * change that arrives sooner waits its turn. When the wait ends, the mood
  * shown is the **latest** one, not the next one — a queue would have the face

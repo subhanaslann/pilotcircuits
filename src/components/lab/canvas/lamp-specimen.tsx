@@ -149,7 +149,8 @@ function MisplacedLead() {
 }
 
 /**
- * The join the sketch does not ask for — R7's vocabulary, with nowhere to go.
+ * The join the sketch does not ask for — the unasked-for-join vocabulary,
+ * with nowhere to go.
  *
  * Built by `attach` rather than written as a literal, and that is the whole
  * argument: a hand-written `{ ...lampComplete, "res.in": "board.D13" }` also

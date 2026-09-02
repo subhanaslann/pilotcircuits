@@ -670,8 +670,8 @@ function SceneStage({
           the box into the element and then fills the leftover with whatever
           happens to lie outside it, which here is the desk. At the briefing's
           545 x 888 stage against chapter three's 0.93 box that is a plank of
-          oak above and below the mat, on exactly the three chapters wave one
-          measured.
+          oak above and below the mat, on exactly the three chapters this was
+          measured on.
 
           So the letterbox is drawn on purpose instead: the film is clipped to
           its own viewBox and the bars are the `Stage`'s own sunken ground, the

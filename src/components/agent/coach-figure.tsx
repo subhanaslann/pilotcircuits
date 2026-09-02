@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils/cn";
  * ## Round, and drawn from the product's own shapes
  *
  * The first draft had a cloud-shaped head and a dark rectangular screen for a
- * face with terminal glyphs on it, and the user stopped it: that silhouette
+ * face with terminal glyphs on it, and it was thrown out: that silhouette
  * is another company's mascot, and a lookalike is a liability whatever the
  * intent. So there is no screen and no cloud anywhere in this file. The
  * three bodies kept for comparison in `/lab/agent#g-coach` all come from

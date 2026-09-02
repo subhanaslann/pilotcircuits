@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 /**
  * The bench a workbench URL serves, before anything has run.
  *
- * This is the one defect in the WebMCP audit that a green test suite could
+ * This is the one defect in the WebMCP layer that a green test suite could
  * never have caught, because the wrong state was corrected by an effect one
  * frame after hydration: `initialSession()` falls back to the capstone, and
  * `openBuild` used to run in a `useEffect` inside `WorkbenchRoute`. Effects do

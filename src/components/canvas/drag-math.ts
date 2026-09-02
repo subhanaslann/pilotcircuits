@@ -227,7 +227,7 @@ export type Aim =
  * a transparent rect covered the part's whole 41.7 × 52.1 box, so where inside
  * the LED you happened to grab decided which hole it went into, by up to two
  * and a half pitches. Aiming at the hole you can see landed you in the next one
- * along, which is the complaint in the user's own words.
+ * along, which is the complaint exactly as it was reported.
  *
  * `sticky` is the target the aim was on a moment ago. Ties are broken by
  * distance and never by array order: the old `d <= distance` handed a dead heat
@@ -366,7 +366,7 @@ export function zoomToAim(scale: number, spacing: number): number | null {
  * a 12 px catcher. Measured on chapter two's ground jumper: a press on the
  * seated end reached the canvas underneath and panned it. A rigid part still
  * moves by its body; a cable has no body, so this was "the cables cannot be
- * moved" in the user's words.
+ * moved" as it was reported.
  *
  * A loose lead keeps the lifted point: its ring is drawn there, and the ring
  * is the handle — what you can see is what you can press.
