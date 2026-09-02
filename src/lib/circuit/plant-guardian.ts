@@ -1219,7 +1219,7 @@ export function plantLines(scene: CircuitScene): {
     scene.observed.find((c) => c.from === terminal)?.to;
   const reaches = (a: NodeId | undefined, b: NodeId) =>
     a !== undefined && sameNet(a, b);
-  const across = (hole: NodeId | null) => {
+  const across = (hole: NodeId | null | undefined) => {
     if (!hole) return undefined;
     for (const w of WIRES) {
       const a = landed(w.a);
@@ -1231,8 +1231,8 @@ export function plantLines(scene: CircuitScene): {
     return undefined;
   };
   return {
-    sense: across(plantComplete["soil.aout"]),
-    lamp: across(plantComplete["led.plant.anode"]),
+    sense: across(landed("soil.aout")),
+    lamp: across(landed("led.plant.anode")),
   };
 }
 

@@ -1173,7 +1173,7 @@ export function soapLines(scene: CircuitScene): {
     scene.observed.find((c) => c.from === terminal)?.to;
   const reaches = (a: NodeId | undefined, b: NodeId) =>
     a !== undefined && sameNet(a, b);
-  const across = (hole: NodeId | null) => {
+  const across = (hole: NodeId | null | undefined) => {
     if (!hole) return undefined;
     for (const w of WIRES) {
       const a = landed(w.a);
@@ -1188,7 +1188,7 @@ export function soapLines(scene: CircuitScene): {
     trig: landed("sensor.trig"),
     echo: landed("sensor.echo"),
     pump: landed("servo.signal"),
-    lamp: across(soapComplete["led.soap.anode"]),
+    lamp: across(landed("led.soap.anode")),
   };
 }
 

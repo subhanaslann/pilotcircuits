@@ -1406,10 +1406,13 @@ export const nightStageBox = framed.stage;
  * thing this product must never do.
  *
  * So it asks the physical question instead: *of the cable that reaches this
- * net, where does the other end land?* Both nets are named by the finished
- * build rather than typed out, and the net test is `NODE_GROUPS`, so a cable
- * one row up the same column answers the same way — which is true of the board
- * and is the whole of what chapter two taught.
+ * net, where does the other end land?* Both nets are where the part's own lead
+ * stands right now, read off the record — never the finished build's hole,
+ * which is what this used to consult: a cable in column 29 carries nothing if
+ * the sensor's OUT lead is not in column 29, and with it pulled, or seated
+ * across the channel, the row passed and the lamp lit. The net test is
+ * `NODE_GROUPS`, so a cable one row up the same column answers the same way —
+ * which is true of the board and is the whole of what chapter two taught.
  *
  * `undefined` for a line no cable makes yet. Only meaningful on a bench whose
  * wiring is otherwise right, which is why the run puts it in a row of its own
@@ -1423,7 +1426,7 @@ export function nightLines(scene: CircuitScene): {
     scene.observed.find((c) => c.from === terminal)?.to;
   const reaches = (a: NodeId | undefined, b: NodeId) =>
     a !== undefined && sameNet(a, b);
-  const across = (hole: NodeId | null) => {
+  const across = (hole: NodeId | null | undefined) => {
     if (!hole) return undefined;
     for (const w of WIRES) {
       const a = landed(w.a);
@@ -1435,8 +1438,8 @@ export function nightLines(scene: CircuitScene): {
     return undefined;
   };
   return {
-    sense: across(nightComplete["pir.out"]),
-    lamp: across(nightComplete["led.night.anode"]),
+    sense: across(landed("pir.out")),
+    lamp: across(landed("led.night.anode")),
   };
 }
 

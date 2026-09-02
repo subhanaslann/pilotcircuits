@@ -1566,10 +1566,13 @@ export const lightStageBox = framed.stage;
  * one thing this product must never do.
  *
  * So it asks the physical question instead: *of the cable that reaches this
- * lamp's anode column, where does the other end land?* The column is named by
- * the finished build rather than typed out, and the net test is `NODE_GROUPS`,
- * so a cable one row up the same column answers the same way — which is true of
- * the board and is the whole of what this chapter teaches.
+ * lamp's anode column, where does the other end land?* The column is where the
+ * anode stands right now, read off the record — never the finished build's
+ * hole, which is what this used to consult: a cable in column 8 carries
+ * nothing if the anode is not in column 8, and with the anode pulled the row
+ * passed and the lamp lit. The net test is `NODE_GROUPS`, so a cable one row
+ * up the same column answers the same way — which is true of the board and is
+ * the whole of what this chapter teaches.
  *
  * `undefined` for a lamp no cable reaches yet. Chapter three's `nightLines` is
  * the same function; this is the one it was written from.
@@ -1583,7 +1586,7 @@ export function lightLines(scene: CircuitScene): {
     scene.observed.find((c) => c.from === terminal)?.to;
   const reaches = (a: NodeId | undefined, b: NodeId) =>
     a !== undefined && sameNet(a, b);
-  const across = (hole: NodeId | null) => {
+  const across = (hole: NodeId | null | undefined) => {
     if (!hole) return undefined;
     for (const w of WIRES) {
       const a = landed(w.a);
@@ -1595,9 +1598,9 @@ export function lightLines(scene: CircuitScene): {
     return undefined;
   };
   return {
-    red: across(lightComplete["led.red.anode"]),
-    yellow: across(lightComplete["led.yellow.anode"]),
-    green: across(lightComplete["led.green.anode"]),
+    red: across(landed("led.red.anode")),
+    yellow: across(landed("led.yellow.anode")),
+    green: across(landed("led.green.anode")),
   };
 }
 
