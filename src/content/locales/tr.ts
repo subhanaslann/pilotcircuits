@@ -30,6 +30,22 @@ import type { Copy } from "@/content/locales/en";
  *     hiçbiri öyle değil ve hiçbiri öyle olmamalı — ray satırı bir başlık değil,
  *     kişiye verilen iş.
  */
+/**
+ * The clitic `da` / `de` after a word, by the word's last vowel: back vowels
+ * (a, ı, o, u) take `da`, front vowels (e, i, ö, ü) take `de`.
+ *
+ * Part names are substituted into sentences whole, and the kit has both kinds
+ * — `Direnç de …`, `Sarı LED de …`, but `Toprak probu da …`, `Mikro servo
+ * da …`, `Güç kablosu da …` — so a clitic hard-coded for one of them is wrong
+ * for the other half of the shelf. `toLocaleLowerCase("tr")` so that `LED`
+ * reads as the word it is said as.
+ */
+const daDe = (word: string): "da" | "de" => {
+  const vowels = word.toLocaleLowerCase("tr").replace(/[^aeıioöuü]/g, "");
+  const last = vowels[vowels.length - 1];
+  return last !== undefined && "aıou".includes(last) ? "da" : "de";
+};
+
 export const tr: Copy = {
   /**
    * The design lab's own prose. Not product copy — it is the record of why
@@ -1529,7 +1545,8 @@ export const tr: Copy = {
       removedJoin: "O bağlantıyı kaldırdın.",
       /* Başka bir parça kımıldadığı için karta tutunacak yeri kalmayan
          parça. `removedPart` hareketin kendisi; bu onun sonucu. */
-      cameWithIt: (part: string) => `${part} da onunla birlikte geldi.`,
+      cameWithIt: (part: string) =>
+        `${part} ${daDe(part)} onunla birlikte geldi.`,
       undone: (sentence: string) => `Geri alındı: ${sentence}`,
       redone: (sentence: string) => `Yeniden yapıldı: ${sentence}`,
       nothingToUndo: "Geri alınacak bir şey yok.",
