@@ -69,8 +69,17 @@ export interface StagePatch {
 export interface RunBeat {
   /** Milliseconds from the start of the run. */
   at: number;
-  /** A line the board prints. Hardware, so never translated. */
-  serial?: string;
+  /**
+   * A line the board prints. Hardware, so never translated.
+   *
+   * A function of the scene where the line is a reading the board could only
+   * have made on a build that measures: `Distance: 0 cm` is what a pulseIn
+   * timeout prints, and `PIR: HIGH` is not printed by a sensor no cable
+   * reaches. A constant where the sketch prints regardless of the wiring —
+   * `Light: RED` is the sketch's decision, not the lamp's. `undefined` from the
+   * function means the board printed nothing at that beat.
+   */
+  serial?: string | ((scene: CircuitScene) => string | undefined);
   /**
    * What the bench shows from this moment. A function of the scene because a
    * build can only show what is true of it — the horn does not swing to 90°
@@ -461,12 +470,16 @@ export const nightRun: RunSpec = {
       stage: () => ({ lit: false }),
     },
     { at: 900, serial: "PIR: LOW" },
+    /* What the board prints is read off the same build the frame is: a sensor
+       no cable reaches never goes HIGH, and a sketch whose pin never went HIGH
+       never prints the lamp on. Before this the log said HIGH and ON over a
+       lamp the film left dark. */
     {
       at: 1800,
-      serial: "PIR: HIGH",
+      serial: (scene) => (senses(scene) ? "PIR: HIGH" : "PIR: LOW"),
       stage: (scene) => ({ lit: senses(scene) }),
     },
-    { at: 2600, serial: "Lamp: ON" },
+    { at: 2600, serial: (scene) => (senses(scene) ? "Lamp: ON" : undefined) },
     /* A real HC-SR501 holds its pin up for seconds after the last movement and
        then lets it fall; the film shows the hold rather than eliding it,
        because "it stays on for a while" is a property of the part and not of
@@ -474,7 +487,7 @@ export const nightRun: RunSpec = {
     { at: 3400, serial: "PIR: LOW" },
     {
       at: 4200,
-      serial: "Lamp: off",
+      serial: (scene) => (senses(scene) ? "Lamp: off" : undefined),
       stage: () => ({ lit: false }),
     },
   ],
@@ -630,9 +643,11 @@ export const soapRun: RunSpec = {
       serial: "Sketch: touchless_soap.ino",
       stage: () => ({ lit: false, hornAngle: 0 }),
     },
+    /* A pulseIn that times out reads 0, and the sketch prints the 0: the log
+       says what this board measured, not what the finished one would. */
     ...approachReadings.map((cm, index) => ({
       at: 700 + index * 320,
-      serial: distanceLine(cm),
+      serial: (scene: CircuitScene) => distanceLine(measures(scene) ? cm : 0),
       stage: (scene: CircuitScene) => ({
         distanceCm: measures(scene) ? cm : null,
         sensing: measures(scene),
@@ -640,7 +655,8 @@ export const soapRun: RunSpec = {
     })),
     {
       at: 2700,
-      serial: "Hand: near — pump on",
+      serial: (scene: CircuitScene) =>
+        measures(scene) ? "Hand: near — pump on" : undefined,
       /* Commanded to turn; it only GOES there on a build that can say an
          angle. The bench may only show what is true of it. */
       stage: (scene: CircuitScene) => ({
@@ -650,7 +666,8 @@ export const soapRun: RunSpec = {
     },
     {
       at: 4000,
-      serial: "Hand: gone — pump off",
+      serial: (scene: CircuitScene) =>
+        measures(scene) ? "Hand: gone — pump off" : undefined,
       stage: () => ({ lit: false, hornAngle: 0, sensing: false }),
     },
   ],

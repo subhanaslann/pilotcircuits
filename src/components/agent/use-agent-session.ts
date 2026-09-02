@@ -468,7 +468,13 @@ export function useAgentSession(options?: {
 
     for (const beat of spec.beats) {
       after(beat.at, () => {
-        if (beat.serial) setSerial((prev) => [...prev, beat.serial!]);
+        /* The board prints what THIS build would: a reading is a function of
+           the scene where it can only come from a build that measures. */
+        const line =
+          typeof beat.serial === "function"
+            ? beat.serial(latest.current.scene)
+            : beat.serial;
+        if (line) setSerial((prev) => [...prev, line]);
         if (beat.stage) stage(beat.stage(latest.current.scene));
       });
     }
