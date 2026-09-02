@@ -47,8 +47,11 @@ export interface CanvasHandle {
    * nothing outside this component knows the current pan or zoom.
    *
    * Read fresh on every move rather than snapshotted at the start of a drag —
-   * the wheel is not locked while a part is in hand, and a scale captured on
-   * pointer-down goes stale the moment somebody zooms mid-gesture.
+   * the region under a gesture moves (the instruction above grows a row when a
+   * lead is picked up), and a transform captured on pointer-down would be
+   * stale the moment it does. The wheel itself is held off while a button is
+   * down, see `onWheel`: a zoom mid-carry is the one change this live read
+   * cannot make honest.
    */
   toScene: (clientX: number, clientY: number) => { x: number; y: number };
 }
@@ -330,6 +333,25 @@ export function CanvasViewport({
 
   const onWheel = (event: React.WheelEvent) => {
     event.preventDefault();
+    /**
+     * Not while a button is held.
+     *
+     * A part drag never reaches this element's own handlers — `use-part-drag`
+     * stops the press and listens on `window` — so `drag` below knows nothing
+     * about it, and until now nothing did: the wheel zoomed about the cursor
+     * in the middle of a carry. That gesture re-projects its PRESS point
+     * through whatever transform is current at release (`carriedFrom`), which
+     * is what keeps a drag honest when the region under it moves — and exactly
+     * what puts the lead `drag·(1 − k0/k1)/k0` scene units from the hand when
+     * the zoom changes instead: 100 px of drag then a 2× wheel lands it five
+     * holes away, with the ghost and the drop agreeing with each other and not
+     * with the pointer. The one fact both gestures share is the button. A
+     * wheel that arrives with one held is neither a zoom the person meant nor
+     * good for this element's own pan, whose start offsets would be stale
+     * after it too. `buttons` is the state at the moment of the event, and it
+     * is zero for a mouse at rest and for a touchpad scroll.
+     */
+    if (event.buttons !== 0) return;
     const svg = svgRef.current;
     if (!svg) return;
 
