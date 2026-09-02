@@ -169,6 +169,10 @@ export const en = {
       ground: "GND",
       signal: "Signal A",
       signalAlt: "Signal B",
+      /* The servo's own two: its cable is red, brown, orange, and the bench
+         draws it that way (chapter five). */
+      servoSignal: "Servo signal",
+      servoGround: "Servo GND",
       error: "Mismatch",
       target: "Expected",
       idle: "Not wired",
@@ -178,6 +182,8 @@ export const en = {
       ground: "Ground",
       signal: "Digital signal",
       signalAlt: "Second digital signal",
+      servoSignal: "Position signal to the servo",
+      servoGround: "Ground, on the servo's brown lead",
       error: "Connected to the wrong point",
       target: "Where this wire belongs",
       idle: "Nothing connected yet",
@@ -188,6 +194,8 @@ export const en = {
       ground: "black",
       signal: "yellow",
       signalAlt: "blue",
+      servoSignal: "orange",
+      servoGround: "brown",
       error: "amber",
       target: "teal",
       idle: "grey",

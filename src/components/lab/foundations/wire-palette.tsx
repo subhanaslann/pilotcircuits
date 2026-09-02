@@ -29,6 +29,8 @@ const order: WireRoleSpec[] = [
   wireRoles.ground,
   wireRoles.signal,
   wireRoles.signalAlt,
+  wireRoles.servoSignal,
+  wireRoles.servoGround,
   wireRoles.error,
   wireRoles.target,
   wireRoles.idle,

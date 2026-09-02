@@ -84,6 +84,10 @@
   --color-wire-signal-edge: #a36d0f;
   --color-wire-signal-alt: #2d7ff9;
   --color-wire-signal-alt-edge: #225fbb;
+  --color-wire-servo-signal: #f5850f;
+  --color-wire-servo-signal-edge: #b8640b;
+  --color-wire-servo-ground: #8b4a1d;
+  --color-wire-servo-ground-edge: #683816;
   --color-wire-error: #f0742a;
   --color-wire-error-edge: #b45720;
   --color-wire-target: #0fa98f;

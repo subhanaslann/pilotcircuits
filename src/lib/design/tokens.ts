@@ -48,7 +48,15 @@ export const hex = {
 /* --- F-02 · Semantic wire palette ---------------------------------------- */
 
 export type WireRole =
-  "power" | "ground" | "signal" | "signalAlt" | "error" | "target" | "idle";
+  | "power"
+  | "ground"
+  | "signal"
+  | "signalAlt"
+  | "servoSignal"
+  | "servoGround"
+  | "error"
+  | "target"
+  | "idle";
 
 /**
  * The visual spec only. What a role is *called* — its label, its meaning, the
@@ -138,6 +146,37 @@ export const wireRoles: Record<WireRole, WireRoleSpec> = {
     edge: "var(--color-wire-signal-alt-edge)",
     edgeHex: "#225fbb",
     icon: "Activity",
+    width: 3,
+  },
+  /**
+   * A hobby servo's cable is the one place on the bench where the colours are
+   * fixed by the hardware rather than chosen by the sketch: red, brown and
+   * orange are what the thing in your hand is, and chapter five's steps name
+   * them. `power` is already the red. These two are the brown and the orange —
+   * a ground that is not slate and a signal that is not blue — so a person who
+   * reads "its orange lead to D9" watches an orange lead go to D9. Used by
+   * nothing else: every jumper keeps the semantic roles above.
+   *
+   * The strokes carry a fallback because the CSS variables are not declared in
+   * `globals.css` yet; the literal keeps the strand the right colour until they
+   * are, and the variable takes over the moment they exist.
+   */
+  servoSignal: {
+    id: "servoSignal",
+    stroke: "var(--color-wire-servo-signal, #f5850f)",
+    hex: "#f5850f",
+    edge: "var(--color-wire-servo-signal-edge, #b8640b)",
+    edgeHex: "#b8640b",
+    icon: "Activity",
+    width: 3,
+  },
+  servoGround: {
+    id: "servoGround",
+    stroke: "var(--color-wire-servo-ground, #8b4a1d)",
+    hex: "#8b4a1d",
+    edge: "var(--color-wire-servo-ground-edge, #683816)",
+    edgeHex: "#683816",
+    icon: "Minus",
     width: 3,
   },
   error: {

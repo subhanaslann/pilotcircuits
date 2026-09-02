@@ -54,6 +54,10 @@ export const tr: Copy = {
       ground: "GND",
       signal: "Sinyal A",
       signalAlt: "Sinyal B",
+      /* Servonun kendi ikisi: kablosu kırmızı, kahverengi, turuncu; tezgah da
+         öyle çiziyor (5. bölüm). */
+      servoSignal: "Servo sinyali",
+      servoGround: "Servo GND",
       error: "Uyuşmazlık",
       target: "Beklenen",
       idle: "Kablolanmamış",
@@ -63,6 +67,8 @@ export const tr: Copy = {
       ground: "Toprak",
       signal: "Dijital sinyal",
       signalAlt: "İkinci dijital sinyal",
+      servoSignal: "Servoya giden konum sinyali",
+      servoGround: "Toprak, servonun kahverengi ucunda",
       error: "Yanlış noktaya bağlı",
       target: "Bu kablonun ait olduğu yer",
       idle: "Henüz bir şey bağlı değil",
@@ -72,6 +78,8 @@ export const tr: Copy = {
       ground: "siyah",
       signal: "sarı",
       signalAlt: "mavi",
+      servoSignal: "turuncu",
+      servoGround: "kahverengi",
       error: "kehribar",
       target: "turkuaz",
       idle: "gri",

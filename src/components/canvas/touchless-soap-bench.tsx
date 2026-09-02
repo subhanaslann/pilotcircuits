@@ -95,13 +95,17 @@ export const soapBench: BenchSpec<SoapLive | undefined> = {
         leads: ["servo.power", "servo.ground", "servo.signal"],
         rootOf: soapLeadRoot,
         /* Red, brown, orange — the three colours every hobby servo's cable
-           has, and the only cue on the bench that says which is which. */
+           has, and the only cue on the bench that says which is which. The
+           strand has to keep the artwork's colour past the plug: `ground`
+           (slate) and `signalAlt` (blue) here put a blue wire on D9 under a
+           step that says "its orange lead to D9". `power` is already the red;
+           the two servo roles are the brown and the orange. */
         roleOf: (terminal) =>
           terminal === "servo.power"
             ? "power"
             : terminal === "servo.ground"
-              ? "ground"
-              : "signalAlt",
+              ? "servoGround"
+              : "servoSignal",
         draw: (pos, live) => (
           <MicroServo
             at={pos}
