@@ -534,7 +534,7 @@ export function useAgentSession(options?: {
     name: K,
     input: AllToolInputs[K],
     options?: { signal?: AbortSignal },
-  ) => {
+  ): Promise<ToolOutcome> => {
     const before = latest.current;
     const generation = before.generation;
     const callId = `call-${before.seq}`;
@@ -624,8 +624,33 @@ export function useAgentSession(options?: {
       };
     }
 
-    /* Reset happened mid-flight: drop the landing entirely. */
-    if (latest.current.generation !== generation) return outcome;
+    /**
+     * Reset happened mid-flight — or the person walked to another chapter's
+     * bench: drop the landing entirely, **and say so**.
+     *
+     * The row was already discarded with the old state, so nothing here has an
+     * entry to settle. What it used to do was hand the handler's own outcome
+     * back anyway — `status: "ok"`, `seated: "board.GND"`, `enteredBench:
+     * ["led"]` — for a bench on which none of that is true, and the bridge
+     * composed a success from it. Measured on the real handlers: a Reset five
+     * milliseconds into `attach_lead` reported a seat, `inspect_build` handed
+     * out finding ids the next `show_correction` refused as `noSuchFinding`,
+     * and `verify_current_step` answered `verified: true` beside an empty
+     * `completedSteps`. The same shape as the queue's own cancel below, so a
+     * caller sees one vocabulary for a call that was called off whichever way
+     * it happened; `reason` says which.
+     */
+    if (latest.current.generation !== generation) {
+      return {
+        status: "error",
+        result: {
+          cancelled: true,
+          reason: "benchChanged",
+          tool: name,
+          source: "demo",
+        },
+      };
+    }
 
     /**
      * A tool that moved the build lands as a **commit**, not as part of its
