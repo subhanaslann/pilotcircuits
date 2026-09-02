@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useWebMcpTools } from "@/components/agent/use-webmcp";
 import { ComponentIcon } from "@/components/illustration/component-icons";
 import { CoachWebMcp } from "@/components/workspace/coach-webmcp";
 import { KitCase } from "@/components/workspace/kit-case";
@@ -8,6 +9,7 @@ import { ProjectButtons } from "@/components/workspace/project-buttons";
 import { StartBuild } from "@/components/workspace/start-build";
 import { Alert } from "@/components/ui/status";
 import { useCopy } from "@/content/copy-provider";
+import type { AgentTool } from "@/lib/agent/model";
 import {
   firstChapterId,
   projectById,
@@ -15,7 +17,14 @@ import {
 } from "@/lib/projects/catalog";
 
 /**
- * W · `/workspace` — the way into the bench.
+ * W · `/workspace` — the picker behind the bench's Back button.
+ *
+ * Nothing links here from the entry screen or the nav: the landing's doors go
+ * straight to `/workbench/[slug]` and the nav carries `/` and `/projects`. The
+ * one way in is `Back` on the bench (`workbench-route.tsx`), so this is where
+ * a person lands on leaving a build — and it is a screen for choosing the next
+ * one. (This header used to call it "the way into the bench"; nothing ever
+ * sent anyone here first.)
  *
  * Three columns, the way the sketch asks for them: the builds on the left as
  * pressable cards, the selected build's kit in the middle inside a case you
@@ -35,8 +44,30 @@ import {
  * chapter you happen to have selected — see `StartBuild`. The kit column keeps
  * the note about the kit; it no longer has to carry the way out as well.
  */
+/**
+ * §9's route table, one row: the two tools this screen can honour.
+ *
+ * `get_project_requirements` answers from the catalogue and has no effect to
+ * land — the kit in the middle column is the same list as a drawing — and
+ * `start_project`'s `navigate` reaches `BuildProvider`'s `router.push`, which
+ * is the door `StartBuild` opens. Until this pass the route registered
+ * nothing, beside a panel whose headline is that this page can talk to the
+ * agent: a judge pressing Back on the bench arrived at the one screen that
+ * explains WebMCP with an agent that had nothing to call there. Not
+ * `find_projects` — the toolbar it narrows is not mounted here — and not
+ * `open_project`, whose detail screen belongs to the library at `/projects`.
+ */
+const WORKSPACE_TOOLS: readonly AgentTool[] = [
+  "get_project_requirements",
+  "start_project",
+];
+
 export default function WorkspacePage() {
   const copy = useCopy();
+
+  /* Inside `BuildProvider` (`app/(product)/layout.tsx`), so the calls land in
+     the build the product is carrying — the same session `Back` just left. */
+  useWebMcpTools(WORKSPACE_TOOLS);
 
   const [selectedId, setSelectedId] = useState<ProjectId>(firstChapterId);
   const [caseOpen, setCaseOpen] = useState(false);

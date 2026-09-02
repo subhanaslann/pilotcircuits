@@ -150,13 +150,16 @@ export function WorkbenchRoute({
         /**
          * Back goes to the picker, not to the chapter's page.
          *
-         * The bench is reached from `/workspace` — that is where the chapter
-         * was chosen and its kit opened, and it is where the entry screen now
-         * sends anybody starting out. Sending the one way back to
-         * `/projects/[slug]` dropped people on a page they had never seen, with
-         * a `Start building` button for the build they were already standing
-         * at. The chapter's page is still reachable from `/projects`, which is
-         * the list it belongs to.
+         * `/workspace` is where a chapter is chosen and its kit opened, and
+         * this link is its only way in: the entry screen's doors go straight
+         * to `/workbench/[slug]` and the nav carries `/` and `/projects`, so
+         * nobody reaches the bench *from* the picker unless they went back to
+         * it first. (This comment used to say the entry screen sent people
+         * there; it never did.) Sending the one way back to `/projects/[slug]`
+         * instead dropped people on a page they had never seen, with a `Start
+         * building` button for the build they were already standing at. The
+         * chapter's page is still reachable from `/projects`, which is the
+         * list it belongs to.
          */
         backHref="/workspace"
         briefing={briefing}
