@@ -96,7 +96,20 @@ export interface RunSpec {
   clearsAt: number;
 }
 
-/** Every join the sketch asks for is made, and nothing else is touching them. */
+/**
+ * Every join the sketch asks for is made, and nothing else is touching them.
+ *
+ * Also the gate on every lesson row and every "on" frame of chapters two to
+ * five. Each row reads one line — the drive pin, the sensor's OUT — and a line
+ * means nothing on a build with no supply, no return path or a short across
+ * the rails: with the servo's 5 V lead in the box `sweep` passed and the horn
+ * swung, with the LED's cathode in the air `breathing` passed and the lamp
+ * breathed, with 5 V on the − rail the night-light film played (measured on
+ * all five chapters, `.audit/hackathon/r4/functional.before.txt`). Per-build
+ * `powered`/`returns` predicates off the net model are the fuller answer;
+ * until then any open join plays the dark film, which is what a person at the
+ * desk would see.
+ */
 const wiringOk = (scene: CircuitScene) =>
   diff(scene).mismatches.length === 0 && extras(scene).length === 0;
 
@@ -190,6 +203,21 @@ const breathes = (scene: CircuitScene) => {
   return Boolean(pin && pwmPins.includes(pin));
 };
 
+/**
+ * Whether the lamp has a circuit at all: every join but the drive pin's made,
+ * nothing extra on the bench, and the drive lead in a hole.
+ *
+ * The drive pin is the one join left free on purpose — `breathes` answers for
+ * every one of the fifteen holes, which is the chapter's lesson — but a lamp
+ * whose cathode is in the air, or whose resistor is not on its anode, does
+ * nothing on any pin. Measured before this: with the cathode pulled the row
+ * passed and the lamp was drawn breathing.
+ */
+const powered = (scene: CircuitScene) =>
+  extras(scene).length === 0 &&
+  diff(scene).mismatches.every((m) => m.expected.from === "res.out") &&
+  drivePin(scene) !== undefined;
+
 const brightness = (value: number) => `Brightness: ${value}`;
 
 export const lampRun: RunSpec = {
@@ -202,20 +230,27 @@ export const lampRun: RunSpec = {
     },
     {
       id: "breathing",
-      passes: breathes,
+      passes: (scene) => powered(scene) && breathes(scene),
       /* The sweep the sketch writes, which is what "breathing" is. */
       detail: () => "0 → 255",
       settlesAt: 3000,
     },
   ],
   beats: [
-    { at: 300, serial: "Sketch: breathing_lamp.ino", stage: () => ({ lit: true }) },
+    {
+      at: 300,
+      serial: "Sketch: breathing_lamp.ino",
+      /* Lit only on a lamp with a circuit. */
+      stage: (scene) => ({ lit: powered(scene) }),
+    },
     {
       at: 900,
       serial: brightness(0),
       /* Only a lamp that can breathe is drawn breathing. On `D8` it is lit and
-         still, which is exactly what the person would see on the desk. */
-      stage: (scene) => ({ breathing: breathes(scene) }),
+         still — the chapter's picture of a blink — and with its cathode in the
+         air it is dark, which is exactly what the person would see on the
+         desk. */
+      stage: (scene) => ({ breathing: powered(scene) && breathes(scene) }),
     },
     { at: 1500, serial: brightness(128) },
     { at: 2100, serial: brightness(255) },
@@ -251,6 +286,7 @@ type TrafficColour = keyof typeof lightDrivePins;
  * shape.
  */
 const sequences = (scene: CircuitScene) => {
+  if (!wiringOk(scene)) return false;
   const lines = lightLines(scene);
   return (["red", "yellow", "green"] as const).every(
     (colour) => lines[colour] === lightDrivePins[colour],
@@ -272,10 +308,11 @@ const sequences = (scene: CircuitScene) => {
  */
 const lampsFor = (scene: CircuitScene, on: TrafficColour | null) => {
   const lines = lightLines(scene);
+  const wired = wiringOk(scene);
   return {
-    red: on === "red" && lines.red === lightDrivePins.red,
-    yellow: on === "yellow" && lines.yellow === lightDrivePins.yellow,
-    green: on === "green" && lines.green === lightDrivePins.green,
+    red: wired && on === "red" && lines.red === lightDrivePins.red,
+    yellow: wired && on === "yellow" && lines.yellow === lightDrivePins.yellow,
+    green: wired && on === "green" && lines.green === lightDrivePins.green,
   };
 };
 
@@ -354,6 +391,7 @@ export const trafficRun: RunSpec = {
  * name; see there for why the obvious version is wrong.
  */
 const senses = (scene: CircuitScene) => {
+  if (!wiringOk(scene)) return false;
   const lines = nightLines(scene);
   return lines.sense === nightPins.sense && lines.lamp === nightPins.lamp;
 };
@@ -429,6 +467,7 @@ export const nightRun: RunSpec = {
  * lamp's on `A0` passes `wiring` — and fails here, which is the truth.
  */
 const readsANumber = (scene: CircuitScene) => {
+  if (!wiringOk(scene)) return false;
   const lines = plantLines(scene);
   return Boolean(lines.sense && analogPins.includes(lines.sense));
 };
@@ -512,12 +551,14 @@ export const plantRun: RunSpec = {
  * is about the pump ACTUALLY turning rather than about a wire being present.
  */
 const canSweep = (scene: CircuitScene) => {
+  if (!wiringOk(scene)) return false;
   const pump = soapLines(scene).pump;
   return Boolean(pump && pwmPins.includes(pump)) && isServoAligned(scene);
 };
 
 /** Whether the board is reading the echo it triggered. */
 const measures = (scene: CircuitScene) => {
+  if (!wiringOk(scene)) return false;
   const lines = soapLines(scene);
   return lines.trig === soapPins.trig && lines.echo === soapPins.echo;
 };
