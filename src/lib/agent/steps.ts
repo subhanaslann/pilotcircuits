@@ -112,6 +112,12 @@ export const barrierSteps: BuildStepDef[] = [
     index: 1,
     minutes: 2,
     connections: [],
+    /* The six the card counts, so the step that says *check them off against
+       the list* has a list. A step with no connections derives nothing
+       (`agent/parts.ts`), and on the five assembled chapters the shelf fills
+       the gap — this bench has no shelf, so the step names them itself, the
+       way chapter one's `lampKit` names its three. */
+    parts: ["board", "breadboard", "sensor", "servo", "led", "resistor"],
     suggestion: "next",
   },
   {

@@ -280,8 +280,10 @@ export const projects: ProjectDef[] = [
     difficulty: "intermediate",
     status: "ready",
     /* The capstone, and the only build the author lays out rather than the
-       person: it opens on a planted fault with two steps already ticked, where
-       the other five hand over an empty bench. All six have a guided bench.
+       person: it hands over a finished machine with a planted fault in it,
+       where the other five hand over an empty bench. It opens at step one all
+       the same — its first two steps are a reading of the bench rather than an
+       assembly of it (`builds.ts`). All six have a guided bench.
        Same six parts as chapter five: everything new here is judgement —
        deciding, calibrating, and proving it works. */
     components: ["board", "breadboard", "sensor", "servo", "led", "resistor"],

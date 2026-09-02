@@ -5,6 +5,7 @@ import { useAgentSession } from "@/components/agent/use-agent-session";
 import { type CanvasHandle } from "@/components/canvas/canvas-viewport";
 import { Workbench } from "@/components/workbench/live-workbench";
 import type { CameraVariant } from "@/components/workbench/camera";
+import { demoStart } from "@/lib/agent/builds";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -35,7 +36,7 @@ export function LiveWorkbench({
 }) {
   const canvas = useRef<CanvasHandle>(null);
   const camera = useRef<CanvasHandle>(null);
-  const session = useAgentSession({ canvas, camera });
+  const session = useAgentSession({ canvas, camera, start: demoStart });
 
   return (
     <Workbench

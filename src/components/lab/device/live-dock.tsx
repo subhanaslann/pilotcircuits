@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { ToastViewport } from "@/components/ui/status";
 import { useCopy } from "@/content/copy-provider";
 import { isServoAligned } from "@/lib/circuit/graph";
+import { demoStart } from "@/lib/agent/builds";
 import { verifyStep } from "@/lib/agent/findings";
 import { zoom as zoomLimits } from "@/lib/circuit/geometry";
 import { icon } from "@/lib/design/tokens";
@@ -38,7 +39,7 @@ export function LiveDock() {
   const [scale, setScale] = useState(1);
   const [open, setOpen] = useState(true);
   const [tab, setTab] = useState<DeviceTab>("serial");
-  const session = useAgentSession({ canvas });
+  const session = useAgentSession({ canvas, start: demoStart });
 
   const { state, serial, testRun } = session;
   const servoAligned = isServoAligned(state.scene);

@@ -5,6 +5,7 @@ import {
   useAgentSession,
   type AgentSession,
 } from "@/components/agent/use-agent-session";
+import { demoStart } from "@/lib/agent/builds";
 
 /**
  * S-01 · The entry screen's own session.
@@ -25,7 +26,11 @@ import {
  * second session, deliberately, and it dies with the page.
  *
  * It opens on `defaultBuild`, which is the build `featuredProjectId` puts on
- * this screen, so the two cannot be talking about different things.
+ * this screen, so the two cannot be talking about different things — and at
+ * `demoStart`, which is where that build's film is paused: wired, three steps
+ * in, with the Echo lead one hole out. The chapter itself opens at step one
+ * like every other chapter now, and this screen is not the chapter; without
+ * the seed the sheet printed `Steps: 1 of 7` over a bench drawn fully wired.
  *
  * The shared components take a session as a prop or read it from here; none of
  * them knows or cares which session it got. That was already true of
@@ -34,7 +39,7 @@ import {
 const LandingSession = createContext<AgentSession | null>(null);
 
 export function LandingSessionProvider({ children }: { children: ReactNode }) {
-  const session = useAgentSession();
+  const session = useAgentSession({ start: demoStart });
   return (
     <LandingSession.Provider value={session}>
       {children}

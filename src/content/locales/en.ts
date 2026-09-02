@@ -1111,17 +1111,23 @@ export const en = {
       },
 
       /* --- Chapter six · Smart Parking Barrier -------------------------- */
+      /* Chapter six's own two ids, and the only chapter that arrives
+         assembled: the parts are on the bench before anybody gets there, so
+         these two steps ask for the reading a built bench still needs rather
+         than for an assembly that has already happened (`builds.ts`). */
       kit: {
         name: "Check your kit",
-        instruction: "Lay out every part before you wire anything.",
+        instruction:
+          "Every part is on the bench already — check them off against the list before you read a wire.",
         rationale:
-          "A missing resistor is easier to find now than after the LEDs are in.",
+          "This last chapter arrives built: you read it, test it and put it right rather than assemble it.",
       },
       place: {
-        name: "Place the components",
+        name: "Learn the layout",
         instruction:
-          "Seat the board, the breadboard and the sensor where they will stay.",
-        rationale: "Wire lengths are decided by where the parts sit.",
+          "See where each part sits: the board, the breadboard, the sensor watching the road, the servo at the kerb.",
+        rationale:
+          "Wire lengths are decided by where the parts sit, and every wire you are about to read was cut for these positions.",
       },
       sensor: {
         name: "Wire the distance sensor",

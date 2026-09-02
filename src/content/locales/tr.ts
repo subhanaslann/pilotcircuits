@@ -883,14 +883,17 @@ export const tr: Copy = {
       /* --- 6. bölüm · Akıllı Otopark Bariyeri ---------------------------- */
       kit: {
         name: "Kitini kontrol et",
-        instruction: "Hiçbir şey kablolamadan önce bütün parçaları önüne diz.",
+        instruction:
+          "Bütün parçalar tezgahta hazır — bir kabloyu okumadan önce listeyle karşılaştır.",
         rationale:
-          "Eksik bir direnci şimdi bulmak, LED'ler takıldıktan sonra bulmaktan kolay.",
+          "Bu son bölüm kurulu geliyor: kurmak yerine okuduğun, test ettiğin ve düzelttiğin yapım.",
       },
       place: {
-        name: "Parçaları yerleştir",
-        instruction: "Kartı, breadboard'u ve sensörü kalacakları yere oturt.",
-        rationale: "Kablo boylarını parçaların durduğu yer belirler.",
+        name: "Yerleşimi tanı",
+        instruction:
+          "Her parçanın nerede durduğuna bak: kart, breadboard, yolu gözleyen sensör, kaldırımdaki servo.",
+        rationale:
+          "Kablo boylarını parçaların durduğu yer belirler; birazdan okuyacağın her kablo bu yerleşime göre kesildi.",
       },
       sensor: {
         name: "Mesafe sensörünü kablola",

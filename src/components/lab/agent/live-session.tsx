@@ -16,6 +16,7 @@ import { CircuitSceneView } from "@/components/canvas/circuit-scene";
 import { Button } from "@/components/ui/button";
 import { ToastViewport } from "@/components/ui/status";
 import { useCopy } from "@/content/copy-provider";
+import { demoStart } from "@/lib/agent/builds";
 import { workbenchTools } from "@/lib/agent/model";
 import { zoom as zoomLimits } from "@/lib/circuit/geometry";
 import { icon } from "@/lib/design/tokens";
@@ -54,7 +55,7 @@ export function LiveSession() {
   const t = copy.lab.agentLab.live;
   const canvas = useRef<CanvasHandle>(null);
   const [scale, setScale] = useState(1);
-  const session = useAgentSession({ canvas });
+  const session = useAgentSession({ canvas, start: demoStart });
   /* Its own session, not the carried one — the lab must never move the build
      waiting at `/workbench`. Passing it is what lets the hook run outside
      `BuildProvider` at all; without it the hook throws by design. */

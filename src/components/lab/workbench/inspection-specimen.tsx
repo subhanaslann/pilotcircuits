@@ -11,6 +11,7 @@ import { HornAngleCompare } from "@/components/workbench/horn-angle";
 import { InspectionModal } from "@/components/workbench/inspection";
 import { useCopy } from "@/content/copy-provider";
 import { clockOf } from "@/lib/agent/activity";
+import { demoStart } from "@/lib/agent/builds";
 import { smartParkingBarrier } from "@/lib/circuit/smart-parking-barrier";
 import {
   withEchoFixed,
@@ -32,7 +33,7 @@ export function InspectionSpecimen() {
   const copy = useCopy();
   const t = copy.lab.workbenchLab.inspection;
   const camera = useRef<CanvasHandle>(null);
-  const session = useAgentSession({ camera });
+  const session = useAgentSession({ camera, start: demoStart });
 
   const [open, setOpen] = useState(false);
   const [capturedAt, setCapturedAt] = useState("");

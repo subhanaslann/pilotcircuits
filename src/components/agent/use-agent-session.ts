@@ -34,6 +34,7 @@ import {
   initialSession,
   sessionReducer,
   SPOTLIGHT_MS,
+  type AgentSessionState,
   type AgentTab,
   type SessionAction,
   type SessionPatch,
@@ -190,13 +191,22 @@ export function useAgentSession(options?: {
    * is visible rather than merely answered (rule 6).
    */
   onFilters?: (next: ProjectFilters) => void;
+  /**
+   * Where this session opens, when the caller is a film rather than a chapter.
+   *
+   * `builds.ts` `demoStart` is the only value anybody passes: the entry screen
+   * and the design lab want the capstone standing mid-build with its fault in
+   * it, while the product's own route wants what the build says — step one.
+   * Read once, by the reducer's initialiser, and never again.
+   */
+  start?: Pick<AgentSessionState, "activeStepId" | "completedSteps">;
 }) {
   const copy = useCopy();
   const { locale } = useLocale();
   const [state, dispatch] = useReducer(
     sessionReducer,
     undefined,
-    initialSession,
+    () => ({ ...initialSession(), ...options?.start }),
   );
   const { toasts, push, dismiss } = useToasts();
 

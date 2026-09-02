@@ -116,14 +116,18 @@ export interface BuildDef {
   /** The finished build: what the sketch defines, every fault corrected. */
   reference: CircuitScene;
   /**
-   * Where the build opens.
+   * Where the build opens — for the person, on every chapter.
    *
-   * The capstone opens *on* the step that carries the fault rather than at
-   * step one, because the first thing that film has to show is the agent
-   * noticing something — not two steps of laying parts out. The chapters a
-   * person builds for themselves open at step one with nothing ticked
-   * instead: the briefing is those two steps now, and each row below says so
-   * in its own words.
+   * Every row here is step one with nothing ticked, the capstone included.
+   * It used to be the exception: it opened *on* the step that carries the
+   * fault with the two before it already ticked, because the first thing a
+   * film has to show is the agent noticing something rather than two steps of
+   * laying parts out. But the film is the entry screen and the design lab,
+   * not the chapter — and a person pressing `Start building` on chapter six
+   * was dropped into the middle of a rail whose top they had never seen, with
+   * two steps ticked that they had not done. So the demo surfaces ask for
+   * that opening by name (`demoStart`, below) and a chapter starts where a
+   * chapter starts.
    */
   activeStepId: StepId;
   completedSteps: StepId[];
@@ -280,14 +284,46 @@ export const builds: Partial<Record<ProjectId, BuildDef>> = {
     projectId: "smartParkingBarrier",
     scene: smartParkingBarrier,
     reference: withServoRemounted(withEchoFixed(smartParkingBarrier)),
-    activeStepId: "sensor",
-    completedSteps: ["kit", "place"],
+    /**
+     * Step one, like every other chapter — and this is still the one bench the
+     * author lays out: no kit, no placement spec, the build standing finished
+     * with the Echo lead one hole from where the sketch reads it.
+     *
+     * So its first two steps are not an assembly it has quietly done for you.
+     * They are what those two steps are on a bench that arrives built: count
+     * the parts against the list, and learn where they sit before reading a
+     * wire. The dictionary says exactly that (`build.steps.kit` / `.place`),
+     * and those two ids belong to this chapter alone, so saying it costs no
+     * other chapter a word.
+     */
+    activeStepId: "kit",
+    completedSteps: [],
     run: barrierRun,
   },
 };
 
 /** The build a session starts on when nothing has said otherwise. */
 export const defaultBuild = builds.smartParkingBarrier!;
+
+/**
+ * Where the demo surfaces stand this build up: mid-way, on the step its fault
+ * is on.
+ *
+ * The entry screen and the design lab are not somebody's chapter — they are a
+ * film of one running, and the first frame has to be a build with wiring in it
+ * and something wrong with that wiring. Open them at step one and
+ * `inspect_build` reads a step with no connections and finds nothing, which is
+ * the one thing those screens exist to show.
+ *
+ * This is what the capstone's row used to say for everybody, which is how
+ * opening the chapter came to drop a learner into the middle of it. The fact
+ * belongs to the screens that want it, so they pass it themselves
+ * (`useAgentSession({ start })`).
+ */
+export const demoStart: {
+  activeStepId: StepId;
+  completedSteps: StepId[];
+} = { activeStepId: "sensor", completedSteps: ["kit", "place"] };
 
 export function buildFor(projectId: ProjectId): BuildDef | undefined {
   return builds[projectId];

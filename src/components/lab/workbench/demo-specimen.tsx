@@ -8,6 +8,7 @@ import { DemoControls } from "@/components/workbench/demo-menu";
 import { demoScenarios } from "@/components/workbench/demo-scenarios";
 import { StepRail } from "@/components/workbench/step-rail";
 import { useCopy } from "@/content/copy-provider";
+import { demoStart } from "@/lib/agent/builds";
 import { stepParts } from "@/lib/agent/parts";
 
 /**
@@ -21,7 +22,7 @@ import { stepParts } from "@/lib/agent/parts";
 export function DemoSpecimen() {
   const copy = useCopy();
   const t = copy.lab.workbenchLab.demo;
-  const session = useAgentSession();
+  const session = useAgentSession({ start: demoStart });
 
   return (
     <>
