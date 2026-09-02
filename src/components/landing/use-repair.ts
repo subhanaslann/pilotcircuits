@@ -172,10 +172,6 @@ export function useRepair() {
        frame stands for, then the fault fades back in with the film's reset. */
     if (later.current) window.clearTimeout(later.current);
     later.current = window.setTimeout(putBack, CYCLE);
-    /* `putBack` is a plain function of refs and imports (React Compiler), so
-       listing it would run this on every render; the effect is keyed on the
-       call it is about. */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
 
   /**
