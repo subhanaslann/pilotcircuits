@@ -29,7 +29,13 @@ export const localeCodes: Record<Locale, string> = {
   en: "EN",
 };
 
-export const defaultLocale: Locale = "tr";
+/**
+ * English since 2026-09-02, for the judging window of the OpenAI WebMCP
+ * Challenge: the tool titles, descriptions and refusals a host shows its model
+ * come from this dictionary, and every judge was opening the product in
+ * Turkish. The product stays bilingual; the switch and the cookie are unchanged.
+ */
+export const defaultLocale: Locale = "en";
 
 /** The cookie the switcher writes and the server reads on the next request. */
 export const LOCALE_COOKIE = "cp-locale";

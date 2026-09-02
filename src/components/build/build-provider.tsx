@@ -181,11 +181,11 @@ export function BuildProvider({ children }: { children: ReactNode }) {
 /**
  * Throws without a provider above it, unlike `useCopy`.
  *
- * The dictionary has a sensible default — `getCopy(defaultLocale)`, which is
- * the Turkish the product ships in, and not the English this sentence used to
- * claim — so a component dropped into a story on its own still renders. A build
- * does not: a second, silently created session would look like it worked and
- * would quietly be the wrong one. Failing loudly is the smaller bug.
+ * The dictionary has a sensible default — `getCopy(defaultLocale)`, whichever
+ * language `i18n.ts` currently ships as the default — so a component dropped
+ * into a story on its own still renders. A build does not: a second, silently
+ * created session would look like it worked and would quietly be the wrong
+ * one. Failing loudly is the smaller bug.
  */
 export function useBuild(): BuildValue {
   const value = useContext(BuildContext);
