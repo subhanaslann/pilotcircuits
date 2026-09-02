@@ -295,6 +295,10 @@ export const en = {
     stepsValue: (done: number, total: number) => `${done} of ${total}`,
 
     sceneLabel: "CURRENT BUILD — OVERHEAD VIEW",
+    /* The bench drawing's accessible name — the `<svg role="img">` in
+       `bench-view.tsx`. Sentence case: `sceneLabel` above is the caption set
+       in capitals beside it, and a screen reader should not shout it twice. */
+    sceneImageLabel: "Current build — overhead view",
 
     /* S-01 · The panel's one control, and the sentence under the bench that
        says whose hand this is. The label is what the agent is about to do,

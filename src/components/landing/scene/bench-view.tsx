@@ -23,6 +23,7 @@ import {
   getServerFrame,
   subscribe,
 } from "@/components/landing/scene/repair-demo";
+import { useCopy } from "@/content/copy-provider";
 import { artTransform, frame } from "@/lib/circuit/wokwi";
 import { wireRoles } from "@/lib/design/tokens";
 
@@ -56,6 +57,10 @@ import { wireRoles } from "@/lib/design/tokens";
  */
 export function BenchView() {
   const f = useSyncExternalStore(subscribe, getFrame, getServerFrame);
+  /* For the drawing's accessible name only. It was a Turkish literal here,
+     which is the one string on the landing page the locale switch could not
+     reach — a screen reader in English heard one sentence of Turkish. */
+  const copy = useCopy();
   const echo: Cable = { ...ECHO, id: "c.sensor.echo", to: f.echo };
 
   /* Saturation, not opacity. Dropping the bench's opacity would drop it toward
@@ -71,7 +76,7 @@ export function BenchView() {
       viewBox={`0 0 ${FRAME.width} ${FRAME.height}`}
       preserveAspectRatio="xMidYMid meet"
       role="img"
-      aria-label="Mevcut yapım — üstten görünüş"
+      aria-label={copy.landing.sceneImageLabel}
       className="block h-auto w-full"
     >
       {/* The mat stays: it is the bench, not the build, and dipping it too

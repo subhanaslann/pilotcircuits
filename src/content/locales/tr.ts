@@ -158,6 +158,9 @@ export const tr: Copy = {
     stepsValue: (done: number, total: number) => `${done} / ${total}`,
 
     sceneLabel: "MEVCUT YAPIM — ÜSTTEN GÖRÜNÜŞ",
+    /* The bench drawing's accessible name (`bench-view.tsx`); see the note on
+       the English key. */
+    sceneImageLabel: "Mevcut yapım — üstten görünüş",
 
 
     helpTitle: "BARİYER AÇILMIYOR",
