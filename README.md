@@ -44,6 +44,7 @@ what the page in front of it can actually do.
 | `/projects/[slug]` | `get_project_requirements` · `start_project` |
 | `/workbench/[slug]` | `get_build_context` · `inspect_build` · `show_correction` · `attach_lead` · `verify_current_step` · `navigate_build_step` · `run_functional_test` |
 | `/workbench/[slug]` under 1120 px | `get_build_context` · `verify_current_step` · `navigate_build_step` · `run_functional_test` |
+| `/workspace` | `get_project_requirements` · `start_project` |
 | `/lab/agent` | the bench's seven, against a demo build |
 
 Tools are torn down when the route changes, and re-registered when the build or
@@ -57,7 +58,7 @@ Node 20.9 or newer.
 ```bash
 npm ci
 npm run dev      # http://localhost:3000
-npm test         # vitest — 838 tests
+npm test         # vitest
 npm run build    # production build
 ```
 
