@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useWebMcpTools } from "@/components/agent/use-webmcp";
 import { useLandingSession } from "@/components/landing/landing-session";
-import { TOTAL, fix, getMode, reset } from "@/components/landing/scene/repair-demo";
+import { CYCLE, fix, getMode, reset } from "@/components/landing/scene/repair-demo";
 import type { FindingId } from "@/lib/agent/findings";
 
 /**
@@ -48,14 +48,11 @@ import type { FindingId } from "@/lib/agent/findings";
  *
  * Both halves now hang off the call itself, in the same effect that starts
  * the film: the graph repair lands when the call settles, and the fault is
- * put back — through `inject`, with the film reset under it — `TOTAL + REST`
- * after the film started. The plate's `repair()` only makes the two calls; it
- * no longer touches the session, so the plate and an agent cannot act twice
- * and cannot act differently.
+ * put back — through `inject`, with the film reset under it — `CYCLE` (the run
+ * and its rest) after the film started. The plate's `repair()` only makes the
+ * two calls; it no longer touches the session, so the plate and an agent
+ * cannot act twice and cannot act differently.
  */
-/** How long the run's end frame is left standing before the fault returns. */
-const REST = 2600;
-
 export function useRepair() {
   const session = useLandingSession();
   const [busy, setBusy] = useState(false);
@@ -151,8 +148,8 @@ export function useRepair() {
      * graph was actually repaired — putting a fault back that never left
      * would log a wire move nobody made.
      *
-     * Timed from the film's start: `TOTAL` for the run, `REST` on its end
-     * frame, then the fault fades back in with the film's reset.
+     * Timed from the film's start: `CYCLE` is the run plus the rest its end
+     * frame stands for, then the fault fades back in with the film's reset.
      */
     if (later.current) window.clearTimeout(later.current);
     later.current = window.setTimeout(() => {
@@ -162,7 +159,7 @@ export function useRepair() {
         live.current.act({ kind: "inject", fault: "echo" });
       }
       reset(reduced);
-    }, TOTAL + REST);
+    }, CYCLE);
   }, [running]);
 
   /**

@@ -57,6 +57,18 @@ for (const [name, ms] of BEATS) {
 }
 export const TOTAL = clock;
 
+/**
+ * How long the working build is left standing, at the end of the run, before
+ * the fault goes back. Part of the run itself, so the frame `done` holds is a
+ * working bench: the dip that covers the swap sits in the last 260 ms of the
+ * cycle, not of `TOTAL`. Until 2026-09-02 it closed at `TOTAL`, `done` was the
+ * fully dipped frame, and the entry screen showed an empty mat for the whole
+ * rest — on the plate's own path as much as on an agent's.
+ */
+export const REST = 2600;
+/** The run and its rest. The fault is due back when this ends. */
+export const CYCLE = TOTAL + REST;
+
 /** How long the car takes to roll up when the bench first comes into view. */
 export const ARRIVAL = 1700;
 
@@ -252,7 +264,7 @@ function fixingFrame(t: number): Frame {
     car: lerp(CAR.stop, CAR.out, away),
     sonar: 1 - clamp01(win(t, 3400, 3800)),
     drain,
-    dip: easeBoth(clamp01((t - (TOTAL - 260)) / 260)),
+    dip: easeBoth(clamp01((t - (CYCLE - 260)) / 260)),
     line: t < END.seat ? 2 : 3,
   };
 }
@@ -441,7 +453,7 @@ export function fix(reduced: boolean) {
   if (mode === "fixing") return;
   mode = "fixing";
   drive(
-    TOTAL,
+    CYCLE,
     () => {
       mode = "done";
     },
