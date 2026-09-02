@@ -316,6 +316,23 @@ export function useAgentSession(options?: {
    * does not work properly".
    */
   const [refusal, setRefusal] = useState<string | null>(null);
+  /**
+   * The last thing a gesture did that the picture cannot say on its own.
+   *
+   * A release carried clear of every candidate loosens the lead or takes the
+   * part back off the board — and that was the one release that printed
+   * nothing: every refusal, near miss and ambiguous drop puts a sentence in
+   * the header, while the sentences for a removal went to the activity tab
+   * and the live region only. A person who over-dragged watched the part
+   * vanish into the shelf under a header still describing the step, which
+   * reads as the bench having lost it rather than as a thing they did.
+   *
+   * Same lifetime as `refusal`, for the same reason: it is about the gesture
+   * that just happened, not a standing condition, so the next pick, the next
+   * seat, an undo and a change of bench all clear it. Only a loosening or a
+   * removal is kept — a seat is visible on its own.
+   */
+  const [notice, setNotice] = useState<string | null>(null);
   /* The dock's half of the run. Ephemeral like the rest — it does not survive
      a reload, and it is not something the agent could be asked about — but it
      outlives the canvas theatre, because it is a record rather than a scene. */
@@ -787,6 +804,9 @@ export function useAgentSession(options?: {
         return;
       }
       apply({ type: action.kind });
+      /* A removal's sentence is about a bench that this may have just put
+         back; whichever way the history moved, it is stale now. */
+      setNotice(null);
       /**
        * Said as *what came back*, not as "undone" — the sentence has to name
        * the bench you are now looking at or it is a confirmation with no
@@ -1053,9 +1073,13 @@ export function useAgentSession(options?: {
           },
         });
       }
-      if (lines.length) {
-        announce(lines.map((line) => say(copy, line)).join(" "));
-      }
+      const spoken = lines.map((line) => say(copy, line)).join(" ");
+      if (lines.length) announce(spoken);
+      /* The same sentences, kept on screen when the gesture took something
+         off the bench — see `notice`. A seat says nothing here and clears
+         whatever the last removal said. */
+      const removed = Boolean(effects.loosened) || action.kind === "remove-part";
+      setNotice(removed && lines.length ? spoken : null);
       return;
     }
 
@@ -1363,9 +1387,11 @@ export function useAgentSession(options?: {
     setSerial([]);
     setReadings([]);
     setTestRun(idleRun);
-    /* And the last thing the model said no to, which named a lead of a build
-       that is not on the bench any more. */
+    /* And the last thing the model said no to, or the last thing a gesture
+       took off the bench, which named a lead of a build that is not on the
+       bench any more. */
     setRefusal(null);
+    setNotice(null);
     /* The bench, and nothing else. `clearTimers` is a plain function — this
        project compiles with the React Compiler, so nothing here is wrapped in
        `useCallback` — and a list holding a value that is new on every render
@@ -1400,6 +1426,10 @@ export function useAgentSession(options?: {
     setSerial([]);
     setReadings([]);
     setTestRun(idleRun);
+    /* Both are about gestures on the bench that was just put back to the
+       beginning. */
+    setRefusal(null);
+    setNotice(null);
     announce(say(copy, { ns: "activity", k: "reset" }));
     for (const view of views()) view.fitView();
     apply({
@@ -1466,7 +1496,14 @@ export function useAgentSession(options?: {
     canUndo: state.history.past.length > 0,
     canRedo: state.history.future.length > 0,
     refusal,
-    clearRefusal: () => setRefusal(null),
+    /** What the last gesture took off the bench, until the next one. */
+    notice,
+    /* One clear for both: a new gesture starts with a clean header, whichever
+       of the two sentences the last one left in it. */
+    clearRefusal: () => {
+      setRefusal(null);
+      setNotice(null);
+    },
     toasts,
     dismissToast: dismiss,
     run,

@@ -757,10 +757,15 @@ export function Workbench({
         ]
       : undefined;
 
-  /* What the last release did not do. The model's own refusal outranks the
-     bench's, because it is the more specific of the two. */
+  /* What the last release did not do — or the one thing it did that the
+     picture cannot say for itself: a part carried clear of the board went
+     back in the box, and the shelf gaining a row is not a sentence. The
+     model's own refusal outranks the bench's, because it is the more specific
+     of the two; the removal comes next, and it never coincides with a near
+     miss, because `away` is neither. */
   const refusalLine =
     session.refusal ??
+    session.notice ??
     (nearMiss === "ambiguous"
       ? copy.agentPanel.errors.tooClose
       : nearMiss === "miss"
@@ -1058,7 +1063,9 @@ export function Workbench({
              * holes, changes nothing on the bench. Without a sentence here that
              * is a gesture answered by an unchanged screen, which is exactly
              * what "placing components doesn't work properly" looks like from
-             * the outside: not a wrong result, an absent one.
+             * the outside: not a wrong result, an absent one. A release carried
+             * clear of the board is the other half: it changes the most and
+             * used to be the only one with no sentence at all.
              */
             rationale={
               refusalLine ??
