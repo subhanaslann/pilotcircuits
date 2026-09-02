@@ -58,9 +58,17 @@ const nextConfig: NextConfig = {
    * sticky for the browsing-context group's lifetime, so it goes on every
    * response rather than on a route.
    *
-   * No `Permissions-Policy` beside it: WebMCP defines no policy-controlled
-   * feature, so a header naming one would be a guess written down as a
-   * decision.
+   * No `Permissions-Policy` beside it, and not because there is nothing to
+   * name. The spec gates its API behind the policy-controlled feature
+   * `tools`, whose default allowlist is `'self'` (`index.bs`: *"gated behind
+   * the policy-controlled feature "tools", which has a default allowlist of
+   * 'self'"*) — which is exactly what a top-level page needs, so the default
+   * already says what a header would. Sending `Permissions-Policy:
+   * tools=(self)` would buy nothing and cost one thing: a Chrome without the
+   * WebMCP flag does not recognise the feature name and prints a console
+   * warning for it on every response. (This comment used to say the spec
+   * defined no such feature; it does, and the sentence was written from the
+   * very finding that quoted it.)
    */
   async headers() {
     return [
