@@ -1104,9 +1104,26 @@ export const handlers: ToolHandlers = {
   },
 
   async verify_current_step(_input, ctx) {
-    const state = ctx.read();
+    /**
+     * Two reads, and the second one is the measurement.
+     *
+     * Nothing disables the bench while a tool runs, and the two phases below
+     * are 880 ms in which a person can finish the step, break it, or knock a
+     * lead out of an earlier one — which walks `activeStepId` back under the
+     * call. So the read a call opens on is not what the answer is about. The
+     * success branch learned that first: a tick landed from the pre-await read
+     * spread away a regression `commit` had recorded during the phases,
+     * restoring a green tick and the `completedAt` that offers `Finish` for a
+     * step whose lead was on the floor. The failure branch then went on
+     * deriving its findings from the same pre-await read, so a step the person
+     * completed while the agent was "re-reading" was answered `verified: false`
+     * with the Findings tab opened on parts they had just placed. One `live`
+     * read after the phases, both branches derived from it, and `asked` kept
+     * for exactly one thing: saying, in the result, whether the bench this
+     * answers for is still the bench the caller saw.
+     */
+    const asked = ctx.read();
     const copy = ctx.copy;
-    const step = stepById(state.activeStepId);
 
     await ctx.phase({ ns: "phases", k: "rereading" }, 400);
     await ctx.phase({ ns: "phases", k: "comparingExpected" }, 480);
@@ -1118,11 +1135,33 @@ export const handlers: ToolHandlers = {
     const openCount = (r: ReturnType<typeof verifyStep>) =>
       r.expected - r.matched + (r.mechanicalOk ? 0 : 1) + r.strays;
 
+    const live = ctx.read();
+    const step = stepById(live.activeStepId);
+
     /* `verified` is re-derived rather than taken: see `fullyVerified`. The rest
-       of the record is the measurement exactly as it was made. */
-    const measured = verifyStep(state.scene, state.activeStepId);
+       of the record is the measurement exactly as it was made — on the bench
+       as it is now. */
+    const measured = verifyStep(live.scene, live.activeStepId);
     const report = { ...measured, verified: fullyVerified(measured) };
     const open = openCount(report);
+
+    /**
+     * The warning, and the only thing the opening read is for.
+     *
+     * `stale: true` says the bench moved during the phases in a way that
+     * changes the answer: the verdict flipped against the one the call-time
+     * bench would have given, or the active step is a different one — `commit`
+     * walks it back when an earlier step's lead comes off, and then the step
+     * this record names (`stepId`) is not the one the caller was looking at.
+     * The verdict beside the flag is still the live one. What the flag tells
+     * an agent is that the `get_build_context` it read a moment ago no longer
+     * describes the bench — not that this answer is old.
+     */
+    const stale =
+      live.activeStepId !== asked.activeStepId ||
+      fullyVerified(verifyStep(asked.scene, asked.activeStepId)) !==
+        report.verified;
+    const answer = { ...report, ...(stale ? { stale: true } : {}) };
 
     if (!report.verified) {
       /**
@@ -1143,15 +1182,15 @@ export const handlers: ToolHandlers = {
        * inspection, so the two tools cannot disagree about the table.
        */
       const found = deriveFindings(
-        state.scene,
+        live.scene,
         "current_step",
-        state.activeStepId,
+        live.activeStepId,
         Date.now(),
       );
-      const kept = state.findings.filter(
+      const kept = live.findings.filter(
         (finding) =>
-          !isResolved(finding, state.scene) &&
-          !inspectionCovers(finding, "current_step", state.activeStepId) &&
+          !isResolved(finding, live.scene) &&
+          !inspectionCovers(finding, "current_step", live.activeStepId) &&
           !found.some((fresh) => fresh.id === finding.id),
       );
       const findings = [...kept, ...found];
@@ -1160,7 +1199,7 @@ export const handlers: ToolHandlers = {
       return {
         status: "ok",
         result: {
-          ...report,
+          ...answer,
           /* `findingIds`, not `findings`. `inspect_build.findings` is a list of
              objects and this is a list of ids, and one word cannot mean both in
              a layer an agent reads in sequence — the two never appear in one
@@ -1172,11 +1211,11 @@ export const handlers: ToolHandlers = {
         },
         patch: {
           findings,
-          repaired: state.repaired.filter((id) =>
+          repaired: live.repaired.filter((id) =>
             findings.some((f) => f.id === id),
           ),
           ...(point ? { highlightedFindingId: point } : {}),
-          tab: found.length ? ("findings" as const) : state.tab,
+          tab: found.length ? ("findings" as const) : live.tab,
         },
         note: {
           headline: {
@@ -1200,54 +1239,19 @@ export const handlers: ToolHandlers = {
       };
     }
 
-    /* The report above is 880 ms old and nothing disables the bench while a
-       tool is running. `tool/settle` then spreads this patch over whatever the
-       person did meanwhile — ticking a step and stamping `completedAt` for a
-       build whose resistor has since gone back in the box. A verification is a
-       claim about the build as it is now, so it is asked again against the
-       state this is about to patch, and the patch below is built from that same
-       read rather than from `state`. */
-    const live = ctx.read();
-    const fresh = verifyStep(live.scene, live.activeStepId);
-    /* Two ways this stopped being an answer about the build in front of the
-       person, and they are one failure seen from two sides: the step under
-       verification broke, or `commit` walked the active step back off it
-       because a DIFFERENT step came off while the phases ran. The fresh check
-       alone cannot see the second — it only ever asks about one step. */
-    if (!fullyVerified(fresh) || live.activeStepId !== state.activeStepId) {
-      return {
-        status: "ok",
-        /* `report`, not `fresh`: this is the measurement the tool actually
-           made, and `stale` is the warning that it is no longer an answer
-           about the build in front of the person. */
-        result: { ...report, verified: false, stale: true, source: "demo" },
-        note: {
-          headline: {
-            ns: "activity" as const,
-            k: "stepNotVerified" as const,
-            /* Counted from `fresh`, though. `open` was taken before the
-               awaits, and this branch only fires when it was zero — so
-               reusing it would print `0 issues still open` beside a step
-               that has just refused to tick. */
-            args: [openCount(fresh)] as [number],
-          },
-          tone: "found" as const,
-        },
-      };
-    }
-
-    const following = nextStep(state.activeStepId);
+    const following = nextStep(live.activeStepId);
 
     return {
       status: "ok",
-      result: { ...report, nextStepId: following?.id ?? null, source: "demo" },
+      result: { ...answer, nextStepId: following?.id ?? null, source: "demo" },
       patch: {
-        /* From `live`, never from `state`. A tick landed from the pre-await
-           read would spread away a regression `commit` recorded during the
-           phases above — restoring a green tick, and the `completedAt` that
-           offers `Finish`, for a step whose lead is now on the floor. */
+        /* From `live`, like everything in this patch — never from `asked`. A
+           tick landed from the pre-await read would spread away a regression
+           `commit` recorded during the phases above — restoring a green tick,
+           and the `completedAt` that offers `Finish`, for a step whose lead is
+           now on the floor. */
         completedSteps: [...new Set([...live.completedSteps, step.id])],
-        activeStepId: following?.id ?? state.activeStepId,
+        activeStepId: following?.id ?? live.activeStepId,
         /* Batch 8 · the last tick closes the build. Stamped here rather than by
            the screen that reads it, because this is the moment it happened —
            and the workbench does not throw the person out when it does. The
