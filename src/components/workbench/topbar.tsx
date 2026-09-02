@@ -7,6 +7,7 @@ import {
   currentStepIndex,
   type BuildStep,
 } from "@/components/ui/build-progress";
+import { LocaleSelect } from "@/components/ui/locale-select";
 import { BackHeader } from "@/components/ui/nav";
 import { MonoValue } from "@/components/ui/text";
 import { useCopy } from "@/content/copy-provider";
@@ -30,6 +31,18 @@ import { useCopy } from "@/content/copy-provider";
  * though real hardware were attached, so they stay for the whole session.
  * `Agent connected` is the one that can change, and when it does it changes
  * glyph as well as word (rule 7) — absence is `WifiOff`, never `Wifi` greyed.
+ *
+ * The language switch sits with them, and it is here for the agent as much as
+ * for the reader. The tools' titles, descriptions, argument sentences and
+ * refusals are published in the reader's language and a locale change
+ * re-registers all of them — so the bench, the one route where the tools are
+ * used, was the one route with no way to change it: the shell nav that carries
+ * `LocaleSelect` is not mounted here, and a judge deep-linked to
+ * `/workbench/[slug]` met a Turkish vocabulary for English ids with no control
+ * in sight. `bare`, as on the nameplate: two letters beside three chips, not a
+ * fourth capsule. At `layout.workbenchMin` (1120 px) the bar has the title
+ * truncating and `Board simulated` already folded below `xl`, so two letters
+ * and a gap cost nothing the layout was not already paying.
  */
 export function WorkbenchTopbar({
   project,
@@ -83,6 +96,7 @@ export function WorkbenchTopbar({
       }
       actions={
         <>
+          <LocaleSelect tone="bare" className="mr-1" />
           <StatusChip status="demoFeed">{copy.status.demoFeed}</StatusChip>
           <StatusChip status="boardSimulated" className="hidden xl:inline-flex">
             {copy.status.boardSimulated}
