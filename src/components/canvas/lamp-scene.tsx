@@ -659,9 +659,15 @@ export function LampSceneView({
                    by paint order rather than by aim. The handle stays mounted
                    — `onPick` fires on pointer DOWN, so unmounting it would
                    take the capture of the drag that just started with it — and
-                   simply stops being in the way. */
+                   simply stops being in the way.
+
+                   Every handle but the one in hand: bench-parts §6 says the
+                   dragged handle keeps its own pointer events, the way `inert`
+                   keeps the held PART's. The listeners are on `window`, so
+                   nothing depends on it today — but a rule the doc states and
+                   the code contradicts is a rule the next rewrite breaks. */
                 style={
-                  asking || (picking && onSeat)
+                  (asking || (picking && onSeat)) && heldLead !== n.id
                     ? { pointerEvents: "none" }
                     : undefined
                 }

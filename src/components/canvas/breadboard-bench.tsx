@@ -972,8 +972,13 @@ export function BreadboardBenchView<Live = void>({
                    capture of the drag that just started with it. */
                 tabIndex={asking || (picking && onSeat) ? -1 : 0}
                 aria-label={handling.nameFor(n.id)}
+                /* Every handle but the one in hand: bench-parts §6 says the
+                   dragged handle keeps its own pointer events, the way `inert`
+                   below keeps the held PART's. The listeners are on `window`,
+                   so today nothing depends on it — but a rule the doc states
+                   and the code contradicts is a rule the next rewrite breaks. */
                 style={
-                  asking || (picking && onSeat)
+                  (asking || (picking && onSeat)) && heldLead !== n.id
                     ? { pointerEvents: "none" }
                     : undefined
                 }
