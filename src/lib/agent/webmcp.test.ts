@@ -673,6 +673,52 @@ describe("what a host receives from the registered execute", () => {
     });
   });
 
+  /**
+   * One event, one word. A cancel used to reach a client in four spellings:
+   * `error: "aborted"` from the pre-abort return, and `error: "failed"` for
+   * the queue's cancel, `attach_lead`'s mid-carry cancel and the runner's
+   * dropped landing — none of which failed. Every shape now says `cancelled`,
+   * and none of them carries a `message`, because there is no sentence for a
+   * call that was called off.
+   */
+  it.each([
+    ["queued, never started", { cancelled: true, tool: "attach_lead", source: "demo" }],
+    [
+      "stopped mid-carry",
+      { lead: "led.cathode", target: "board.D7", cancelled: true, source: "demo" },
+    ],
+    [
+      "landing dropped by a reset",
+      { cancelled: true, reason: "benchChanged", tool: "attach_lead", source: "demo" },
+    ],
+  ] as const)("a call cancelled while %s says `cancelled`", async (_how, result) => {
+    const { execute } = await registered("attach_lead", () => ({
+      status: "error",
+      result,
+    }));
+
+    const received = await execute({ lead: "led.cathode", target: "board.D7" });
+
+    expect(received).toEqual({ ...result, error: "cancelled", tool: "attach_lead" });
+    expect(received).not.toHaveProperty("message");
+  });
+
+  it("a call cancelled before it starts says the same word, and never runs", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const { execute, seen } = await registered("attach_lead", () => ({
+      status: "ok",
+      result: { seated: "board.D7" },
+    }));
+
+    await expect(
+      execute({ lead: "led.cathode", target: "board.D7" }, {
+        signal: controller.signal,
+      }),
+    ).resolves.toEqual({ error: "cancelled", cancelled: true, tool: "attach_lead" });
+    expect(seen).toEqual([]);
+  });
+
   it("missing arguments reach the runner as `{}`, and the signal crosses", async () => {
     const controller = new AbortController();
     const { execute, seen } = await registered("get_build_context", () => ({

@@ -405,9 +405,12 @@ export function executeVia(
      * silence: the promise would settle "cancelled" while the bench went on
      * moving, so the one caller who asked us to stop would be the only one
      * told that we had.
+     *
+     * The same word as every other cancel below — this used to say
+     * `"aborted"`, a fourth spelling of one event.
      */
     if (options?.signal?.aborted) {
-      return asToolResult({ error: "aborted", tool: name });
+      return asToolResult({ error: "cancelled", cancelled: true, tool: name });
     }
 
     try {
@@ -451,11 +454,32 @@ export function executeVia(
        * `status: "error"` alone is still reachable from a throw.
        */
       const detail = outcome.result;
+      const body =
+        detail && typeof detail === "object"
+          ? (detail as Record<string, unknown>)
+          : {};
       return asToolResult({
         /* Spread first, so a payload can never shadow the three fields this
            bridge is contractually responsible for. */
-        ...(detail && typeof detail === "object" ? detail : {}),
-        error: outcome.errorMessage?.k ?? "failed",
+        ...body,
+        /**
+         * One word for one event.
+         *
+         * A cancel reaches this bridge in three shapes — the queue's
+         * `{cancelled, tool}` for a call that never started, `attach_lead`'s
+         * `{lead, target, cancelled}` for one stopped mid-carry, and the
+         * runner's `{cancelled, reason: "benchChanged"}` for a landing dropped
+         * because the bench was reset or swapped under it — and none of them
+         * carries a sentence, because the call did not fail: the one party
+         * listening called it off. So all three used to compose as `error:
+         * "failed"`, beside the pre-abort return's `"aborted"`, and a client
+         * branched on two keys for one fact. The spec discards an aborted
+         * call's result, so only a client that outlives its own cancel reads
+         * any of this — but the shape is the contract, and it is one word now.
+         */
+        error: body.cancelled
+          ? "cancelled"
+          : (outcome.errorMessage?.k ?? "failed"),
         ...(outcome.errorMessage
           ? { message: say(runner.copy(), outcome.errorMessage) }
           : {}),
