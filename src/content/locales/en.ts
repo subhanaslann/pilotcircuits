@@ -373,7 +373,7 @@ export const en = {
       name: "Traffic Light",
       adds: "The breadboard, and a sequence",
       summary:
-        "Three LEDs on a breadboard: red, amber, green, in an order that never slips.",
+        "Three LEDs on a breadboard: red, yellow, green, in an order that never slips.",
     },
     motionNightLight: {
       name: "Motion Night Light",
@@ -547,7 +547,7 @@ export const en = {
       servo: "Micro servo",
       ledGreen: "Green LED",
       ledRed: "Red LED",
-      ledYellow: "Amber LED",
+      ledYellow: "Yellow LED",
       led: "LED",
       resistor: "Resistor",
       /* Chapter two has three of them and a finding names the one it means, so
@@ -562,7 +562,7 @@ export const en = {
          the step rail draw this as a row label standing on its own, beside
          `Red LED` and `Breadboard`. */
       resistorRed: "Red lamp's resistor",
-      resistorYellow: "Amber lamp's resistor",
+      resistorYellow: "Yellow lamp's resistor",
       resistorGreen: "Green lamp's resistor",
       /* Uncounted by the catalogue (`ComponentId`), held by the bench
          (`KitId`): chapter two hands the person four of these. */
@@ -595,7 +595,7 @@ export const en = {
       jumperSignal: "Signal jumper",
       jumperLamp: "Lamp jumper",
       jumperRed: "Red lamp's jumper",
-      jumperYellow: "Amber lamp's jumper",
+      jumperYellow: "Yellow lamp's jumper",
       jumperGreen: "Green lamp's jumper",
       cardboard: "Cardboard",
     },
@@ -647,12 +647,12 @@ export const en = {
       "res.red.out": "Rail-side lead of the red lamp's resistor",
       "wire.red.row": "Breadboard end of the red lamp's jumper",
       "wire.red.pin": "Board end of the red lamp's jumper",
-      "led.yellow.cathode": "Amber LED's short leg",
-      "led.yellow.anode": "Amber LED's long leg",
-      "res.yellow.in": "LED-side lead of the amber lamp's resistor",
-      "res.yellow.out": "Rail-side lead of the amber lamp's resistor",
-      "wire.yellow.row": "Breadboard end of the amber lamp's jumper",
-      "wire.yellow.pin": "Board end of the amber lamp's jumper",
+      "led.yellow.cathode": "Yellow LED's short leg",
+      "led.yellow.anode": "Yellow LED's long leg",
+      "res.yellow.in": "LED-side lead of the yellow lamp's resistor",
+      "res.yellow.out": "Rail-side lead of the yellow lamp's resistor",
+      "wire.yellow.row": "Breadboard end of the yellow lamp's jumper",
+      "wire.yellow.pin": "Board end of the yellow lamp's jumper",
       "led.green.cathode": "Green LED's short leg",
       "led.green.anode": "Green LED's long leg",
       "res.green.in": "LED-side lead of the green lamp's resistor",
@@ -727,12 +727,12 @@ export const en = {
       "res.red.out": "the rail-side lead of the red lamp's resistor",
       "wire.red.row": "the breadboard end of the red lamp's jumper",
       "wire.red.pin": "the board end of the red lamp's jumper",
-      "led.yellow.cathode": "the amber LED's short leg",
-      "led.yellow.anode": "the amber LED's long leg",
-      "res.yellow.in": "the LED-side lead of the amber lamp's resistor",
-      "res.yellow.out": "the rail-side lead of the amber lamp's resistor",
-      "wire.yellow.row": "the breadboard end of the amber lamp's jumper",
-      "wire.yellow.pin": "the board end of the amber lamp's jumper",
+      "led.yellow.cathode": "the yellow LED's short leg",
+      "led.yellow.anode": "the yellow LED's long leg",
+      "res.yellow.in": "the LED-side lead of the yellow lamp's resistor",
+      "res.yellow.out": "the rail-side lead of the yellow lamp's resistor",
+      "wire.yellow.row": "the breadboard end of the yellow lamp's jumper",
+      "wire.yellow.pin": "the board end of the yellow lamp's jumper",
       "led.green.cathode": "the green LED's short leg",
       "led.green.anode": "the green LED's long leg",
       "res.green.in": "the LED-side lead of the green lamp's resistor",
@@ -801,12 +801,12 @@ export const en = {
       "res.red.out": "the rail-side lead of the red lamp's resistor",
       "wire.red.row": "the breadboard end of the red lamp's jumper",
       "wire.red.pin": "the board end of the red lamp's jumper",
-      "led.yellow.cathode": "the amber LED's short leg",
-      "led.yellow.anode": "the amber LED's long leg",
-      "res.yellow.in": "the LED-side lead of the amber lamp's resistor",
-      "res.yellow.out": "the rail-side lead of the amber lamp's resistor",
-      "wire.yellow.row": "the breadboard end of the amber lamp's jumper",
-      "wire.yellow.pin": "the board end of the amber lamp's jumper",
+      "led.yellow.cathode": "the yellow LED's short leg",
+      "led.yellow.anode": "the yellow LED's long leg",
+      "res.yellow.in": "the LED-side lead of the yellow lamp's resistor",
+      "res.yellow.out": "the rail-side lead of the yellow lamp's resistor",
+      "wire.yellow.row": "the breadboard end of the yellow lamp's jumper",
+      "wire.yellow.pin": "the board end of the yellow lamp's jumper",
       "led.green.cathode": "the green LED's short leg",
       "led.green.anode": "the green LED's long leg",
       "res.green.in": "the LED-side lead of the green lamp's resistor",
@@ -935,7 +935,7 @@ export const en = {
       tlOthers: {
         name: "Repeat it twice",
         instruction:
-          "Build the same three parts again on columns 18 and 19 for amber, then on 27 and 28 for green. Their jumpers go to D12 and D11.",
+          "Build the same three parts again on columns 18 and 19 for yellow, then on 27 and 28 for green. Their jumpers go to D12 and D11.",
         /* The chapter's second lesson, and it belongs here rather than in the
            upload step: the order is decided by which pin each jumper reached,
            and this is the step where the last two are chosen. */
@@ -945,7 +945,7 @@ export const en = {
       tlUpload: {
         name: "Upload and watch the order",
         instruction:
-          "Upload the sketch and watch a full cycle: red, green, amber, and back to red.",
+          "Upload the sketch and watch a full cycle: red, green, yellow, and back to red.",
         rationale:
           "One lamp at a time, always in the same order. If one stays dark, its jumper is on the wrong pin.",
       },
@@ -1274,10 +1274,10 @@ export const en = {
             "The first jumper goes in: GND at one end, the − rail at the other. The whole length of that rail is ground now.",
           red: "The red lamp arrives whole — LED, resistor, jumper — standing across two columns.",
           others:
-            "Amber and green repeat it, one group of columns each. Nothing new is added.",
+            "Yellow and green repeat it, one group of columns each. Nothing new is added.",
           upload:
             "The sketch goes to the board. D13, D12 and D11 are driven now.",
-          cycle: "Red. Then green, then amber, then red again — and it never slips.",
+          cycle: "Red. Then green, then yellow, then red again — and it never slips.",
         },
       },
 
