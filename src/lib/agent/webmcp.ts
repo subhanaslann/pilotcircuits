@@ -566,6 +566,7 @@ export function workbenchSchemasFor(
   const args = copy.agentPanel.toolArgs;
 
   return {
+  explain_project: noInput(docs.explain_project),
   get_build_context: noInput(docs.get_build_context),
   inspect_build: {
     type: "object",

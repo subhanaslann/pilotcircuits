@@ -28,6 +28,9 @@ import type { ProjectId } from "@/lib/projects/catalog";
  * reason they are absent rather than merely quiet.
  */
 const narrowTools: readonly AgentTool[] = [
+  /* Words, and words render at any width: this one draws nothing on the
+     bench, so the fold takes nothing away from it. */
+  "explain_project",
   "get_build_context",
   "verify_current_step",
   "navigate_build_step",

@@ -1811,6 +1811,10 @@ export const en = {
       calledTool: "Agent called a tool",
       readContext: "Agent read the current build context",
       contextRead: "Build context read",
+      /* G-18's pair. Deliberately not "read the context": this call cannot see
+         the bench, and the timeline should not say it looked at one. */
+      explaining: "Agent read what this build is",
+      projectExplained: "Project explained",
       inspecting: (step: number) => `Agent inspected wiring for Step ${step}`,
       inspectingMechanical: (step: number) =>
         `Agent checked the mechanical alignment for Step ${step}`,
@@ -2112,6 +2116,10 @@ export const en = {
     tools: {
       title: "Tools on this page",
       note: "Registered with the browser while the workbench is open.",
+      /* G-18 · the one line that is not about the build's state. Said in the
+         order the tool answers it: what it is, then what its parts are for. */
+      explain_project:
+        "Explain what this chapter is: what it does, what each part is for, and how it works.",
       get_build_context:
         "Read the project, the active step and every connection.",
       inspect_build:
@@ -2185,6 +2193,7 @@ export const en = {
      * its description was corrected for.
      */
     toolTitles: {
+      explain_project: "Project explainer",
       get_build_context: "Build context",
       inspect_build: "Build inspection",
       show_correction: "Correction",
@@ -2210,6 +2219,13 @@ export const en = {
      * `description` of that tool's JSON Schema.
      */
     toolDocs: {
+      explain_project:
+        "Says what the build on the bench is for: its purpose, where it sits " +
+        "in the six-chapter ladder, what each part contributes, what it " +
+        "teaches and how it works, in the reader's language. It reports no " +
+        "state at all and nothing in it changes while somebody wires — call " +
+        "get_build_context for what is on the bench, and this for what the " +
+        "bench is. Needs no arguments and nothing selected first.",
       get_build_context:
         "The whole bench in one call: which project is on it, where the rail " +
         "is, and every connection currently made. It changes nothing and needs " +

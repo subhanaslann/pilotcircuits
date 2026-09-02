@@ -1425,6 +1425,8 @@ export const tr: Copy = {
       calledTool: "Ajan bir araç çağırdı",
       readContext: "Ajan mevcut yapım bağlamını okudu",
       contextRead: "Yapım bağlamı okundu",
+      explaining: "Ajan bu yapımın ne olduğunu okudu",
+      projectExplained: "Proje anlatıldı",
       inspecting: (step: number) =>
         `Ajan ${step}. adımın kablolamasını inceledi`,
       inspectingMechanical: (step: number) =>
@@ -1661,6 +1663,8 @@ export const tr: Copy = {
     tools: {
       title: "Bu sayfadaki araçlar",
       note: "Atölye açıkken tarayıcıya kaydediliyor.",
+      explain_project:
+        "Bu bölümün ne olduğunu anlatır: ne yaptığı, hangi parçanın ne işe yaradığı ve nasıl çalıştığı.",
       get_build_context: "Projeyi, aktif adımı ve her bağlantıyı okur.",
       inspect_build: "Yapımı programla karşılaştırır ve bulguları bildirir.",
       /* `focused` dizisinin sırası çağıranın bilmesi gereken ama hiçbir yerden
@@ -1725,6 +1729,7 @@ export const tr: Copy = {
        taktığı kadar geri de çıkarıyor, ve yalnızca ekleyen yarısını anan bir
        başlık, açıklamasında düzeltilen eksiği bir alan yukarıda tekrarlardı. */
     toolTitles: {
+      explain_project: "Proje anlatımı",
       get_build_context: "Yapım bağlamı",
       inspect_build: "Yapım incelemesi",
       show_correction: "Düzeltme",
@@ -1745,6 +1750,13 @@ export const tr: Copy = {
        cümle. Her biri o aracın JSON Şeması'nın nesne düzeyindeki
        `description` alanı olarak yayımlanıyor. */
     toolDocs: {
+      explain_project:
+        "Tezgâhtaki yapımın ne işe yaradığını söyler: amacı, altı bölümlük " +
+        "merdivende nerede durduğu, hangi parçanın ne kattığı, neyi öğrettiği " +
+        "ve nasıl çalıştığı — okuyucunun dilinde. Hiçbir durum bildirmez ve " +
+        "içindeki hiçbir şey kişi kabloladıkça değişmez: tezgâhta ne olduğu " +
+        "için get_build_context, tezgâhın ne olduğu için bu. Argüman almaz, " +
+        "önceden bir şey seçilmiş olmasını gerektirmez.",
       get_build_context:
         "Tezgâhın tamamı tek çağrıda: üstünde hangi proje var, ray nerede " +
         "duruyor ve şu an kurulu olan her bağlantı. Hiçbir şeyi değiştirmez " +

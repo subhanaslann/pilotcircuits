@@ -1,7 +1,7 @@
 /**
  * Batch 4 · The agent's vocabulary.
  *
- * The eight tools the workbench exposes, and the one axis the product teaches
+ * The nine tools the workbench exposes, and the one axis the product teaches
  * on. Nothing here touches React or the DOM: in Batch 7 a WebMCP callback
  * invoked by the browser has to be able to reach every one of these without a
  * hook.
@@ -15,6 +15,29 @@
  * beside a rendered list is a fact with two copies.
  */
 export const workbenchTools = [
+  /**
+   * The one tool that answers *what is this*.
+   *
+   * Every other tool on this list is about the build's **state** — what is
+   * wired, what is wrong, what is where, what happens when it runs — and all
+   * eight of them are useless to an agent that has just arrived and does not
+   * know what the object in front of it is for. `get_build_context` reads the
+   * bench and reports ids and connections; it has never carried a sentence
+   * saying that this chapter is a barrier that lifts for a car, that the
+   * servo is the part that moves, or that the whole thing turns on one pulse
+   * coming back.
+   *
+   * That explanation exists and is already written: it is the chapter's own
+   * briefing (`agent/briefings.ts`) — the purpose, what each part contributes,
+   * and the film's captions in order. The briefing is a window a person reads
+   * once and dismisses, and the deliberate absence of a `show_briefing`
+   * (recorded in that file) is about not letting an agent re-open a window
+   * over the bench. This is the other half of that decision: the agent cannot
+   * put the words back on the person's screen, and it can read them.
+   *
+   * First, because it is the call that makes the rest legible.
+   */
+  "explain_project",
   "get_build_context",
   "inspect_build",
   "show_correction",
@@ -92,6 +115,9 @@ export type AgentTool = WorkbenchTool | LibraryTool;
 export type ToolKind = "read" | "change";
 
 export const toolKind: Record<AgentTool, ToolKind> = {
+  /* Words about the chapter, off the catalogue and the briefing. It cannot
+     reach the build at all: there is no state in the payload. */
+  explain_project: "read",
   get_build_context: "read",
   inspect_build: "read",
   show_correction: "change",
@@ -150,6 +176,10 @@ export const toolActs = [
 export type ToolAct = (typeof toolActs)[number];
 
 export const toolAct: Record<AgentTool, ToolAct> = {
+  /* Reading, and reading is what the person sees: the ring does not go out
+     for this one — there is nothing on the bench it is about — so the face is
+     the whole of the feedback. */
+  explain_project: "looking",
   get_build_context: "looking",
   inspect_build: "looking",
   show_correction: "showing",
@@ -243,6 +273,14 @@ export interface McpToolAnnotations {
  * with no attacker-controlled text in it.
  */
 export const toolAnnotations: Record<AgentTool, McpToolAnnotations> = {
+  /* The only tool in the product that reads no session key at all: the answer
+     is the catalogue row and the briefing row for the project on the bench,
+     both static. Nothing to be destructive or idempotent about. */
+  explain_project: {
+    readOnlyHint: true,
+    openWorldHint: false,
+    untrustedContentHint: false,
+  },
   /* Reads the session and returns it. Byte-identical state before and after,
      on all six builds. */
   get_build_context: {

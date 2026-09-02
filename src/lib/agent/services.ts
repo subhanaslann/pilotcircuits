@@ -39,7 +39,8 @@ import {
   type NodeKind,
 } from "@/lib/circuit/graph";
 import { buildFor, subjectsOf } from "@/lib/agent/builds";
-import { projectById } from "@/lib/projects/catalog";
+import { briefingFor } from "@/lib/agent/briefings";
+import { projectById, projects } from "@/lib/projects/catalog";
 import { placeIn, type PlacementCommit } from "@/lib/agent/placement";
 import { GRIP_AT, SEAT_AT } from "@/lib/agent/mascot";
 import {
@@ -209,6 +210,7 @@ export interface ToolOutcome {
 }
 
 export interface ToolInputs {
+  explain_project: Record<string, never>;
   get_build_context: Record<string, never>;
   inspect_build: { scope?: InspectionScope };
   show_correction: { finding_id: FindingId; detail_level?: CoachingLevel };
@@ -751,6 +753,93 @@ type ToolHandlers = {
 };
 
 export const handlers: ToolHandlers = {
+  /**
+   * G-18 · What the thing on the bench *is*.
+   *
+   * Assembled out of two rows that already exist and nothing else: the
+   * catalogue's (`projects/catalog.ts` — where this chapter stands on the
+   * ladder, how long it takes, what it teaches) and the briefing's
+   * (`agent/briefings.ts` — the purpose, what each part contributes, and the
+   * film's captions in order). Both are already in the reader's language, so
+   * this handler translates nothing and decides nothing; it is a projection,
+   * the way `summarise` is.
+   *
+   * **It reports no state**, and that is the line between this tool and
+   * `get_build_context`. Which lead is where, which step is active and what
+   * the agent has already done are that tool's answer and change by the
+   * minute; this one is true before the person has touched anything and is
+   * still true when they finish. An agent that wants both makes two calls,
+   * and neither answer has to be filtered out of the other.
+   *
+   * A chapter with no briefing row is answered rather than refused: the
+   * catalogue half is real information, `purpose` is `null` and the two lists
+   * are empty. §9 asks for a true answer wherever there is one — and today
+   * every one of the six has a row, so the empty shape is a promise about the
+   * seventh rather than a state anybody meets.
+   */
+  async explain_project(_input, ctx) {
+    const state = ctx.read();
+    const copy = ctx.copy;
+    const project = projectById(state.projectId);
+    const words = copy.projects[state.projectId];
+    const brief = briefingFor(state.projectId);
+    const told = brief?.words(copy);
+
+    await ctx.phase({ ns: "phases", k: "readingProject" }, 380);
+
+    return {
+      status: "ok",
+      result: {
+        /* The same triple `get_build_context` and the library's `describe`
+           hand back, for the same reason: `id` and `slug` are what the four
+           library tools accept, and `name` is the only one a person
+           recognises. */
+        project: {
+          id: project.id,
+          slug: project.slug,
+          name: words.name,
+        },
+        /* Where it stands on the ladder. The chapter number means nothing
+           without the length of the thing it is a chapter of. */
+        chapter: project.chapter,
+        chapters: projects.length,
+        summary: words.summary,
+        /* The fullest sentence the product has about this build, and the one
+           the person is shown before the bench is handed over. */
+        purpose: told?.purpose ?? null,
+        minutes: project.minutes,
+        difficulty: project.difficulty,
+        stepCount: project.stepCount,
+        teaches: project.concepts.map((id) => ({
+          id,
+          name: copy.concepts[id],
+        })),
+        /* What each part is *for*, which is the half no other tool has: the
+           kit list names them and `point_at` finds them, and neither says why
+           the build has one. `number` is printed on the part itself, so it is
+           the same in every language (rule 13). */
+        parts: (brief?.parts ?? []).map((part) => {
+          const said = part.words(copy);
+          return {
+            id: part.id,
+            name: said.name,
+            number: part.number,
+            does: said.note,
+          };
+        }),
+        /* The film's captions, in the order it plays them: how the build comes
+           together, or — on the chapter that arrives built — how the signal
+           goes round it. */
+        howItWorks:
+          brief && told
+            ? brief.assembly.map((beat) => told.assembly[beat.id])
+            : [],
+        source: "demo",
+      },
+      outcome: { ns: "activity" as const, k: "projectExplained" as const },
+    };
+  },
+
   async get_build_context(_input, ctx) {
     await ctx.phase({ ns: "phases", k: "readingContext" }, 420);
     return { status: "ok", result: summarise(ctx.read(), ctx.copy, ctx.locale) };
@@ -2145,6 +2234,12 @@ export function headlineFor<K extends keyof ToolInputs>(
         args: [{ ref: "check", id: test }],
       };
     }
+    /* Its own sentence, because the default below is about the *context* and
+       this call never reads any: an entry saying the agent read the build
+       context, on the one tool that cannot see the build, is the timeline
+       describing a different call. */
+    case "explain_project":
+      return { ns: "activity", k: "explaining" };
     /* `get_build_context` and anything a later batch adds. */
     default:
       return { ns: "activity", k: "readContext" };

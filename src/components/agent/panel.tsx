@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils/cn";
 export type AgentTab = "guidance" | "findings" | "activity";
 
 const toolPurposes = (copy: Copy): Record<AgentTool, string> => ({
+  explain_project: copy.agentPanel.tools.explain_project,
   get_build_context: copy.agentPanel.tools.get_build_context,
   inspect_build: copy.agentPanel.tools.inspect_build,
   show_correction: copy.agentPanel.tools.show_correction,

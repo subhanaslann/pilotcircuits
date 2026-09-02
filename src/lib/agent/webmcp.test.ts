@@ -354,14 +354,16 @@ describe("no two tools share one schema object", () => {
  * They live in `model.ts` and the locales, and neither has a test of its own —
  * but the registration is the only thing that reads them, and a hole in either
  * reaches a host as `title: undefined` or as no annotations at all. Eleven
- * names, three sources, asserted where they are spent.
+ * names, three sources, asserted where they are spent. Thirteen since
+ * `explain_project` — the count is written out so that adding a tool has to
+ * come past this line.
  */
 describe("every registered tool has something to publish", () => {
   const everyTool = [...workbenchTools, ...libraryTools];
 
-  it("twelve, and no more", () => {
-    expect(everyTool.length).toBe(12);
-    expect(new Set(everyTool).size).toBe(12);
+  it("thirteen, and no more", () => {
+    expect(everyTool.length).toBe(13);
+    expect(new Set(everyTool).size).toBe(13);
   });
 
   it.each(everyTool)("%s has a title in both languages", (name) => {
