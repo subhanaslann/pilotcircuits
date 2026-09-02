@@ -1,9 +1,10 @@
 {
-  "name": "circuitpilot",
+  "name": "pilotcircuits",
   "version": "0.1.0",
   "private": true,
   "description": "A guided Arduino breadboard workbench: a beginner wires each chapter by hand while a WebMCP-connected agent inspects the build, shows corrections and attaches leads.",
   "license": "MIT",
+  "homepage": "https://pilotcircuits.com",
   "engines": {
     "node": ">=20.9"
   },

@@ -114,8 +114,8 @@ export interface RunSpec {
  * means nothing on a build with no supply, no return path or a short across
  * the rails: with the servo's 5 V lead in the box `sweep` passed and the horn
  * swung, with the LED's cathode in the air `breathing` passed and the lamp
- * breathed, with 5 V on the − rail the night-light film played (measured on
- * all five chapters, `.audit/hackathon/r4/functional.before.txt`). Per-build
+ * breathed, with 5 V on the − rail the night-light film played, confirmed
+ * across all five chapters. Per-build
  * `powered`/`returns` predicates off the net model are the fuller answer;
  * until then any open join plays the dark film, which is what a person at the
  * desk would see.

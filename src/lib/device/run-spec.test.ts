@@ -17,8 +17,8 @@ import type { RunSpec, StagePatch } from "@/lib/device/run-spec";
  * swung to 90°, and the night-light film played on a bench that had shorted
  * 5 V to GND. The readers also asked the finished build's hole rather than the
  * part's own lead, so a cable in column 29 answered for a sensor whose OUT lead
- * was in the box. Measured across all five chapters in
- * `.audit/hackathon/r4/functional.before.txt`; these pin the truth.
+ * was in the box. Measured across all five chapters; the rows below pin the
+ * truth.
  */
 
 type Chapter = Exclude<keyof typeof builds, "smartParkingBarrier">;

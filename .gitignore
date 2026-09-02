@@ -45,3 +45,7 @@ next-env.d.ts
 
 # scripts/port-wokwi.py source cache
 .wokwi-src/
+
+# Local scratch tree: measurements, probe output and browser captures kept
+# beside the code while a question is open. Working notes, not source.
+.audit/

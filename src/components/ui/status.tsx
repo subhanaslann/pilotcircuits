@@ -32,8 +32,8 @@ export type AlertTone = "info" | "success" | "warning" | "error";
  * everywhere it ships — `wireRoles.error.icon`, the callout drawn on the canvas,
  * the step rail's open-finding marker. Leaving `Alert` on the convention meant
  * the same finding drew a triangle in the panel and a circle in the inspection
- * modal, which is precisely what rule 7 exists to prevent. Swapped 2026-08-28,
- * after Batch 2 was approved.
+ * modal, which is precisely what rule 7 exists to prevent, so the icon was
+ * swapped to match the marker.
  */
 const alertMeta = {
   info: { Icon: Info, disc: "bg-accent" },
@@ -371,6 +371,16 @@ export function EmptyState({
  * Status changes the agent causes — step verified, finding found, test failed —
  * are announced here, so a screen-reader user learns about them at the moment
  * they happen rather than by re-reading the panel.
+ *
+ * Pinned to the top-left corner, not left at its static position. `sr-only`
+ * is `position: absolute` with no offsets, so the box sat wherever the flow
+ * would have put it — in the panel, at the foot of a guidance list taller
+ * than the panel's scroll body. That body is not a positioned ancestor, so the
+ * box was laid out against the document instead of the scroll container it
+ * lived in: at y = 1210 in a 1009 px window, which measured 202 px taller
+ * than the workbench itself and let the whole page be wheeled
+ * up off the top of the screen, with nothing below. A 1 px box clipped to
+ * nothing announces the same from the corner as from the foot of a list.
  */
 export function LiveRegion({
   message,
@@ -384,7 +394,7 @@ export function LiveRegion({
     <p
       role="status"
       aria-live={assertive ? "assertive" : "polite"}
-      className="sr-only"
+      className="sr-only top-0 left-0"
     >
       {message}
     </p>

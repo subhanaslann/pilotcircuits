@@ -9,9 +9,9 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
-    // Batch 8: the production build's own directory (see next.config.ts).
+    // The production build's own directory (see next.config.ts).
     ".next-build/**",
-    // The audit ledgers under .audit/ are probes and reports, not source.
+    // Local scratch directory, never source.
     ".audit/**",
     "out/**",
     "build/**",

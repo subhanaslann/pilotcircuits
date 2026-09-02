@@ -33,7 +33,7 @@ import {
   LeadPicker,
 } from "@/components/canvas/overlays/lead-picker";
 import { usePartDrag } from "@/components/canvas/use-part-drag";
-import type { Aim } from "@/components/canvas/drag-math";
+import { handlePoint, type Aim } from "@/components/canvas/drag-math";
 import { PITCH } from "@/lib/circuit/geometry";
 import { boxOf, frame } from "@/lib/circuit/wokwi";
 import { bench } from "@/components/illustration/spec";
@@ -640,7 +640,7 @@ export function LampSceneView({
                to prevent, one layer up. */
             const shift =
               part && delta && moving.includes(part) ? delta : STILL;
-            const aim = handling.aimAt(n);
+            const aim = handlePoint(n, handling.free.has(n.id), handling.aimAt);
             const x = aim.x + shift.x;
             const y = aim.y + shift.y;
             return (

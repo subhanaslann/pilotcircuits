@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   AMBIGUOUS,
+  CATCH_PX,
   snapRadius,
   carriedFrom,
   carriedTo,
   gridSpacing,
+  handlePoint,
   hitRadius,
   minSpacing,
   MIN_TARGET_PX,
@@ -628,5 +630,44 @@ describe("where the walk starts", () => {
       { id: "right", at: { x: 5, y: 0 } },
     ];
     expect(nearestTarget({ x: 0, y: 0 }, tied)).toBe("left");
+  });
+});
+
+/**
+ * The handle is on the lead, not on the mark.
+ *
+ * Both benches drew a lead's handle at `grabPoint` — the lifted point the
+ * picker's marks and the drag's aim use — so a seated lead's handle was never
+ * where the lead was drawn. Inside `CATCH_PX` at the opening fit; at `zoom.max`,
+ * which `closer()` jumps to on every click pick-up, 21 CSS px off against a
+ * 12 px catcher. A press on a seated cable end reached the canvas and panned
+ * it, and a cable has no body to move it by instead.
+ */
+describe("handlePoint", () => {
+  const seated = lightSceneFrom(lightPlacement.complete).nodes["led.red.cathode"]!;
+  const pin = breathingLamp.nodes["led.cathode"]!;
+
+  it("a seated lead's handle is on the lead itself", () => {
+    expect(handlePoint(seated, false, lightGrabPoint)).toEqual({
+      x: seated.x,
+      y: seated.y,
+    });
+    expect(handlePoint(pin, false, lampGrabPoint)).toEqual({ x: pin.x, y: pin.y });
+  });
+
+  it("a loose lead's handle is its ring, at the lifted mark", () => {
+    expect(handlePoint(seated, true, lightGrabPoint)).toEqual(
+      lightGrabPoint(seated),
+    );
+    expect(handlePoint(pin, true, lampGrabPoint)).toEqual(lampGrabPoint(pin));
+  });
+
+  /* The measurement the fix rests on: at the zoom every click pick-up lands
+     on, the lifted mark is farther from the lead than the catcher reaches. */
+  it("the lifted mark is outside the catcher at zoom.max, on both benches", () => {
+    const off = (n: { x: number; y: number }, at: { x: number; y: number }) =>
+      Math.hypot(at.x - n.x, at.y - n.y) * zoom.max;
+    expect(off(seated, lightGrabPoint(seated))).toBeGreaterThan(CATCH_PX);
+    expect(off(pin, lampGrabPoint(pin))).toBeGreaterThan(CATCH_PX);
   });
 });

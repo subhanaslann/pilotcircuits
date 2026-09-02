@@ -46,9 +46,9 @@ import type { FindingId } from "@/lib/agent/findings";
  * half. An agent's `show_correction` started the film through the effect below
  * and nothing else: the ring seated the cable, the car passed, and the session
  * still held the fault, so the agent's next `inspect_build` reported the wire
- * in D6 under a picture of it in D7 — measured on the real host
- * (`.audit/hackathon/chrome152/before/landing.json`: the second inspection
- * returns the same finding id). With animation on it was worse: the run ends
+ * in D6 under a picture of it in D7 — measured on the real host, where the
+ * second inspection returns the same finding id. With animation on it was
+ * worse: the run ends
  * on the dip that covers the fault going back, and nothing on the agent path
  * ever put it back, so the bench stayed painted out.
  *

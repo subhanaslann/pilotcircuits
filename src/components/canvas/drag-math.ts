@@ -352,3 +352,27 @@ export function zoomToAim(scale: number, spacing: number): number | null {
   const needed = MIN_TARGET_PX / spacing;
   return scale < needed ? needed : null;
 }
+
+/**
+ * Where a lead's own handle sits: on the lead, unless the lead is loose.
+ *
+ * The picker's marks and the drag's aim use `aimAt`, the lifted point — a
+ * diagonal half-pitch off the hole on a breadboard, a pitch and a half up on
+ * chapter one's header — so that a mark never lands on the lattice. The
+ * handles copied that point, and a seated lead's handle was then never where
+ * the lead was drawn. At the opening fit the miss sat inside `CATCH_PX`, so
+ * nobody noticed; at `zoom.max`, which `closer()` jumps to on every click
+ * pick-up, the breadboard's 7.071-unit lift is 21 CSS px from the hole against
+ * a 12 px catcher. Measured on chapter two's ground jumper: a press on the
+ * seated end reached the canvas underneath and panned it. A rigid part still
+ * moves by its body; a cable has no body, so this was "the cables cannot be
+ * moved" in the user's words.
+ *
+ * A loose lead keeps the lifted point: its ring is drawn there, and the ring
+ * is the handle — what you can see is what you can press.
+ */
+export const handlePoint = <N extends Point>(
+  n: N,
+  free: boolean,
+  aimAt: (n: N) => Point,
+): Point => (free ? aimAt(n) : { x: n.x, y: n.y });

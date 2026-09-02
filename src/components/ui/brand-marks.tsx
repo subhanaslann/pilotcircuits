@@ -125,7 +125,7 @@ export function WorkshopMark({
 /**
  * S-01 · The nameplate.
  *
- * `CIRCUITPILOT` set solid in the condensed face, because on this surface the
+ * `PILOTCIRCUITS` set solid in the condensed face, because on this surface the
  * product name is stencilled on the bench rather than typeset in a header. Same
  * string as `Wordmark` — both read `brand.name`, so the two cannot drift —
  * only cased and cut differently.

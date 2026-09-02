@@ -8,6 +8,7 @@ import { workbench as workbenchLab } from "@/content/locales/lab/workbench";
 import { shell } from "@/content/locales/lab/shell";
 import { decisions } from "@/content/locales/lab/decisions";
 import type { Copy } from "@/content/locales/en";
+import { brand } from "@/content/brand";
 
 /**
  * F-10 · Copy layer — Türkçe.
@@ -146,9 +147,7 @@ export const tr: Copy = {
     designation: "YAPIM 01 — AKILLI OTOPARK BARİYERİ",
     sub: (board: string, sensor: string, servo: string, pin: string) =>
       `${board} + ${sensor} + ${servo} servo. Ajan ${pin} pinindeki sinyal yolunu izliyor.`,
-    cta: "EĞİTİME BAŞLA",
-    ctaContinue: "YAPIMA DEVAM ET",
-    ctaNextStep: (step: string) => `SONRAKİ ADIM: ${step.toLocaleUpperCase("tr")}`,
+    cta: "Eğitime başla",
 
     stripRegion: "Yapım teşhisi",
     logRegion: "Ajan günlüğü",
@@ -201,9 +200,11 @@ export const tr: Copy = {
     ledgerStatus: "Durum",
     ledgerBench: "Mavi kenar: yukarıdaki tezgahta duran yapım.",
 
-    closingTitle: "Kart simüle, hata gerçek.",
-    closingBody:
-      "Kamera yok, seri port yok, yükleme yok. Gerçek olan devre grafiği, içindeki iki hata ve seni onlardan çıkaran akıl yürütme.",
+    coachTitle: "Lamba ajanın ta kendisi",
+    coachBody:
+      "Her tezgahın köşesinde durur. WebMCP üzerinden bir araç her çağrıldığında yüzü çağrının yaptığı işe göre değişir, gönderdiği halka da çağrının konusu olan yere iner. Halka nerede olduğunu söyler, yüz ne yaptığını.",
+    coachRest:
+      "İki çağrı arasında dinler. Tarayıcıda ajan yoksa gözleri kapalı bekler.",
   },
 
   projects: {
@@ -1737,7 +1738,9 @@ export const tr: Copy = {
         "Bu yapımın kendi kontrollerini simüle kart üzerinde çalıştırır ve " +
         "her birinin ne gördüğünü bildirir. Kontroller yapıma özeldir, sabit " +
         "bir liste değil — test bu tezgâhtakileri sayar — ve başarısız biten " +
-        "bir çalıştırma yine de başarılı bir çağrıdır.",
+        "bir çalıştırma yine de başarılı bir çağrıdır. Yapımın son adımında " +
+        "her kontrolü geçen bir çalıştırma o adımı da işaretler ve yapımı " +
+        "kapatır: ardından verify_current_step gerekmez.",
       find_projects:
         "Kataloğu filtreler ve okurun baktığı proje ızgarasını yeniden " +
         "çizer. Her çağrı filtrenin tamamını değiştirir, üstüne eklemez: " +
@@ -2287,10 +2290,11 @@ export const tr: Copy = {
     knowledgeCheck: "Kısa kontrol",
     tryAnother: "Başka bir proje dene",
     reopen: "Atölyeyi yeniden aç",
+    backToWorkspace: "Çalışma alanına dön",
     share: "Yapımı paylaş",
     shareCopied: "Yapım özeti kopyalandı",
     shareHeading: (project: string) =>
-      `${project} — CircuitPilot ile kuruldu`,
+      `${project} — ${brand.name} ile kuruldu`,
     conceptsCount: (n: number) => `${n} kavram`,
     issuesCount: (n: number) => `${n} sorun`,
     noSession: "Devam eden bir yapım olmadan açıldı",

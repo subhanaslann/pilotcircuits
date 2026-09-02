@@ -30,10 +30,11 @@ export const localeCodes: Record<Locale, string> = {
 };
 
 /**
- * English since 2026-09-02, for the judging window of the OpenAI WebMCP
- * Challenge: the tool titles, descriptions and refusals a host shows its model
- * come from this dictionary, and every judge was opening the product in
- * Turkish. The product stays bilingual; the switch and the cookie are unchanged.
+ * English by default. The tool titles, descriptions and refusals a host shows
+ * its model all come from this dictionary, so the default decides what an
+ * agent reads on a first visit, and English is the safer assumption for a
+ * visitor nobody has met. The product stays bilingual; the switch and the
+ * cookie are unchanged.
  */
 export const defaultLocale: Locale = "en";
 

@@ -1663,51 +1663,7 @@ export const handlers: ToolHandlers = {
     return {
       status: "ok",
       result: { ...answer, nextStepId: following?.id ?? null, source: "demo" },
-      patch: {
-        /* From `live`, like everything in this patch — never from `asked`. A
-           tick landed from the pre-await read would spread away a regression
-           `commit` recorded during the phases above — restoring a green tick,
-           and the `completedAt` that offers `Finish`, for a step whose lead is
-           now on the floor. */
-        completedSteps: [...new Set([...live.completedSteps, step.id])],
-        activeStepId: following?.id ?? live.activeStepId,
-        /* Batch 8 · the last tick closes the build. Stamped here rather than by
-           the screen that reads it, because this is the moment it happened —
-           and the workbench does not throw the person out when it does. The
-           foot changes to `Finish` and the door is offered, not walked
-           through.
-
-           Idempotent by hand, the same shape and for the same reason as
-           `tools.ts:317`'s guard on `startedAt`: `summary-blocks.tsx` subtracts
-           one of these from the other, and one end of that subtraction was
-           hand-guarded against a repeat while this one re-stamped on every
-           call. The printed figure is whole minutes and rarely moved — the
-           asymmetry is the defect, not the drift. `live`, not `state`: the
-           stamp being guarded is the one already on the build. */
-        ...(following || live.completedAt !== null
-          ? {}
-          : { completedAt: Date.now() }),
-        highlightedFindingId: null,
-        pointedAt: null,
-        /* The findings that belonged to the step that just closed. Carrying
-           them into the next one would let the panel claim every connection
-           matches on a step the agent has not looked at — the resolved rows go
-           with the step, and the timeline keeps the record either way.
-
-           **Only that step's**, though. Emptying the whole list threw away
-           everything the agent had found about steps the person had not
-           finished — a stray join two steps ahead, or a part still in the box —
-           so a build could be verified forward past faults the panel had
-           already reported and then had no record of. */
-        findings: live.findings.filter((f) => f.stepId !== step.id),
-        /* And what was paid for goes with them, on the same scoping. `repairs`
-           keeps the total; this only says which of the findings still on the
-           table were already counted. */
-        repaired: live.repaired.filter((id) =>
-          live.findings.some((f) => f.id === id && f.stepId !== step.id),
-        ),
-        tab: "guidance" as const,
-      },
+      patch: { ...stepClosed(live, step), tab: "guidance" as const },
       note: {
         headline: { ns: "activity" as const, k: "stepVerified" as const },
         tone: "passed" as const,
@@ -1927,6 +1883,21 @@ export const handlers: ToolHandlers = {
     }));
     const failed = results.filter((r) => !r.passed).length;
 
+    /**
+     * Whether this run closes the step it was run from.
+     *
+     * Only the step whose closing gesture is the test — `suggestion:
+     * "runTest"`, every build's last — and only when every check the build
+     * has ran and came back green. A single check by id is a look, not a
+     * verdict on the build, and `full_system` from an earlier step proves
+     * the wiring ahead of the rail, not the step under it: neither ticks
+     * anything. `stepClosed` is verify's patch, so the tick this lands is
+     * the one verify would have landed.
+     */
+    const step = stepById(live.activeStepId);
+    const closes =
+      step.suggestion === "runTest" && results.length === all.length && !failed;
+
     return {
       status: "ok",
       result: {
@@ -1938,6 +1909,7 @@ export const handlers: ToolHandlers = {
         results,
         source: "demo",
       },
+      ...(closes ? { patch: stepClosed(live, step) } : {}),
       note: failed
         ? {
             headline: {
@@ -1973,6 +1945,70 @@ export const handlers: ToolHandlers = {
     };
   },
 };
+
+/**
+ * The patch that closes the active step: the tick, and on the last step the
+ * build's end.
+ *
+ * Two tools land it. `verify_current_step` on every wiring step, and
+ * `run_functional_test` on the step whose closing gesture *is* the test —
+ * every build's last has `connections: []` and `suggestion: "runTest"`, so
+ * the foot offered the test there and, until this was shared, nothing ticked
+ * the step it was offered on. The test passed, the rail stayed on `Step 4 of
+ * 4 · Active`, `completedAt` stayed null and the foot went on saying `Run
+ * full test`: Batch 8's `Finish build` had never been reachable without an
+ * agent that knew to call verify afterwards. One patch, so the two ways a
+ * step closes cannot disagree about what closing means.
+ *
+ * `live` is the post-phase read, never the call-time one. A tick landed from
+ * the pre-await read would spread away a regression `commit` recorded during
+ * the phases — restoring a green tick, and the `completedAt` that offers
+ * `Finish`, for a step whose lead is now on the floor.
+ */
+function stepClosed(
+  live: AgentSessionState,
+  step: ReturnType<typeof stepById>,
+): SessionPatch {
+  const following = nextStep(step.id);
+  return {
+    completedSteps: [...new Set([...live.completedSteps, step.id])],
+    activeStepId: following?.id ?? live.activeStepId,
+    /* Batch 8 · the last tick closes the build. Stamped here rather than by
+       the screen that reads it, because this is the moment it happened — and
+       the workbench does not throw the person out when it does. The foot
+       changes to `Finish` and the door is offered, not walked through.
+
+       Idempotent by hand, the same shape and for the same reason as
+       `tools.ts:317`'s guard on `startedAt`: `summary-blocks.tsx` subtracts
+       one of these from the other, and one end of that subtraction was
+       hand-guarded against a repeat while this one re-stamped on every call.
+       The printed figure is whole minutes and rarely moved — the asymmetry is
+       the defect, not the drift. `live`, not `state`: the stamp being
+       guarded is the one already on the build. */
+    ...(following || live.completedAt !== null
+      ? {}
+      : { completedAt: Date.now() }),
+    highlightedFindingId: null,
+    pointedAt: null,
+    /* The findings that belonged to the step that just closed. Carrying them
+       into the next one would let the panel claim every connection matches on
+       a step the agent has not looked at — the resolved rows go with the
+       step, and the timeline keeps the record either way.
+
+       **Only that step's**, though. Emptying the whole list threw away
+       everything the agent had found about steps the person had not finished
+       — a stray join two steps ahead, or a part still in the box — so a build
+       could be verified forward past faults the panel had already reported
+       and then had no record of. */
+    findings: live.findings.filter((f) => f.stepId !== step.id),
+    /* And what was paid for goes with them, on the same scoping. `repairs`
+       keeps the total; this only says which of the findings still on the
+       table were already counted. */
+    repaired: live.repaired.filter((id) =>
+      live.findings.some((f) => f.id === id && f.stepId !== step.id),
+    ),
+  };
+}
 
 /**
  * The human sentence an entry opens with, before the call has finished.

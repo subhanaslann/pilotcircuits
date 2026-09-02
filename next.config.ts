@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
    * It floats over the bottom-left corner of every screen, which is where the
    * workbench keeps its dock handle — and in a demo it reads as part of the
    * product: somebody driving this through an agent reported "a development
-   * error badge is visible" as a defect of CircuitPilot. Build errors still
+   * error badge is visible" as a defect of PilotCircuits. Build errors still
    * appear as the full-screen overlay; this only removes the permanent badge.
    */
   devIndicators: false,

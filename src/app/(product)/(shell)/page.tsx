@@ -1,7 +1,7 @@
 import { ChapterLedger } from "@/components/landing/chapter-ledger";
+import { CoachIntro } from "@/components/landing/coach-intro";
 import { DiagnosticsStrip } from "@/components/landing/diagnostics-strip";
 import { RepairAsk } from "@/components/landing/repair-ask";
-import { LandingCta } from "@/components/landing/landing-cta";
 import { LandingSessionProvider } from "@/components/landing/landing-session";
 import { WorkshopScene } from "@/components/landing/scene/workshop-scene";
 import { getServerCopy } from "@/content/copy-server";
@@ -30,8 +30,9 @@ import { partNumbers } from "@/lib/circuit/smart-parking-barrier";
  *      full-length breadboard as the substrate and everything else standing in
  *      it (`scene/`). The old still was the workbench canvas cropped, which is
  *      how it ended up as a large dark card.
- *   3. **The action is a control on the bench.** A moulded plate screwed to the
- *      front-right corner of the board, not a capsule in a card of its own.
+ *   3. **The action is a control on the bench.** The product's capsule at the
+ *      front-right corner of the mat, not a capsule in a card of its own. (It
+ *      was a moulded plate of its own for a while — see `next-step-control`.)
  *
  * What did not change: every number on the page is still read from the same
  * place the product reads it, so nothing here can quietly stop being true — and
@@ -46,15 +47,21 @@ import { partNumbers } from "@/lib/circuit/smart-parking-barrier";
  * ask, in a list, and as a count in the sheet. Prose that re-explains a working
  * demonstration reads as a defence of it.
  *
- * So the reading half is now two bands, and it carries the two things the bench
+ * So the reading half is two bands, and it carries the two things the bench
  * genuinely cannot show:
  *
- *   1. **The ladder.** This build is the last of six chapters, and the parts
+ *   1. **The agent.** The lamp in the bench's corner, introduced: the five
+ *      faces a call can give it, each with the sentence the bench prints for
+ *      it and the tools that put it there (`coach-intro.tsx`). A stranger who
+ *      has just watched the ring fix a wire is told what they watched.
+ *   2. **The ladder.** This build is the last of six chapters, and the parts
  *      list grows from three to six on the way (`chapter-ledger.tsx`). Printed
  *      as a ledger in the strip's own register rather than as six cards, so the
  *      last scroll of the page does not turn it back into a dashboard.
- *   2. **The claim.** That nothing here is faked — no camera, no serial port,
- *      no upload — and the door, which is a link rather than a second capsule.
+ *
+ * A third band used to close the page — the claim that nothing here is faked,
+ * and the door again as a link. Both said what the bench had shown, and the
+ * door is under the bench now, so the page ends on the ladder.
  */
 export default async function LandingPage() {
   const copy = await getServerCopy();
@@ -123,22 +130,22 @@ export default async function LandingPage() {
       <div className="mx-auto max-w-[760px] lg:mx-0 lg:ml-[80px]">
         <section className="border-paper-line mt-16 border-t pt-9">
           <h2 className="font-condensed text-ink text-[26px] leading-none font-bold uppercase">
+            {copy.landing.coachTitle}
+          </h2>
+          <p className="text-body-sm text-ink-secondary mt-3 max-w-[74ch]">
+            {copy.landing.coachBody}
+          </p>
+          <CoachIntro className="mt-7" />
+        </section>
+
+        <section className="border-paper-line mt-14 border-t pt-9">
+          <h2 className="font-condensed text-ink text-[26px] leading-none font-bold uppercase">
             {copy.landing.ladderTitle}
           </h2>
           <p className="text-body-sm text-ink-secondary mt-3 max-w-[74ch]">
             {copy.landing.ladderBody}
           </p>
           <ChapterLedger className="mt-7" />
-        </section>
-
-        <section className="border-paper-line mt-14 border-t pt-9">
-          <h2 className="font-condensed text-ink text-[26px] leading-none font-bold uppercase">
-            {copy.landing.closingTitle}
-          </h2>
-          <p className="text-body-sm text-ink-secondary mt-3 max-w-[74ch]">
-            {copy.landing.closingBody}
-          </p>
-          <LandingCta className="mt-6" />
         </section>
       </div>
       </div>

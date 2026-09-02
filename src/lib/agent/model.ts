@@ -225,11 +225,16 @@ export interface McpToolAnnotations {
  *   keys, and on the last step it re-stamps `completedAt`. `true` here would
  *   tell a host it may retry a timed-out call, which would tick and advance a
  *   second step.
- * - `run_functional_test` writes no session key at all, and is still not
- *   read-only: its `runTest` effect reaches `playTest`, which sets the device
- *   panel's leds, lamps, serial, readings and verdict — none of them reverted
- *   by a timer, unlike `trace`. The pass/fail sits there for the life of the
- *   page.
+ * - `run_functional_test` is not read-only twice over. Its `runTest` effect
+ *   reaches `playTest`, which sets the device panel's leds, lamps, serial,
+ *   readings and verdict — none of them reverted by a timer, unlike `trace`;
+ *   the pass/fail sits there for the life of the page. And on the step whose
+ *   closing gesture is the test — every build's last, `suggestion: "runTest"`
+ *   — a run with every check green ticks that step and stamps `completedAt`,
+ *   the same patch `verify_current_step` writes (`stepClosed` in
+ *   `services.ts`). Still idempotent, unlike verify: that step has no
+ *   successor to advance to, the tick is a set and the stamp is guarded, so a
+ *   second identical call writes the same keys to the same values.
  *
  * `openWorldHint` is `false` on all twelve and that is a claim, not a default
  * restated: there is no network call anywhere in `services.ts` or `tools.ts`,

@@ -55,7 +55,7 @@ export const coachSilhouettes = ["halo", "pad", "lamp"] as const;
 
 export type CoachSilhouette = (typeof coachSilhouettes)[number];
 
-/** The one the user chose, on 2026-09-02, from the three in the lab. */
+/** The one chosen from the three drafted in the lab. */
 export const defaultSilhouette: CoachSilhouette = "lamp";
 
 /**

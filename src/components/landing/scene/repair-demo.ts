@@ -1,4 +1,10 @@
-import { BOOM, ECHO, PIVOT } from "@/components/landing/scene/bench-layout";
+import { BOOM, ECHO, P, PIVOT } from "@/components/landing/scene/bench-layout";
+import {
+  GRIP_AT,
+  SEAT_AT,
+  durationOf,
+  type MascotJob,
+} from "@/lib/agent/mascot";
 
 /**
  * S-01 · A build that does not work, and what fixing it looks like.
@@ -23,6 +29,22 @@ import { BOOM, ECHO, PIVOT } from "@/components/landing/scene/bench-layout";
  * ring rather than on top of it. The gate opens because the ring came, and
  * there is nothing else on screen it could have been.
  *
+ * ## The ring is the product's, and so is its clock
+ *
+ * This film used to carry a ring of its own: a second choreography, in scene
+ * units, that came out of the plate the help was asked from. The bench has
+ * since grown the real one — `lib/agent/mascot.ts`, drawn in a screen-space
+ * layer, leaving the coach figure and returning to it — and the two drifted
+ * exactly as two copies of a mascot do. So the ring here is now the bench's
+ * ring doing its `carry` job (`REPAIR`, below), flown by
+ * `use-bench-mascot.ts` from the same call that starts this film; what this
+ * file still owns is everything the ring acts *on*: the cable it moves, the
+ * bench draining while it has hold of it, and the board running afterwards.
+ *
+ * The two clocks agree by construction rather than by tuning: the cable
+ * lifts at `GRIP_AT` and seats at `SEAT_AT`, which are the ring's own beats,
+ * exported for exactly this reason (`attach_lead` reads the same two).
+ *
  * ## Nothing here imports React
  *
  * Same rule as `lib/agent/`: the model is a function of a mode and a clock, and
@@ -31,37 +53,55 @@ import { BOOM, ECHO, PIVOT } from "@/components/landing/scene/bench-layout";
 
 export type Mode = "stuck" | "fixing" | "done";
 
+/* --- The ring's two jobs on this bench ----------------------------------- */
+
+const on = (p: { x: number; y: number }) =>
+  ({ kind: "scene", x: p.x, y: p.y }) as const;
+
+/**
+ * `show_correction`: the Echo leg out of D6 and into D7.
+ *
+ * A carry rather than the workbench's point, and on purpose: on the bench the
+ * agent shows and the learner moves the wire, and the ring parks on the wrong
+ * hole. Here the ask is *fix the wire*, and the film has always been the
+ * agent doing it — so the ring gets the one job that gives it hands.
+ */
+export const REPAIR: MascotJob = {
+  kind: "carry",
+  from: on(ECHO.wrong),
+  to: on(ECHO.right),
+};
+
+/**
+ * `inspect_build`: a look along the signal path — the sensor's Trig and
+ * Echo, and the two header pins they land on — in the order the current
+ * reads. Four stops, which is the workbench's own ceiling for a read, and
+ * the last of them is the hole the repair then starts from.
+ */
+export const INSPECTION: MascotJob = {
+  kind: "read",
+  over: [on(P.sensorTrig), on(P.d8), on(P.sensorEcho), on(P.d6)],
+};
+
+/**
+ * When the ring has let go and gone home: the carry's full flight with a
+ * lamp to return to. The bench takes its colour back over the last leg.
+ */
+const RING_GONE = durationOf(REPAIR, { home: { kind: "coach" } });
+
 /* --- The beats of a repair ------------------------------------------------ */
 
-const BEATS = [
-  ["notice", 320],
-  ["approach", 700],
-  ["dock", 280],
-  ["grip", 200],
-  ["carry", 520],
-  ["seat", 280],
-  ["retract", 340],
-  /** The board does not wait for the agent to get out of the way. */
-  ["run", 5600],
-] as const;
+/** The board does not wait for the agent to get out of the way. */
+const RUN_MS = 5600;
 
-type Beat = (typeof BEATS)[number][0];
-
-const START: Record<string, number> = {};
-const END: Record<string, number> = {};
-let clock = 0;
-for (const [name, ms] of BEATS) {
-  START[name] = clock;
-  clock += ms;
-  END[name] = clock;
-}
-export const TOTAL = clock;
+/** The run starts on the frame the cable seats, and this is where it ends. */
+export const TOTAL = SEAT_AT + RUN_MS;
 
 /**
  * How long the working build is left standing, at the end of the run, before
  * the fault goes back. Part of the run itself, so the frame `done` holds is a
  * working bench: the dip that covers the swap sits in the last 260 ms of the
- * cycle, not of `TOTAL`. Until 2026-09-02 it closed at `TOTAL`, `done` was the
+ * cycle, not of `TOTAL`. It used to close at `TOTAL`, so `done` was the
  * fully dipped frame, and the entry screen showed an empty mat for the whole
  * rest — on the plate's own path as much as on an agent's.
  */
@@ -72,62 +112,34 @@ export const CYCLE = TOTAL + REST;
 /** How long the car takes to roll up when the bench first comes into view. */
 export const ARRIVAL = 1700;
 
-function at(beat: Beat, t: number): number {
-  const a = START[beat];
-  const b = END[beat];
-  if (t <= a) return 0;
-  if (t >= b) return 1;
-  return (t - a) / (b - a);
-}
-
 const lerp = (a: number, b: number, p: number) => a + (b - a) * p;
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
-const easeOut = (p: number) => 1 - Math.pow(1 - p, 3);
 const easeBoth = (p: number) =>
   p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-const easeBack = (p: number) =>
-  1 + 2.7 * Math.pow(p - 1, 3) + 1.7 * Math.pow(p - 1, 2);
 
-/** Grip, carry and seat as one movement — see the workbench study. */
+/** The cable's move, 0–1: from the ring taking hold to the leg seating. */
 const transport = (t: number) =>
-  clamp01((t - START.grip) / (END.seat - START.grip));
+  clamp01((t - GRIP_AT) / (SEAT_AT - GRIP_AT));
 
 /** A window in run-time: 0 before, 0..1 across, 1 after. */
 const win = (t: number, a: number, b: number) =>
-  clamp01((t - END.seat - a) / (b - a));
+  clamp01((t - SEAT_AT - a) / (b - a));
 
 /* --- Where things are ---------------------------------------------------- */
 
-/** How far a stiff leg comes out of its socket before it travels. */
-const LIFT = 10;
+/**
+ * How far a stiff leg comes out of its socket before it travels, in scene
+ * units. The ring lifts by sixteen pixels on the way across; at the width
+ * this bench is drawn at that is about twenty, so the leg rides in the ring
+ * rather than under it.
+ */
+const LIFT = 20;
 
 /** Off the left edge, stopped at the line, and away past the right. */
 const CAR = { in: -150, stop: PIVOT.x - 282, out: 1340 } as const;
 
-/** The ring comes out of the plate the help was asked from. */
-export const ENTRY = { x: 1046, y: 430 } as const;
-
-export interface MascotFrame {
-  x: number;
-  y: number;
-  r: number;
-  dock: number;
-  spin: number;
-  opacity: number;
-}
-
 export interface Frame {
   mode: Mode;
-  mascot: MascotFrame | null;
-  /**
-   * Where the ring was a moment ago, fading.
-   *
-   * A single outline crossing a busy bench is a thing you can blink past. Three
-   * ghosts behind it turn a position into a direction, which is what the eye
-   * actually catches — and they cost nothing, being the same function of a
-   * clock read three times.
-   */
-  trail: MascotFrame[];
   echo: { x: number; y: number; lifted: number };
   /** Cable ids carrying a pulse right now, and how far along, 0–1. */
   pulses: Record<string, number>;
@@ -182,8 +194,6 @@ const RUN: [string, number][] = [
 function stuckFrame(t: number): Frame {
   return {
     mode: "stuck",
-    mascot: null,
-    trail: [],
     echo: { ...ECHO.wrong, lifted: 0 },
     pulses: {},
     green: 0,
@@ -203,27 +213,29 @@ function stuckFrame(t: number): Frame {
 
 /* --- The repair ---------------------------------------------------------- */
 
-/** The cable's board end, and how high the leg is standing out of its hole. */
+/**
+ * The cable's board end, and how high the leg is standing out of its hole.
+ *
+ * On the ring's own travel curve — `easeBoth` across, a sine lift — so the
+ * leg stays in the ring for the whole crossing instead of setting off before
+ * it or arriving after it.
+ */
 function echoAt(t: number) {
   const m = transport(t);
-  const height = m > 0 && m < 1 ? Math.pow(Math.sin(Math.PI * m), 0.62) : 0;
-  const along = easeBoth(clamp01((m - 0.16) / 0.66));
-  const echo =
-    t >= END.seat
-      ? { ...ECHO.right, lifted: 0 }
-      : {
-          x: lerp(ECHO.wrong.x, ECHO.right.x, along),
-          y: lerp(ECHO.wrong.y, ECHO.right.y, along) - LIFT * height,
-          lifted: height,
-        };
-  return { echo, height };
+  const height = m > 0 && m < 1 ? Math.sin(Math.PI * m) : 0;
+  const along = easeBoth(m);
+  return t >= SEAT_AT
+    ? { ...ECHO.right, lifted: 0 }
+    : {
+        x: lerp(ECHO.wrong.x, ECHO.right.x, along),
+        y: lerp(ECHO.wrong.y, ECHO.right.y, along) - LIFT * height,
+        lifted: height,
+      };
 }
 
 function fixingFrame(t: number): Frame {
-  const { echo, height } = echoAt(t);
-
   const pulses: Record<string, number> = {};
-  const u = t - END.seat;
+  const u = t - SEAT_AT;
   if (u > 0) {
     for (const [id, start] of RUN) {
       const p = (u - start) / PULSE_MS;
@@ -234,23 +246,15 @@ function fixingFrame(t: number): Frame {
   const green = easeBoth(win(t, 1800, 2200)) * (1 - easeBoth(win(t, 4400, 4900)));
   const away = easeBoth(win(t, 3300, 4200));
 
-  /* Grey while the agent has the bench, colour back as it lets go. */
+  /* Grey while the agent has the bench, colour back as it lets go: the
+     drain follows the ring in and goes with it on its way home. */
   const drain =
-    easeBoth(clamp01((t - START.approach) / 420)) *
-    (1 - easeBoth(at("retract", t)));
-
-  const trail = [90, 180, 270]
-    .map((back) => {
-      const past = echoAt(t - back);
-      return mascotAt(t - back, past.echo, past.height);
-    })
-    .filter((m): m is MascotFrame => m !== null);
+    easeBoth(clamp01(t / 420)) *
+    (1 - easeBoth(clamp01((t - (RING_GONE - 420)) / 420)));
 
   return {
     mode: "fixing",
-    mascot: mascotAt(t, echo, height),
-    trail,
-    echo,
+    echo: echoAt(t),
     pulses,
     green,
     red: 1 - green,
@@ -265,61 +269,7 @@ function fixingFrame(t: number): Frame {
     sonar: 1 - clamp01(win(t, 3400, 3800)),
     drain,
     dip: easeBoth(clamp01((t - (CYCLE - 260)) / 260)),
-    line: t < END.seat ? 2 : 3,
-  };
-}
-
-function mascotAt(
-  t: number,
-  echo: { x: number; y: number },
-  height: number,
-): MascotFrame | null {
-  const appear = at("approach", t);
-  const leave = at("retract", t);
-  if (appear <= 0 || leave >= 1) return null;
-
-  const over = {
-    x: t >= START.grip ? echo.x : ECHO.wrong.x,
-    y: ECHO.wrong.y - LIFT * 0.5 * height,
-  };
-
-  let x = over.x;
-  let y = over.y;
-
-  if (appear < 1) {
-    /* Appearing and travelling are one quadratic — it is already moving while
-       it is still arriving, which is the difference between a descent and a
-       fade followed by a descent. */
-    const p = easeBoth(appear);
-    const q = 1 - p;
-    /* It lifts off the plate and comes down on the hole, rather than
-       sliding across: a descent is what says *onto this one*. */
-    const cx = lerp(ENTRY.x, over.x, 0.42);
-    const cy = ENTRY.y - 210;
-    x = q * q * ENTRY.x + 2 * q * p * cx + p * p * over.x;
-    y = q * q * ENTRY.y + 2 * q * p * cy + p * p * over.y;
-  }
-
-  const dock = easeBack(at("dock", t));
-  const fade = easeOut(clamp01(appear / 0.22));
-
-  const TOP = -Math.PI / 2;
-  const held = TOP + (START.dock / 1500) * Math.PI * 2;
-  const next = TOP + Math.ceil((held - TOP) / (Math.PI * 2)) * Math.PI * 2;
-  const spin =
-    dock > 0
-      ? lerp(held, next, easeOut(clamp01(dock)))
-      : TOP + (t / 1500) * Math.PI * 2;
-
-  return {
-    x,
-    y: y - (leave > 0 ? 14 * easeOut(leave) : 0),
-    /* Clamped: the settle overshoots past 1, and on a 62-unit range that took
-       the closed ring down below the size of the hole. */
-    r: Math.max(9, lerp(72, 9, dock)) + 9 * easeOut(leave),
-    dock,
-    spin,
-    opacity: fade * (1 - easeOut(leave)),
+    line: t < SEAT_AT ? 2 : 3,
   };
 }
 

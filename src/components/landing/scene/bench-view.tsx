@@ -1,7 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { MascotRing } from "@/components/canvas/agent-mascot";
+import { useSyncExternalStore, type Ref } from "react";
 import { Led } from "@/components/canvas/parts/led";
 import { Resistor } from "@/components/canvas/parts/resistor";
 import { UnoBoard } from "@/components/canvas/parts/uno-board";
@@ -52,10 +51,13 @@ import { wireRoles } from "@/lib/design/tokens";
  * ## Drawing order is stacking order
  *
  * mat → card and road → sensor → cabinet → boom → breadboard, board, LEDs →
- * cables → the agent. The boom lands between the cabinet and the wires: it is
- * bolted to the horn and it passes over the road, not under it.
+ * cables. The boom lands between the cabinet and the wires: it is bolted to
+ * the horn and it passes over the road, not under it. The agent is not in
+ * this list any more: its ring is drawn by `AgentMascotLayer` over the whole
+ * frame, in screen pixels, the way the workbench draws it — see
+ * `workshop-scene.tsx`. The `ref` is how that layer measures this drawing.
  */
-export function BenchView() {
+export function BenchView({ ref }: { ref?: Ref<SVGSVGElement> }) {
   const f = useSyncExternalStore(subscribe, getFrame, getServerFrame);
   /* For the drawing's accessible name only. It was a Turkish literal here,
      which is the one string on the landing page the locale switch could not
@@ -73,6 +75,7 @@ export function BenchView() {
 
   return (
     <svg
+      ref={ref}
       viewBox={`0 0 ${FRAME.width} ${FRAME.height}`}
       preserveAspectRatio="xMidYMid meet"
       role="img"
@@ -120,19 +123,12 @@ export function BenchView() {
       </g>
       </g>
 
-      {/* The subject cable and the agent stay outside the drain: the two
-          things the eye is meant to find are the two that keep their colour. */}
+      {/* The subject cable stays outside the drain, as the ring over it does:
+          the two things the eye is meant to find are the two that keep their
+          colour. */}
       <g aria-hidden="true">
         <CableFace cable={echo} pulse={f.pulses["c.sensor.echo"]} lifted={f.echo.lifted} />
       </g>
-
-      {f.trail.map((ghost, i) => (
-        <MascotRing
-          key={i}
-          ring={{ ...ghost, opacity: ghost.opacity * (0.26 - i * 0.07) }}
-        />
-      ))}
-      {f.mascot ? <MascotRing ring={f.mascot} /> : null}
       </g>
     </svg>
   );
@@ -221,8 +217,10 @@ function Boot({ at }: { at: { x: number; y: number } }) {
 }
 
 /* --- The agent ---------------------------------------------------------
-   Drawn by `canvas/agent-mascot.tsx`, which is also what the workbench puts on
-   the bench when a tool call comes in. There was a copy of the ring here and a
-   second one there for about an hour, which is exactly how a mascot ends up
-   being two slightly different mascots. This screen still owns the
-   *choreography* — `repair-demo.ts` — and no longer owns the shape.        */
+   Not drawn here. `canvas/agent-mascot.tsx`'s layer draws the ring over this
+   frame, and `lib/agent/mascot.ts` flies it — the same shape and the same
+   choreography the workbench uses when a tool call comes in. This file kept
+   a choreography of its own for a while (in scene units, out of the old
+   plate), which is exactly how a mascot ends up being two slightly different
+   mascots. What this screen still owns is the cable the ring moves and the
+   board that runs afterwards: `repair-demo.ts`.                             */

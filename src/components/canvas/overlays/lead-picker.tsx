@@ -61,8 +61,29 @@ export function LeadPicker({
   onPick: (lead: NodeId) => void;
   onCancel: () => void;
 }) {
-  const [activeId, setActiveId] = useState<NodeId | undefined>(leads[0]?.id);
-  const at = leads.findIndex((lead) => lead.id === activeId);
+  /* Laid out left to right, so the badge on the left names the lead on the
+     left. Read in `scene.nodes` order they would cross over each other, and a
+     leader line that crosses its neighbour's is worse than no line at all. */
+  const placed = leads
+    .map((lead) => ({ lead, at: aimAt(lead) }))
+    .sort((a, b) => a.at.x - b.at.x);
+
+  /**
+   * Which badge holds the caret — an index into `placed`, and nothing else.
+   *
+   * It was an index into `leads`, while `refs`, `tabIndex` and the arrow keys
+   * were all indexed by `placed`. The two orders agree until a part is seated
+   * with its anchor lead on the right — a resistor that arrived pointing the
+   * other way — and then they are each other's reverse: the effect focused
+   * the badge at `leads`' index, that badge's `onFocus` named its own lead,
+   * whose `leads` index is the other one, the effect focused the other badge,
+   * and React stopped it at fifty updates as "Maximum update depth exceeded".
+   * One order for everything that says *which*, and the loop cannot form.
+   */
+  const [activeId, setActiveId] = useState<NodeId | undefined>(
+    placed[0]?.lead.id,
+  );
+  const at = placed.findIndex(({ lead }) => lead.id === activeId);
   const active = at === -1 ? 0 : at;
 
   const refs = useRef<(SVGGElement | null)[]>([]);
@@ -74,7 +95,7 @@ export function LeadPicker({
   }, [active]);
 
   const move = (to: number) =>
-    setActiveId(leads[(to + leads.length) % leads.length]?.id);
+    setActiveId(placed[(to + placed.length) % placed.length]?.lead.id);
 
   /**
    * Where the press started, so a press that travelled cannot also commit.
@@ -107,13 +128,6 @@ export function LeadPicker({
     }
     onPick(id);
   };
-
-  /* Laid out left to right, so the badge on the left names the lead on the
-     left. Read in `scene.nodes` order they would cross over each other, and a
-     leader line that crosses its neighbour's is worse than no line at all. */
-  const placed = leads
-    .map((lead) => ({ lead, at: aimAt(lead) }))
-    .sort((a, b) => a.at.x - b.at.x);
 
   const top = Math.min(...placed.map((p) => p.at.y)) - PITCH * 3.6;
   const left = Math.min(...placed.map((p) => p.at.x));

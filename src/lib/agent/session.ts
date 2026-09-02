@@ -188,7 +188,7 @@ export interface AgentSessionState {
    * findings — by patch, which no undo reaches — so the re-made fix had
    * nothing left to be credited against, and the completion screen reported
    * no issues fixed for a mistake the person made and put right. Measured
-   * on chapters one and two (`.audit/hackathon/a2/undo-verify.result.txt`).
+   * on chapters one and two.
    */
   history: { past: BenchSnapshot[]; future: BenchSnapshot[] };
 }

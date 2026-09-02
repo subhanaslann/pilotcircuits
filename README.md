@@ -1,6 +1,6 @@
-# CircuitPilot
+# PilotCircuits
 
-CircuitPilot is a guided Arduino breadboard workbench for beginners, built for the
+PilotCircuits is a guided Arduino breadboard workbench for beginners, built for the
 OpenAI WebMCP Challenge. A person wires each chapter by hand on a simulated bench
 — a breathing lamp, a traffic light, a motion night-light, a plant guardian, a
 touchless soap dispenser, and a pre-built capstone — while an agent connected
@@ -11,7 +11,7 @@ and, on request, attaches a lead itself. Tools are
 registered per route with `navigator.modelContext`, so the agent only ever sees
 what the page in front of it can actually do.
 
-**Live demo:** _(deploy URL — fill in after deploying)_
+**Live demo:** https://pilotcircuits.com _(domain registered; goes live on deploy)_
 **Video:** _(YouTube link — fill in)_
 
 ## For judges

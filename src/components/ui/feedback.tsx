@@ -367,10 +367,10 @@ export function TracePad({
  *
  * `running` **sweeps rather than spins**. Batch 1 wrote that intent into this
  * comment and then shipped a spinning `Loader2`, which rule 8 forbids outright
- * — the product has no generic spinner — and which Batch 5 made visible by
- * putting three of these rows in the dock at once: three competing cogs where
- * one calm signal belongs. Corrected 2026-08-29, the same way Batch 4
- * corrected `Alert`'s severity glyphs after Batch 2 was approved.
+ * — the product has no generic spinner — and which the device dock made
+ * visible by putting three of these rows in at once: three competing cogs
+ * where one calm signal belongs. Corrected the same way `Alert`'s severity
+ * glyphs were.
  *
  * The sweep reuses `cp-sweep`, already defined in `globals.css`; no component
  * writes its own keyframes (rule 6). Under `prefers-reduced-motion` the bar is

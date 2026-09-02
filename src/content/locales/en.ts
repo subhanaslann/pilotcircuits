@@ -19,6 +19,7 @@ import { library as libraryLab } from "@/content/locales/lab/library";
 import { workbench as workbenchLab } from "@/content/locales/lab/workbench";
 import { shell } from "@/content/locales/lab/shell";
 import { decisions } from "@/content/locales/lab/decisions";
+import { brand } from "@/content/brand";
 
 /**
  * Every lead a chapter hands a person, by terminal id.
@@ -278,12 +279,9 @@ export const en = {
        section below the fold, where there is room to read it. */
     sub: (board: string, sensor: string, servo: string, pin: string) =>
       `${board} + ${sensor} + ${servo} servo. The agent is tracing the signal path on pin ${pin}.`,
-    cta: "START THE TRAINING",
-    /* Said only when there is a build to come back to. */
-    ctaContinue: "CONTINUE THE BUILD",
-    /* S-01 · The control is physically on the build, so it says which step of
-       the build it opens rather than offering a generic "continue". */
-    ctaNextStep: (step: string) => `NEXT STEP: ${step}`,
+    /* Sentence case, like every other capsule: the control on the bench is
+       A-01 now. The link at the foot of the page sets it in capitals itself. */
+    cta: "Start the training",
 
     /* S-01 · The diagnostics strip. */
     stripRegion: "Build diagnostics",
@@ -360,9 +358,19 @@ export const en = {
     ledgerStatus: "Status",
     ledgerBench: "Blue edge: the build standing on the bench above.",
 
-    closingTitle: "The board is simulated, the mistake is real.",
-    closingBody:
-      "No camera, no serial port, no upload. What is real is the circuit graph, the two mistakes in it, and the reasoning that gets you out of them.",
+    /* S-01 · The agent, introduced. The band above the ladder: the coach
+       figure in the five faces a call can give it, each beside the sentence
+       the bench prints for it and the tools that put it there — the same
+       words, from the same tables, so this band cannot describe an agent the
+       product does not have. The closing claim that stood here ("the board is
+       simulated, the mistake is real") said again what the bench shows. */
+    coachTitle: "The lamp is the agent",
+    coachBody:
+      "It stands in the corner of every bench. Each time a tool is called through WebMCP, its face changes with what the call is doing, and the ring it sends out lands on the place the call is about. The ring says where; the face says what.",
+    /* The two rest states, said rather than drawn: a row of seven figures is
+       a chart, a row of five is a cast. */
+    coachRest:
+      "Between two calls it listens. With no agent in the browser it waits, eyes shut.",
   },
 
   projects: {
@@ -2189,7 +2197,9 @@ export const en = {
         "Runs this build's own checks on the simulated board and reports what " +
         "each one saw. The checks are per build, not a fixed list — test " +
         "enumerates the ones this bench has — and a run that fails is still a " +
-        "call that succeeded.",
+        "call that succeeded. On the build's last step, a run with every check " +
+        "green also ticks that step and closes the build: no " +
+        "verify_current_step is needed after it.",
       find_projects:
         "Filters the catalogue and redraws the grid the reader is looking at. " +
         "Every call replaces the whole filter rather than adding to it, so an " +
@@ -2848,12 +2858,22 @@ export const en = {
     knowledgeCheck: "Quick check",
     tryAnother: "Try another project",
     reopen: "Reopen workbench",
+    /* The picker the bench's back arrow goes to. The row offered the library
+       and the bench you just left, and nothing in between: a person who had
+       come from `/workspace` had no way back to it from the screen that
+       closes a chapter. Same words as `workbench.back`, because it is the
+       same door. */
+    backToWorkspace: "Back to the workspace",
     share: "Share build",
     /* §5 asks for a share action and rules out real sharing; §18 rules out a
        dead button. Copying the summary is a real thing that happens entirely
        on this machine. */
     shareCopied: "Build summary copied",
-    shareHeading: (project: string) => `${project} — built with CircuitPilot`,
+    /* `brand.name`, not the name typed out. This line and its Turkish twin
+       were the only two places in the product that spelled the name by hand,
+       and a rename found them the way renames always find stragglers:
+       everything else changed and these two did not. */
+    shareHeading: (project: string) => `${project} — built with ${brand.name}`,
     /* Countable, so it is a count and not a bar (rule 5). */
     conceptsCount: (n: number) =>
       n === 1 ? "1 concept" : `${n} concepts`,

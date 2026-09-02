@@ -38,6 +38,7 @@ import {
   LeadPicker,
 } from "@/components/canvas/overlays/lead-picker";
 import { usePartDrag } from "@/components/canvas/use-part-drag";
+import { handlePoint } from "@/components/canvas/drag-math";
 import { PITCH } from "@/lib/circuit/geometry";
 import { bench } from "@/components/illustration/spec";
 import type { BenchHandling } from "@/components/canvas/lamp-scene";
@@ -962,7 +963,7 @@ export function BreadboardBenchView<Live = void>({
             /* The ring is where you would pinch the lead, so it goes where the
                lead goes — including the half of a cable that is not moving. */
             const shift = shiftOf(n.id, part);
-            const aim = handling.aimAt(n);
+            const aim = handlePoint(n, handling.free.has(n.id), handling.aimAt);
             const x = aim.x + shift.x;
             const y = aim.y + shift.y;
             return (

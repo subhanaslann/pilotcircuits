@@ -169,8 +169,8 @@ describe("undo", () => {
    * With `repairs` and `repaired` in the snapshot, one Ctrl+Z after a verified
    * step zeroed `Issues fixed` for good: verify had dropped the step's findings
    * by patch, undo restored the count from before the fix, and the re-made fix
-   * found no finding left to be credited against. Measured on chapters one and
-   * two (`.audit/hackathon/a2/undo-verify.result.txt`).
+   * found no finding left to be credited against. Measured on chapters one
+   * and two.
    */
   it("keeps the credit for a repair that undo takes back, and bills it once", async () => {
     let s: AgentSessionState = { ...open(), activeStepId: "lampSeat" };
@@ -1113,5 +1113,81 @@ describe("a cancelled call", () => {
     );
     expect(outcome.status).toBe("ok");
     expect(outcome.patch).toBeDefined();
+  });
+});
+
+/**
+ * Batch 8's door, reached without an agent.
+ *
+ * Every build's last step has `connections: []` and `suggestion: "runTest"`:
+ * the foot offers the test there, and the only tool that ticked a step was
+ * `verify_current_step` — which the foot never offered on that step. So the
+ * test passed, the rail stayed on `4 of 4 · Active`, `completedAt` stayed null
+ * and `Finish build` never appeared. A run with every check green now closes
+ * the step it was offered on, with verify's own patch.
+ */
+describe("run_functional_test on the last step", () => {
+  const atLastStep = (): AgentSessionState => ({
+    ...open(),
+    scene: lampSceneFrom(spec.complete),
+    completedSteps: ["lampKit", "lampSeat", "lampResistor"],
+    activeStepId: "lampUpload",
+  });
+
+  it("ticks the step and stamps completedAt when every check is green", async () => {
+    const { outcome, next } = await call(atLastStep(), "run_functional_test", {
+      test: "full_system",
+    });
+    expect(outcome.status).toBe("ok");
+    expect(next.completedSteps).toContain("lampUpload");
+    expect(next.completedAt).not.toBeNull();
+    /* The last step has nowhere to advance to; the door is offered, not
+       walked through. */
+    expect(next.activeStepId).toBe("lampUpload");
+  });
+
+  it("is idempotent there: a second run keeps the first stamp", async () => {
+    const first = (
+      await call(atLastStep(), "run_functional_test", { test: "full_system" })
+    ).next;
+    const second = (
+      await call(first, "run_functional_test", { test: "full_system" })
+    ).next;
+    expect(second.completedAt).toBe(first.completedAt);
+    expect(second.completedSteps).toEqual(first.completedSteps);
+  });
+
+  it("ticks nothing when a check fails", async () => {
+    const empty: AgentSessionState = { ...open(), activeStepId: "lampUpload" };
+    const { outcome, next } = await call(empty, "run_functional_test", {
+      test: "full_system",
+    });
+    expect(outcome.status).toBe("ok");
+    expect(next.completedSteps).not.toContain("lampUpload");
+    expect(next.completedAt).toBeNull();
+  });
+
+  it("ticks nothing from an earlier step, however green the bench is", async () => {
+    const early: AgentSessionState = {
+      ...open(),
+      scene: lampSceneFrom(spec.complete),
+      activeStepId: "lampSeat",
+    };
+    const { next } = await call(early, "run_functional_test", {
+      test: "full_system",
+    });
+    expect(next.completedSteps).toEqual([]);
+    expect(next.completedAt).toBeNull();
+    expect(next.activeStepId).toBe("lampSeat");
+  });
+
+  it("a single check is a look, not a verdict", async () => {
+    /* The precondition the test rests on: one check is not all of them. */
+    expect(lamp.run.checks.length).toBeGreaterThan(1);
+    const { next } = await call(atLastStep(), "run_functional_test", {
+      test: lamp.run.checks[0]!.id,
+    });
+    expect(next.completedSteps).not.toContain("lampUpload");
+    expect(next.completedAt).toBeNull();
   });
 });

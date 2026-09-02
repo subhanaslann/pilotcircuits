@@ -162,6 +162,12 @@ export function BuildSummary({ project }: { project: ProjectDef }) {
         <ButtonLink href={`/workbench/${project.slug}`} variant="secondary">
           {copy.complete.reopen}
         </ButtonLink>
+        {/* Where the bench's own back arrow goes. Without it the row led to the
+            library or back onto the bench, and the picker a person arrived
+            from was two screens away. */}
+        <ButtonLink href="/workspace" variant="secondary">
+          {copy.complete.backToWorkspace}
+        </ButtonLink>
         <Button
           variant="tertiary"
           onClick={share}

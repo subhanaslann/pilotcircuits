@@ -46,6 +46,17 @@ const narrowTools: readonly AgentTool[] = [
  * refuse to shrink below its content and the page would grow a second
  * scrollbar behind a screen that already scrolls in four places.
  *
+ * **And nothing inside it can lengthen the page.** `relative overflow-hidden`,
+ * so this box is the containing block of every absolutely positioned
+ * descendant and clips whatever it does not scroll itself. Measured: the
+ * panel's `LiveRegion` is `sr-only` — absolute, no offsets —
+ * and with no positioned ancestor it was laid out against the document, at
+ * the static position of a guidance list taller than the panel: y = 1210 in
+ * a 1009 px window. The page grew 202 px of nothing under the bench and the
+ * whole workbench could be wheeled up off the top of the screen. The live
+ * region now pins itself to the corner; this is the guarantee that the next
+ * `sr-only`, or the next tooltip, cannot do it again.
+ *
  * **It starts the clock.** A person who types this URL has started the build
  * just as much as one who pressed `Start build` on the project page. The action
  * is idempotent, so arriving from either direction is one start.
@@ -136,7 +147,7 @@ export function WorkbenchRoute({
   }, []);
 
   return (
-    <div className="flex h-dvh min-h-0 flex-col">
+    <div className="relative flex h-dvh min-h-0 flex-col overflow-hidden">
       <Workbench
         session={session}
         canvas={canvasRef}

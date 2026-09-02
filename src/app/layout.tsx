@@ -42,6 +42,13 @@ const plexMono = IBM_Plex_Mono({
 export async function generateMetadata(): Promise<Metadata> {
   const copy = await getServerCopy();
   return {
+    /* The site's own address, so the URL-based metadata fields below can be
+       written relative and still resolve absolute. A crawler rendering a share
+       card never saw the page the link came from, so `/og.png` means nothing to
+       it; without a base, Next fails the build for exactly that reason. A `URL`
+       rather than a string because this function does not opt into `use cache`
+       — the serialisable form is only required there. */
+    metadataBase: new URL(brand.origin),
     title: {
       default: `${brand.name} — ${copy.brand.tagline}`,
       template: `%s · ${brand.name}`,
