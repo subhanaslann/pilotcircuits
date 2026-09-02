@@ -606,9 +606,9 @@ export const plantEmpty = {
  * rail, which is `bb.neg30` —cable— `board.GND`.
  *
  * Trace the probe and the answer runs the other way: its `A` lead stands in
- * column 28 of the top bank, and `bb.e28` — the same column, four rows down —
- * is where the cable to `board.A0` starts. Its `+` and `−` leads reach the two
- * rails, which the two supply cables have made live.
+ * `bb.b28`, column 28 of the top bank, and `bb.a28` — the same column, the row
+ * above it — is where the cable to `board.A0` starts. Its `+` and `−` leads
+ * reach the two rails, which the two supply cables have made live.
  */
 export const plantComplete = {
   "wire.power.rail": "bb.pos30",
