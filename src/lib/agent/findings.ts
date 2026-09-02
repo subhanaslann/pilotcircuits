@@ -514,7 +514,7 @@ export function findingWords(copy: Copy, finding: Finding): FindingWords {
     evidenceLabel,
     coaching: {
       hint: hintFor(copy, targetKind, object),
-      explain: explainFor(copy, targetKind, object, target),
+      explain: explainFor(copy, targetKind, object, target, got),
       /* Two sentences, not one with a hole in it. `exact` used to be handed
          `got ?? ""`, so a lead that is in no hole at all read *"Move the black
          − wire from  to F9."* — a double space in English, and in Turkish a
@@ -570,6 +570,7 @@ function explainFor(
   target: JoinTarget,
   subject: string,
   expected: string,
+  observed?: string,
 ): string {
   const words = copy.findings;
   switch (target) {
@@ -579,13 +580,40 @@ function explainFor(
       return words.explainPower(subject, expected);
     case "breadboard-row":
       return words.explainRow(subject, expected);
-    case "power-rail":
-      return words.explainRail(subject, expected);
+    case "power-rail": {
+      /* The rail rung says the hole does not matter. True of the rail the
+         sketch named, and the opposite of true of the other one: a 5 V lead
+         in the `−` rail is on the wrong supply, not in the wrong hole. Both
+         rails are one finding on purpose (`motion-night-light.ts` puts them
+         in one family, so the chapter's most instructive mistake is one row);
+         this is the sentence that family was missing. */
+      const wanted = railSign(expected);
+      const got = observed === undefined ? undefined : railSign(observed);
+      return wanted && got && got !== wanted
+        ? words.explainWrongRail(subject, expected)
+        : words.explainRail(subject, expected);
+    }
     case "part-lead":
       return words.explainLead(subject, expected);
     default:
       return words.explain(subject, expected);
   }
+}
+
+/**
+ * `+` or `−` when a printed address is a rail hole (`+30`, `−12`), otherwise
+ * `undefined`.
+ *
+ * Read off the label rather than off the graph, because this is decided where
+ * the words are chosen and the label is what `expectedTerminal` and
+ * `observedTerminal` already are — the same address the sentence prints. The
+ * column digits are required: an LED's legs print a bare `+` and `−` (rule
+ * 13), and a rail-bound lead observed on one of those is not on a rail.
+ */
+function railSign(address: string): "+" | "−" | undefined {
+  if (/^\+\d+$/.test(address)) return "+";
+  if (/^[−-]\d+$/.test(address)) return "−";
+  return undefined;
 }
 
 /** The lead is in the wrong place: take it out of there and put it here. */

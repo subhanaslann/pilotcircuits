@@ -5,6 +5,7 @@ import {
   isResolved,
   verifyStep,
   type Finding,
+  type WiringFinding,
 } from "@/lib/agent/findings";
 import {
   lampAtRest,
@@ -13,6 +14,10 @@ import {
   lampPlacement,
   lampSceneFrom,
 } from "@/lib/circuit/breathing-lamp";
+import {
+  nightComplete,
+  nightSceneFrom,
+} from "@/lib/circuit/motion-night-light";
 import { prune, tryAttach, type Placement } from "@/lib/circuit/placement";
 import { builds } from "@/lib/agent/builds";
 import {
@@ -556,5 +561,76 @@ describe("every check a build can run has a name", () => {
         ).toBe("string");
       }
     }
+  });
+});
+
+/* --- A lead in the rail of the wrong sign ---------------------------------
+   Chapter three's most instructive mistake — the 5 V jumper's rail end pushed
+   into the `−` rail — used to get the rail rung: "what matters is that the
+   lead reaches the rail, not which of its holes it uses". True of the rail
+   the sketch named, the opposite of true of the other one, on the one finding
+   where a learner most needs the middle rung to be right. Both rails are one
+   finding by design, so the sentence has to be chosen from where the lead
+   actually is. */
+
+describe("a lead in the rail of the wrong sign", () => {
+  const night = builds.motionNightLight!;
+
+  /** The wiring finding about one lead, on a bench placed as given. */
+  const findingFor = (placement: Placement, lead: string): WiringFinding => {
+    const found = wiringFindingsOf(nightSceneFrom(placement), night.activeStepId)
+      .filter(
+        (f): f is WiringFinding =>
+          f.type === "connection-mismatch" || f.type === "missing-connection",
+      )
+      .find((f) => f.subjectLead === lead);
+    expect(found, lead).toBeDefined();
+    return found!;
+  };
+
+  const explain = (copy: Copy, finding: Finding) =>
+    findingWords(copy, finding).coaching.explain;
+
+  it("is told the rails are two, not that the hole does not matter", () => {
+    const wrong = findingFor(
+      { ...nightComplete, "wire.power.rail": "bb.neg12" },
+      "wire.power.rail",
+    );
+    expect(wrong.type).toBe("connection-mismatch");
+    expect(wrong.observedTerminal).toBe("−12");
+    expect(wrong.expectedTerminal).toBe("+30");
+    expect(explain(en, wrong)).toContain("two rails");
+    expect(explain(en, wrong)).not.toContain("not which of its holes");
+    expect(explain(tr, wrong)).toContain("iki rayı");
+    expect(explain(tr, wrong)).not.toContain("hangi deliğini");
+  });
+
+  it("in either direction", () => {
+    const wrong = findingFor(
+      { ...nightComplete, "wire.ground.rail": "bb.pos12" },
+      "wire.ground.rail",
+    );
+    expect(wrong.observedTerminal).toBe("+12");
+    expect(wrong.expectedTerminal).toBe("−30");
+    expect(explain(en, wrong)).toContain("two rails");
+    expect(explain(tr, wrong)).toContain("iki rayı");
+  });
+
+  it("while a row hole, or no hole at all, still gets the rail rung", () => {
+    const row = findingFor(
+      { ...nightComplete, "wire.power.rail": "bb.a5" },
+      "wire.power.rail",
+    );
+    expect(row.observedTerminal).toBe("A5");
+    expect(explain(en, row)).toContain("not which of its holes");
+    expect(explain(tr, row)).toContain("hangi deliğini");
+
+    const loose = findingFor(
+      { ...nightComplete, "wire.power.rail": null },
+      "wire.power.rail",
+    );
+    expect(loose.type).toBe("missing-connection");
+    expect(explain(en, loose)).toContain("not which of its holes");
+    expect(explain(tr, loose)).toContain("hangi deliğini");
   });
 });

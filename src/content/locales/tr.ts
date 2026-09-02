@@ -1968,6 +1968,11 @@ export const tr: Copy = {
       `Breadboard'da bir sütunun beş deliği tek parça metaldir. ${expected} deliğindeki bir uç, o sütundaki her şeye bağlıdır — yanındaki sütundaki hiçbir şeye değil.`,
     explainRail: (subject: string, expected: string) =>
       `Bir ray, breadboard boyunca baştan sona tek parça metaldir ve ${expected} onun üstünde. Önemli olan ucun raya ulaşması, hangi deliğini kullandığı değil.`,
+    /* Üstteki basamağın ÖTEKİ raya ulaşmış uç için hâli. O cümle deliğin
+       önemli olmadığını söylüyor; burada tam tersi doğru: `+` ve `−` iki ayrı
+       şerit, ve `−` şeridine sokulmuş 5 V yanlış beslemede. */
+    explainWrongRail: (subject: string, expected: string) =>
+      `Breadboard'un iki rayı birbirine bağlı değildir: + rayı 5 V, − rayı topraktır ve her biri ayrı bir metal şerittir. Öteki raydaki bir uç yanlış delikte değil, yanlış hattadır — ${expected} ise programın kastettiği rayın üstünde.`,
     explainLead: (subject: string, expected: string) =>
       `Bu bağlantıyı kart kurmuyor. Metal metale değecek: bu ucun ${expected} değmesi gerekiyor.`,
 

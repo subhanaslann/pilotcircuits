@@ -2454,6 +2454,11 @@ export const en = {
       `The five holes down one column of a breadboard are a single strip of metal, so a lead in ${expected} is joined to everything else in that column — and to nothing in the column beside it.`,
     explainRail: (subject: string, expected: string) =>
       `A rail runs the whole length of the breadboard as one piece of metal, and ${expected} is on it. What matters is that the lead reaches the rail, not which of its holes it uses.`,
+    /* The rung above, for a lead that reached the OTHER rail. That one says
+       the hole does not matter, which is exactly wrong here: `+` and `−` are
+       two strips, and 5 V pushed into the `−` strip is on the wrong supply. */
+    explainWrongRail: (subject: string, expected: string) =>
+      `The breadboard's two rails are not joined: the + rail is 5 V and the − rail is ground, each its own strip of metal. A lead in the other rail is not in the wrong hole, it is on the wrong line — and ${expected} is on the rail the sketch means.`,
     explainLead: (subject: string, expected: string) =>
       `Nothing on the board makes this join. The metal has to meet the metal: this lead has to be touching ${expected} itself.`,
 
