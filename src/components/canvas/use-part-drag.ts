@@ -56,6 +56,17 @@ import {
  * the release for free when the pointer leaves the canvas, the window or the
  * document — three cases the element handlers never saw.
  *
+ * ## A release the window never sees
+ *
+ * One case it does not get: a mouse button let go over another application.
+ * Alt-Tab in the middle of a carry, release there, come back — no `pointerup`
+ * and no `pointercancel` ever reach this window, so the gesture stayed live,
+ * the lead followed the cursor with no button down, and the next click
+ * anywhere on the page was read as the drop. Off the board that is `away`,
+ * which is the removal, and nobody chose it. So a mouse move that arrives with
+ * `buttons` at zero ends the gesture the way a cancel does, and so does the
+ * window losing focus. Neither is a drop: the part goes back where it was.
+ *
  * ## Two spaces, and the mistake that lived in the seam
  *
  * The gesture is measured in **CSS pixels** and the board is measured in
@@ -365,9 +376,27 @@ export function usePartDrag({
   const listen = () => {
     detach.current?.();
 
+    /* The gesture ending without a release — the browser's way, or the two
+       cases below where the browser had no way to tell us. Not a drop: nothing
+       is committed and the part goes back where it was. */
+    const abandon = () => {
+      release();
+      aim(null);
+      put(null);
+    };
+
     const move = (event: globalThis.PointerEvent) => {
       const now = gesture.current;
       if (!now || now.pointerId !== event.pointerId) return;
+      /* A mouse moving with no button held is a release this window never
+         saw — see "A release the window never sees" above. Only a mouse: a
+         finger or a pen lifted off gets a real `pointerup` or `pointercancel`,
+         and a pen in hover reports zero buttons while it is genuinely being
+         moved. */
+      if (event.pointerType === "mouse" && event.buttons === 0) {
+        abandon();
+        return;
+      }
       const moved = hasTravelled(now, event);
       if (moved) {
         const next = aimFrom(now, event.clientX, event.clientY);
@@ -398,20 +427,29 @@ export function usePartDrag({
     const cancel = (event: globalThis.PointerEvent) => {
       const now = gesture.current;
       if (!now || now.pointerId !== event.pointerId) return;
-      release();
-      aim(null);
-      put(null);
+      abandon();
+    };
+
+    /* The window losing focus altogether — Alt-Tab mid-carry — which the
+       browser answers with no pointer event at all. Bound WITHOUT capture and
+       checked against its target: an element blurring inside the page does
+       pass a capturing window listener, and must not end a drag. */
+    const blur = (event: FocusEvent) => {
+      if (event.target !== window || !gesture.current) return;
+      abandon();
     };
 
     const opts = { capture: true } as const;
     window.addEventListener("pointermove", move, opts);
     window.addEventListener("pointerup", up, opts);
     window.addEventListener("pointercancel", cancel, opts);
+    window.addEventListener("blur", blur);
 
     const release = () => {
       window.removeEventListener("pointermove", move, opts);
       window.removeEventListener("pointerup", up, opts);
       window.removeEventListener("pointercancel", cancel, opts);
+      window.removeEventListener("blur", blur);
       detach.current = null;
     };
     detach.current = release;
