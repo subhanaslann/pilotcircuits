@@ -955,9 +955,15 @@ export function useAgentSession(options?: {
             ? {
                 ns: "errors",
                 k: "holeTaken",
+                /* The label, then the id, then nothing — the same ladder the
+                   tool's arm climbs in `services.ts`. Every offered hole has
+                   a label today; the id is what a person would read if one
+                   did not, and an empty argument prints " already has a lead
+                   in it." */
                 args: [
                   (action.kind === "place" && action.target
-                    ? maybeNode(current.scene, action.target)?.label
+                    ? (maybeNode(current.scene, action.target)?.label ??
+                      action.target)
                     : undefined) ?? "",
                 ],
               }
