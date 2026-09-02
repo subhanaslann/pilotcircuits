@@ -5,7 +5,7 @@ import { useBuildSessionIfAny } from "@/components/build/build-provider";
 import type { AgentSession } from "@/components/agent/use-agent-session";
 import { useCopy, useLocale } from "@/content/copy-provider";
 import {
-  asToolResult,
+  executeVia,
   findMcpHost,
   isWebMcpAvailable,
   librarySchemasFor,
@@ -13,7 +13,6 @@ import {
   workbenchSchemasFor,
   type McpRegistration,
 } from "@/lib/agent/webmcp";
-import { say } from "@/lib/agent/line";
 import { schemaFactsFor } from "@/lib/agent/builds";
 import { toolAnnotations, type AgentTool } from "@/lib/agent/model";
 import type { AllToolInputs } from "@/lib/agent/tools";
@@ -221,102 +220,24 @@ export function useWebMcpTools(
              of what the tool does, which no locale and no bench changes. */
           annotations: toolAnnotations[name],
           /**
-           * Nothing thrown crosses this line.
-           *
-           * The runner already turns a throwing handler into an error outcome,
-           * but the throw can happen before it — `navigate_build_step` with a
-           * step id that does not exist fails while the entry's own headline is
-           * being composed. A host that does not enforce the schema would get
-           * an exception where the protocol promises a result.
+           * The call itself is composed in `webmcp.ts` (`executeVia`): the
+           * pre-cancelled return, the refusal composition and the catch that
+           * keeps anything thrown from reaching the host all live there, where
+           * a test can call them through a spec-shaped host without a React
+           * tree. What this hook adds is the ref — `session.run` is a new
+           * function on every render and the dictionary changes with the
+           * locale, so both are read at call time rather than captured here at
+           * registration.
            */
-          execute: async (args, options) => {
-            /**
-             * A call the caller has already cancelled does not start at all.
-             *
-             * The bridge's own half of the signal, and the cheapest one: the
-             * host aborts when the agent walks away and then discards whatever
-             * the promise settles with, so anything begun after that point runs
-             * into a void. The half that matters more is inside the run —
-             * `attach_lead` awaits two animation phases before it commits, and
-             * only the handler is in a position to decide not to commit at
-             * 900 ms of a 1160 ms seat — which is why the signal is handed to
-             * `session.run` below rather than being consumed here.
-             *
-             * Racing the signal *here* instead of passing it on would be worse
-             * than silence: the promise would settle "cancelled" while the
-             * bench went on moving, so the one caller who asked us to stop
-             * would be the only one told that we had.
-             */
-            if (options?.signal?.aborted) {
-              return asToolResult({ error: "aborted", tool: name }, true);
-            }
-
-            try {
-              const outcome = await live.current.session.run(
-                name as keyof AllToolInputs,
-                (args ?? {}) as never,
-                /* Rewrapped rather than forwarded: `ToolExecuteCallbackOptions`
-                   is the protocol's dictionary and this is the runner's, and
-                   only the signal is meant to cross between them. `run` reads
-                   it inside the queue, so a call cancelled while it waits its
-                   turn behind another never runs. */
-                { signal: options?.signal },
-              );
-              const failed = outcome.status === "error";
-              if (!failed) return asToolResult(outcome.result, false);
-
-              /**
-               * A refusal, with everything that makes it actionable.
-               *
-               * This used to be the key alone — `{"error":"unknownCheck"}` —
-               * and the key is the one part of a refusal that helps nobody.
-               * `unknownCheck` carries the list of checks this build runs;
-               * `holeTaken` carries the pin; the four validated arguments carry
-               * what arrived and what would have been accepted. All of it was
-               * composed, shown to the person in a toast, and then dropped on
-               * the way to the one caller that could act on it.
-               *
-               * Three fields, because they answer three different questions and
-               * no client reads all three: `error` is the stable key to branch
-               * on, `message` is the sentence the person is looking at (same
-               * dictionary, same words — the agent and the reader cannot be
-               * told different things), and `result` is the structured refusal
-               * where there is one. `result` is spread rather than nested so a
-               * caller reads `refused` / `argument` / `valid` at the top level.
-               *
-               * The two this used to name as carrying nothing now carry the
-               * most: the unknown project answers `{argument, value, valid}`
-               * with all six ids, and the capstone's `noPlacement` answers
-               * `{argument, value, reason: "authorPlaced"}` so an agent learns
-               * on call #1 rather than call #12 that the bench takes no writes.
-               * The defensive read stays regardless — this bridge does not get
-               * to assume a shape it does not own, and `failed` alone is still
-               * reachable from a throw.
-               */
-              const detail = outcome.result;
-              return asToolResult(
-                {
-                  /* Spread first, so a payload can never shadow the three
-                     fields this bridge is contractually responsible for. */
-                  ...(detail && typeof detail === "object" ? detail : {}),
-                  error: outcome.errorMessage?.k ?? "failed",
-                  ...(outcome.errorMessage
-                    ? { message: say(live.current.copy, outcome.errorMessage) }
-                    : {}),
-                  tool: name,
-                },
-                true,
-              );
-            } catch (error) {
-              return asToolResult(
-                {
-                  error: error instanceof Error ? error.message : "failed",
-                  tool: name,
-                },
-                true,
-              );
-            }
-          },
+          execute: executeVia(name, {
+            run: (tool, args, options) =>
+              live.current.session.run(
+                tool as keyof AllToolInputs,
+                args as never,
+                options,
+              ),
+            copy: () => live.current.copy,
+          }),
         },
         /* The teardown, handed over at registration time. Everything this
            effect registers is aborted together. */

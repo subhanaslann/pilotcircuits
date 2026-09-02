@@ -1,5 +1,7 @@
 import type { BuildSchemaFacts } from "@/lib/agent/builds";
-import type { McpToolAnnotations } from "@/lib/agent/model";
+import { say } from "@/lib/agent/line";
+import type { AgentTool, McpToolAnnotations } from "@/lib/agent/model";
+import type { ToolOutcome } from "@/lib/agent/services";
 import type { Copy } from "@/content/i18n";
 import { componentIds, projects } from "@/lib/projects/catalog";
 import { conceptIds, difficulties } from "@/lib/projects/filter";
@@ -83,29 +85,36 @@ export interface McpRegistration {
   ok: Promise<boolean>;
 }
 
-/** The result shape the protocol expects from a tool call. */
-export interface McpToolResult {
-  content: { type: "text"; text: string }[];
-  /**
-   * The same value again, unserialised.
-   *
-   * MCP's rule runs one way only — *"If an output schema is provided: servers
-   * MUST provide structured results that conform to this schema"* — so a
-   * `structuredContent` without an `outputSchema` is legal, and the spec's own
-   * worked example carries both. `content` stays required and carries the same
-   * JSON as text, which is what *"a tool that returns structured content SHOULD
-   * also return the serialized JSON in a TextContent block"* asks for: a client
-   * doing `JSON.parse(result.content[0].text)` reads exactly what it read
-   * before this field existed.
-   *
-   * No `outputSchema` beside it, and not for want of trying: it is not a member
-   * of `ModelContextTool` (`index.bs:1057-1065`), WebIDL drops undeclared
-   * members without an error, and the explainer has it under *Future work*
-   * against an open issue. It would reach no host this product can talk to.
-   */
-  structuredContent?: unknown;
-  isError?: boolean;
-}
+/**
+ * What `execute` resolves with: the value itself, never an envelope.
+ *
+ * The IDL types the callback `Promise<any>` (`index.bs:1077`), and the host's
+ * execution algorithm runs *"serialize a JavaScript value to a JSON string"*
+ * on whatever the promise settles with and hands that string to the model.
+ * This used to be MCP's `CallToolResult` — `{content: [{type: "text", text}],
+ * structuredContent, isError}` — on the reasoning that a client doing
+ * `JSON.parse(result.content[0].text)` would read the same string either way.
+ * Measured on Chrome 152 with the WebMCP flags, no client does: the model
+ * received the envelope verbatim — 6 618 characters for 2 425 of payload on the
+ * first call a judge's agent makes, the same object twice, every quote
+ * escaped — and `isError` reached nobody. ChatGPT's documentation, Chrome's,
+ * the explainer's demo and the Model Context Tool Inspector all return and read
+ * bare values; the spec's only error channel is a rejected promise, which the
+ * model sees as an `UnknownError` with no body.
+ *
+ * So a result is the object the handler returned, and a refusal is a resolved
+ * object too — `{...detail, error, message, tool}`, composed by `executeVia`
+ * below, never a rejection: a rejection loses `error`, `message`, `argument`
+ * and `valid`, which are the parts an agent can act on. Never `undefined`,
+ * because the serialiser throws on it and the host then reports the execution
+ * as failed; `asToolResult` turns it into `null`.
+ *
+ * No `outputSchema` describing it, and not for want of trying: it is not a
+ * member of `ModelContextTool` (`index.bs:1057-1065`), WebIDL drops undeclared
+ * members without an error, and the explainer has it under *Future work*
+ * against an open issue. It would reach no host this product can talk to.
+ */
+export type McpToolResult = NonNullable<unknown> | null;
 
 /**
  * The second argument the host calls `execute` with.
@@ -329,26 +338,135 @@ function safely(fn: () => void) {
 }
 
 /**
- * Serialises a tool's return value for the protocol — twice.
+ * Normalises a tool's return value into what `execute` resolves with.
  *
- * Text, because that is the shape every current MCP client understands, and the
- * JSON inside it is the same object the panel's `Raw result` disclosure shows,
- * so what the agent reads and what the developer reads cannot drift. Then the
- * value itself, so a client that would rather not re-parse a string does not
- * have to. Two views of one object, never two objects.
+ * One rule, and this is the only constructor of a result in the codebase so it
+ * holds everywhere: **`undefined` becomes `null`.** HTML's *"serialize a
+ * JavaScript value to a JSON string"* throws on `undefined`, and the host's
+ * execution algorithm then reports the call as failed — a handler that returns
+ * nothing would reach the model as an error with no body. Everything else
+ * passes through as it is: the same object the panel's `Raw result` disclosure
+ * renders, so what the agent reads and what the developer reads cannot drift.
  *
- * This is the only constructor of a result in the codebase, which decides one
- * thing worth deciding on purpose: **a refusal is structured too**. All three
- * call sites in `use-webmcp.ts` come through here, so an `isError` result
- * publishes the composed refusal — `{...detail, error, message, tool}` — as
- * `structuredContent` as well as text. That is the half of a tool call an agent
- * most needs to read mechanically, and the reason `error` is a stable key.
+ * This used to build MCP's `{content, structuredContent, isError}` around the
+ * value; `McpToolResult` says what that cost and why it went.
  */
-export function asToolResult(value: unknown, isError = false): McpToolResult {
-  return {
-    content: [{ type: "text", text: JSON.stringify(value ?? null, null, 2) }],
-    structuredContent: value ?? null,
-    isError: isError || undefined,
+export function asToolResult(value: unknown): McpToolResult {
+  return value ?? null;
+}
+
+/**
+ * The two things the bridge needs from a session, read at call time.
+ *
+ * Functions rather than values because a registration outlives the render that
+ * made it: `session.run` is a new function on every render and the dictionary
+ * changes with the locale, so `use-webmcp.ts` hands in readers of a ref rather
+ * than the objects themselves. A test hands in plain closures.
+ */
+export interface McpToolRunner {
+  run: (
+    name: AgentTool,
+    args: Record<string, unknown>,
+    options: { signal?: AbortSignal },
+  ) => Promise<ToolOutcome>;
+  copy: () => Copy;
+}
+
+/**
+ * The `execute` a host is handed for one tool: a call into `session.run`, and
+ * a result whatever happens.
+ *
+ * Lifted out of the hook so the composition can be exercised without a host or
+ * a React tree; `webmcp.test.ts` calls it through a spec-shaped host's stored
+ * descriptor. Nothing thrown crosses this line. The runner already turns a
+ * throwing handler into an error outcome, but the throw can happen before it —
+ * `navigate_build_step` with a step id that does not exist fails while the
+ * entry's own headline is being composed — and a host that does not enforce
+ * the schema would get an exception where the protocol promises a result.
+ */
+export function executeVia(
+  name: AgentTool,
+  runner: McpToolRunner,
+): McpToolDescriptor["execute"] {
+  return async (args, options) => {
+    /**
+     * A call the caller has already cancelled does not start at all.
+     *
+     * The bridge's own half of the signal, and the cheapest one: the host
+     * aborts when the agent walks away and then discards whatever the promise
+     * settles with, so anything begun after that point runs into a void. The
+     * half that matters more is inside the run — `attach_lead` awaits two
+     * animation phases before it commits, and only the handler is in a
+     * position to decide not to commit at 900 ms of a 1160 ms seat — which is
+     * why the signal is handed to `session.run` below rather than being
+     * consumed here.
+     *
+     * Racing the signal *here* instead of passing it on would be worse than
+     * silence: the promise would settle "cancelled" while the bench went on
+     * moving, so the one caller who asked us to stop would be the only one
+     * told that we had.
+     */
+    if (options?.signal?.aborted) {
+      return asToolResult({ error: "aborted", tool: name });
+    }
+
+    try {
+      const outcome = await runner.run(
+        name,
+        args ?? {},
+        /* Rewrapped rather than forwarded: `ToolExecuteCallbackOptions` is the
+           protocol's dictionary and this is the runner's, and only the signal
+           is meant to cross between them. `run` reads it inside the queue, so
+           a call cancelled while it waits its turn behind another never
+           runs. */
+        { signal: options?.signal },
+      );
+      if (outcome.status !== "error") return asToolResult(outcome.result);
+
+      /**
+       * A refusal, with everything that makes it actionable.
+       *
+       * This used to be the key alone — `{"error":"unknownCheck"}` — and the
+       * key is the one part of a refusal that helps nobody. `unknownCheck`
+       * carries the list of checks this build runs; `holeTaken` carries the
+       * pin; the four validated arguments carry what arrived and what would
+       * have been accepted. All of it was composed, shown to the person in a
+       * toast, and then dropped on the way to the one caller that could act
+       * on it.
+       *
+       * Three fields, because they answer three different questions and no
+       * client reads all three: `error` is the stable key to branch on,
+       * `message` is the sentence the person is looking at (same dictionary,
+       * same words — the agent and the reader cannot be told different
+       * things), and `result` is the structured refusal where there is one.
+       * `result` is spread rather than nested so a caller reads `refused` /
+       * `argument` / `valid` at the top level.
+       *
+       * The two this used to name as carrying nothing now carry the most: the
+       * unknown project answers `{argument, value, valid}` with all six ids,
+       * and the capstone's `noPlacement` answers `{argument, value, reason:
+       * "authorPlaced"}` so an agent learns on call #1 rather than call #12
+       * that the bench takes no writes. The defensive read stays regardless —
+       * this bridge does not get to assume a shape it does not own, and
+       * `status: "error"` alone is still reachable from a throw.
+       */
+      const detail = outcome.result;
+      return asToolResult({
+        /* Spread first, so a payload can never shadow the three fields this
+           bridge is contractually responsible for. */
+        ...(detail && typeof detail === "object" ? detail : {}),
+        error: outcome.errorMessage?.k ?? "failed",
+        ...(outcome.errorMessage
+          ? { message: say(runner.copy(), outcome.errorMessage) }
+          : {}),
+        tool: name,
+      });
+    } catch (error) {
+      return asToolResult({
+        error: error instanceof Error ? error.message : "failed",
+        tool: name,
+      });
+    }
   };
 }
 

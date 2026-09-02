@@ -9,13 +9,17 @@ import {
 import { componentIds, projects } from "@/lib/projects/catalog";
 import { conceptIds, difficulties } from "@/lib/projects/filter";
 import { hasBench, schemaFactsFor } from "@/lib/agent/builds";
+import { say, type Line } from "@/lib/agent/line";
+import type { ToolOutcome } from "@/lib/agent/services";
 import {
   asToolResult,
+  executeVia,
   findMcpHost,
   librarySchemasFor,
   registerTool,
   workbenchSchemasFor,
   type McpHost,
+  type McpToolDescriptor,
 } from "@/lib/agent/webmcp";
 
 /**
@@ -370,7 +374,7 @@ describe("a host that will not take a tool is reported as one that did not", () 
     name: "get_build_context",
     description: "",
     inputSchema: {},
-    execute: async () => ({ content: [] as { type: "text"; text: string }[] }),
+    execute: async () => ({}),
   };
 
   /**
@@ -438,36 +442,38 @@ describe("a host that will not take a tool is reported as one that did not", () 
   });
 });
 
+/**
+ * A host as `index.bs` describes one: `Promise<undefined>` out, a duplicate
+ * name rejected, and `options.signal` the only way a name is ever freed again.
+ * There is no `unregisterTool` in the IDL and the promise resolves to
+ * `undefined`, so a teardown that reads the return value removes nothing —
+ * which is what left seven names on the host across a whole route walk, and
+ * made every later arrival at a bench a duplicate. It keeps the descriptor it
+ * was handed, so a test can call `execute` the way the browser does: off the
+ * stored tool, not off a local variable.
+ */
+function specHost() {
+  const held = new Map<string, McpToolDescriptor>();
+  const host: McpHost = {
+    registerTool: (tool, options) => {
+      if (held.has(tool.name)) {
+        return Promise.reject(new Error("InvalidStateError"));
+      }
+      held.set(tool.name, tool);
+      options?.signal?.addEventListener("abort", () => held.delete(tool.name));
+      return Promise.resolve(undefined);
+    },
+  };
+  return { host, held };
+}
+
 describe("the signal is the only teardown the spec has", () => {
   const descriptor = {
     name: "get_build_context",
     description: "",
     inputSchema: {},
-    execute: async () => ({ content: [] as { type: "text"; text: string }[] }),
+    execute: async () => ({}),
   };
-
-  /**
-   * A host as `index.bs` describes one: `Promise<undefined>` out, a duplicate
-   * name rejected, and `options.signal` the only way a name is ever freed
-   * again. There is no `unregisterTool` in the IDL and the promise resolves to
-   * `undefined`, so a teardown that reads the return value removes nothing —
-   * which is what left seven names on the host across a whole route walk, and
-   * made every later arrival at a bench a duplicate.
-   */
-  function specHost() {
-    const held = new Map<string, unknown>();
-    const host: McpHost = {
-      registerTool: (tool, options) => {
-        if (held.has(tool.name)) {
-          return Promise.reject(new Error("InvalidStateError"));
-        }
-        held.set(tool.name, tool);
-        options?.signal?.addEventListener("abort", () => held.delete(tool.name));
-        return Promise.resolve(undefined);
-      },
-    };
-    return { host, held };
-  }
 
   it("aborting the signal takes the tool off the host", async () => {
     const { host, held } = specHost();
@@ -501,32 +507,185 @@ describe("the signal is the only teardown the spec has", () => {
   });
 });
 
-describe("a result carries the same value twice", () => {
-  /* `structuredContent` beside the text block, which is what MCP asks for:
-     the text stays so a client that only reads `content[0].text` is unaffected,
-     and the structured half saves every other client a `JSON.parse`. */
-  it("as text and as structure, and they cannot drift", () => {
+describe("a result is the value itself", () => {
+  /**
+   * No envelope. The host serialises whatever `execute` resolves with and hands
+   * the string to the model, and MCP's `{content, structuredContent, isError}`
+   * reached Chrome 152 verbatim — 6 618 characters for 2 425 of payload, the
+   * same object twice — while no host, vendor example or inspector read it.
+   * These pin the shape that replaced it.
+   */
+  it("an object passes through untouched, with nothing wrapped around it", () => {
     const value = { project: "breathingLamp", findings: [{ id: "f1" }] };
     const result = asToolResult(value);
 
-    expect(result.structuredContent).toBe(value);
-    expect(JSON.parse(result.content[0]!.text)).toEqual(value);
-    expect(result.isError).toBeUndefined();
+    expect(result).toBe(value);
+    expect(result).not.toHaveProperty("content");
+    expect(result).not.toHaveProperty("structuredContent");
   });
 
-  it("a refusal is structured too", () => {
+  it("a refusal is the composed object, not a flag beside one", () => {
     const refusal = { error: "holeTaken", tool: "attach_lead" };
-    const result = asToolResult(refusal, true);
 
-    expect(result.structuredContent).toBe(refusal);
-    expect(result.isError).toBe(true);
+    expect(asToolResult(refusal)).toBe(refusal);
+    expect(asToolResult(refusal)).not.toHaveProperty("isError");
   });
 
-  it("nothing is `null` in both halves, not `undefined` in one", () => {
-    const result = asToolResult(undefined);
+  it("only `undefined` is touched, and it becomes `null`", () => {
+    /* The serialiser throws on `undefined` and the host then reports the call
+       as failed; every other value is the host's to serialise as it is. */
+    expect(asToolResult(undefined)).toBeNull();
+    expect(asToolResult(null)).toBeNull();
+    expect(asToolResult(0)).toBe(0);
+    expect(asToolResult("")).toBe("");
+    expect(asToolResult(false)).toBe(false);
+  });
+});
 
-    expect(result.structuredContent).toBeNull();
-    expect(result.content[0]!.text).toBe("null");
+/**
+ * The registered `execute`, end to end: composed by `executeVia`, stored by a
+ * spec-shaped host, called the way a browser calls it. Until this block no
+ * test reached the closure a host actually invokes, so the envelope change and
+ * the refusal composition both lived in code a green run never touched.
+ */
+describe("what a host receives from the registered execute", () => {
+  const holeTaken: Line = {
+    ns: "errors",
+    k: "holeTaken",
+    args: ["D7"],
+  };
+
+  /** Registers one tool whose runner answers with `answer`, and hands back the
+      `execute` the host stored — plus the calls the runner saw. */
+  async function registered(
+    name: Parameters<typeof executeVia>[0],
+    answer: (
+      args: Record<string, unknown>,
+      options: { signal?: AbortSignal },
+    ) => Promise<ToolOutcome> | ToolOutcome,
+  ) {
+    const { host, held } = specHost();
+    const seen: { args: Record<string, unknown>; signal?: AbortSignal }[] = [];
+    const registration = registerTool(host, {
+      name,
+      description: "",
+      inputSchema: {},
+      execute: executeVia(name, {
+        run: async (_tool, args, options) => {
+          seen.push({ args, signal: options.signal });
+          return answer(args, options);
+        },
+        copy: () => en,
+      }),
+    });
+    await expect(registration.ok).resolves.toBe(true);
+    return { execute: held.get(name)!.execute, seen };
+  }
+
+  it("a success is the handler's result, bare", async () => {
+    const result = { findings: [], source: "demo" };
+    const { execute, seen } = await registered("inspect_build", () => ({
+      status: "ok",
+      result,
+    }));
+
+    const received = await execute({ scope: "wiring" });
+
+    expect(received).toBe(result);
+    /* What the model reads after the host's serialisation: two keys, and
+       neither of them is `content`. */
+    expect(Object.keys(JSON.parse(JSON.stringify(received)))).toEqual([
+      "findings",
+      "source",
+    ]);
+    expect(seen[0]!.args).toEqual({ scope: "wiring" });
+  });
+
+  it("a refusal is the detail plus `error`, `message` and `tool`, resolved", async () => {
+    const { execute } = await registered("attach_lead", () => ({
+      status: "error",
+      result: {
+        refused: "holeTaken",
+        lead: "led.cathode",
+        target: "board.D7",
+        occupant: "res.out",
+        source: "demo",
+      },
+      errorMessage: holeTaken,
+    }));
+
+    await expect(
+      execute({ lead: "led.cathode", target: "board.D7" }),
+    ).resolves.toEqual({
+      refused: "holeTaken",
+      lead: "led.cathode",
+      target: "board.D7",
+      occupant: "res.out",
+      source: "demo",
+      error: "holeTaken",
+      /* The same sentence the person's toast shows, from the same dictionary. */
+      message: say(en, holeTaken),
+      tool: "attach_lead",
+    });
+  });
+
+  it("the three bridge fields cannot be shadowed by the payload", async () => {
+    const { execute } = await registered("attach_lead", () => ({
+      status: "error",
+      result: { error: "mine", message: "mine", tool: "mine" },
+      errorMessage: holeTaken,
+    }));
+
+    await expect(execute({})).resolves.toMatchObject({
+      error: "holeTaken",
+      message: say(en, holeTaken),
+      tool: "attach_lead",
+    });
+  });
+
+  it("an error outcome with no sentence and no detail is still an object", async () => {
+    const { execute } = await registered("navigate_build_step", () => ({
+      status: "error",
+    }));
+
+    await expect(execute({ step_id: "nope" })).resolves.toEqual({
+      error: "failed",
+      tool: "navigate_build_step",
+    });
+  });
+
+  it("a handler that returns nothing reaches the host as `null`, not `undefined`", async () => {
+    const { execute } = await registered("get_build_context", () => ({
+      status: "ok",
+    }));
+
+    await expect(execute({})).resolves.toBeNull();
+  });
+
+  it("a runner that throws resolves, with the message, and never rejects", async () => {
+    const { execute } = await registered("run_functional_test", () => {
+      throw new Error("headline could not be composed");
+    });
+
+    await expect(execute({ test: "sonar" })).resolves.toEqual({
+      error: "headline could not be composed",
+      tool: "run_functional_test",
+    });
+  });
+
+  it("missing arguments reach the runner as `{}`, and the signal crosses", async () => {
+    const controller = new AbortController();
+    const { execute, seen } = await registered("get_build_context", () => ({
+      status: "ok",
+      result: {},
+    }));
+
+    await execute(undefined as unknown as Record<string, unknown>, {
+      signal: controller.signal,
+    });
+
+    expect(seen[0]!.args).toEqual({});
+    expect(seen[0]!.signal).toBe(controller.signal);
   });
 });
 
