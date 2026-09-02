@@ -1,3 +1,5 @@
+<img src="public/logo.png" alt="" width="88" />
+
 # PilotCircuits
 
 PilotCircuits is a guided Arduino breadboard workbench for beginners, built for the
@@ -65,6 +67,10 @@ npm run dev      # http://localhost:3000
 npm test         # vitest
 npm run build    # production build
 ```
+
+The brand assets are written from one drawing (`src/components/ui/lamp-mark.ts`):
+`node scripts/make-icons.mjs` regenerates `public/logo.svg`, the tab icon and the
+app icons, and `npm test` fails if the committed SVG and that drawing disagree.
 
 Chrome needs the flag above for `navigator.modelContext` to exist on
 `localhost` too. The app deploys as a standard Next.js 16 application (a default

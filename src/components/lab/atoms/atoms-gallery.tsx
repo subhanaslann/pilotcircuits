@@ -813,9 +813,9 @@ export function FeedbackSpecimens() {
         <LabStage>
           <div className="flex flex-wrap items-center gap-10">
             <div className="flex items-center gap-4">
-              <LogoMark size={32} className="text-accent" />
-              <LogoMark size={24} className="text-accent" />
-              <LogoMark size={20} className="text-ink" />
+              <LogoMark size={32} />
+              <LogoMark size={24} />
+              <LogoMark size={20} tone="current" className="text-ink" />
             </div>
             <Wordmark />
             <div className="flex items-center gap-3">
