@@ -463,6 +463,11 @@ export function LampSceneView({
      is on screen, the thing being asked about is a picture. Same rule the seat
      picker already imposes, for the same reason. */
   const asking = Boolean(choosing && handling);
+  /* Where the lead in hand stands: its own node, which the scene carries
+     exactly when its part is on the bench. A lead still in the kit stands
+     nowhere, and the picker then opens on its first candidate as it always
+     did. See `SeatPicker.near`. */
+  const pickedNode = picking ? maybeNode(scene, picking.lead) : undefined;
   const chosenLeads =
     choosing && handling
       ? handling
@@ -747,9 +752,14 @@ export function LampSceneView({
           fact that you could put something there. */}
       {picking && onSeat ? (
         <SeatPicker
+          /* One mount per lead in hand: the picker decides where its caret
+             opens once, from `attached` and `near`, and a lead picked while
+             another was already in hand has to get that decision too. */
+          key={picking.lead}
           targets={targets ?? NO_TARGETS}
           blocked={picking.blocked}
           attached={picking.attached}
+          near={pickedNode ? { x: pickedNode.x, y: pickedNode.y } : undefined}
           hover={picking.hover}
           /* A pointer is carrying this lead exactly when a gesture on the
              bench has travelled. Anything else — a click, the rail, the

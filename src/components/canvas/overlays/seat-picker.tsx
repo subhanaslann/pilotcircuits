@@ -11,6 +11,7 @@ import {
 import { PITCH } from "@/lib/circuit/geometry";
 import type { CircuitNode, NodeId } from "@/lib/circuit/graph";
 import { bench } from "@/components/illustration/spec";
+import { nearestTarget, type Point } from "@/components/canvas/drag-math";
 
 /** A press is a press, not a pan, until it has travelled this far in CSS px. */
 const PRESS_SLOP = 6;
@@ -44,6 +45,16 @@ export const MARK_GROUND = "#10161C";
  * and have no camera, and the handle lives in the region that owns the well.
  * Absent — the briefing's film, the inspection's frozen frame — the walk simply
  * does not move the view, which is right for a picture.
+ *
+ * **Only the walk asks.** The mount used to ask as well, from the effect that
+ * follows the caret, and on a zoomed breadboard chapter the answer was a pan
+ * nobody wanted: a lead attached to nothing opened the caret on index 0 — the
+ * board's top-left hole — and the well was brought 609 CSS px across to it,
+ * under the hand that had just pressed a leg in column 19 (measured on Chrome
+ * 152, chapter two, at 300%). The picker mounts on pointer DOWN, so that pan
+ * landed in the middle of a drag as often as under a click. The camera now
+ * moves only from the key handlers that move the caret, and the caret opens
+ * beside the lead — see `near`.
  */
 type KeepCaretInView = (caret: DOMRect, at: { x: number; y: number }) => void;
 
@@ -250,6 +261,7 @@ export function SeatPicker({
   targets,
   blocked = [],
   attached,
+  near,
   hover,
   carried = false,
   aimAt,
@@ -280,6 +292,18 @@ export function SeatPicker({
   blocked?: readonly CircuitNode[];
   /** What this lead is attached to now, whichever side stored the edge. */
   attached?: NodeId;
+  /**
+   * Where the lead in hand stands on the bench, in scene units — its own node,
+   * not its lifted mark.
+   *
+   * Where the caret opens when the lead is attached to nothing: the candidate
+   * nearest this point, so a keyboard walk from a free leg standing over `F19`
+   * starts at `F19` rather than at `F1`, and the mark left bright while a
+   * pointer carries the lead over nothing is the hole beside it rather than
+   * the corner of the board. Omitted for a lead still in the kit, which stands
+   * nowhere; the caret then opens on the first candidate as it always did.
+   */
+  near?: Point;
   /**
    * The target a lead being dragged would land on.
    *
@@ -354,9 +378,23 @@ export function SeatPicker({
    * falls home when that thing genuinely stops being on offer.
    *
    * It opens on whatever the lead is attached to, so moving one hole over
-   * starts from where the lead is rather than from the end of the board.
+   * starts from where the lead is rather than from the end of the board — and
+   * for a lead attached to nothing, on the candidate nearest where it stands
+   * (`near`), for the same reason. Index 0 is the board's top-left hole, and a
+   * walk that starts there from a leg in column 19 is not a walk from the
+   * lead. Decided once, on mount: the bench keys this overlay by the lead in
+   * hand, so a different lead is a different mount.
    */
-  const [activeId, setActiveId] = useState<NodeId | undefined>(attached);
+  const [activeId, setActiveId] = useState<NodeId | undefined>(
+    () =>
+      attached ??
+      (near
+        ? nearestTarget(
+            near,
+            targets.map((target) => ({ id: target.id, at: aimAt(target) })),
+          )
+        : undefined),
+  );
   const at = targets.findIndex((target) => target.id === activeId);
   const home = targets.findIndex((target) => target.id === attached);
   const active = at !== -1 ? at : home !== -1 ? home : 0;
@@ -373,22 +411,36 @@ export function SeatPicker({
     refs.current.length = targets.length;
   }, [targets]);
 
-  const keepInView = useContext(CaretView);
-
+  /* Focus follows the caret. The camera does NOT follow it from here — see
+     `bring`, and the note on `KeepCaretInView` for what happened when it did. */
   useEffect(() => {
-    const node = refs.current[active];
-    node?.focus();
-    /* And then bring the view with it. `targets` is read here rather than
-       listed as a dependency on purpose — the array is rebuilt every render
-       and the caret is what moved, not the list. */
-    const target = targets[active];
-    if (!node || !target || !keepInView) return;
-    keepInView(node.getBoundingClientRect(), aimAt(target));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    refs.current[active]?.focus();
   }, [active]);
 
-  const move = (to: number) =>
-    setActiveId(targets[(to + targets.length) % targets.length]?.id);
+  const keepInView = useContext(CaretView);
+
+  /**
+   * Bring the view to the candidate the walk is about to land on.
+   *
+   * Called from the key handlers below and from nowhere else. Every candidate
+   * is already in the document, so the mark's box can be read here, before the
+   * render that moves the caret onto it — and reading it here rather than in
+   * an effect keyed on `active` is what keeps the mount, a pointer press on a
+   * mark, and a list that reshaped under the caret from moving the camera.
+   * Only a person pressing an arrow key has asked for the view to follow.
+   */
+  const bring = (index: number) => {
+    const node = refs.current[index];
+    const target = targets[index];
+    if (!node || !target || !keepInView) return;
+    keepInView(node.getBoundingClientRect(), aimAt(target));
+  };
+
+  const move = (to: number) => {
+    const index = (to + targets.length) % targets.length;
+    setActiveId(targets[index]?.id);
+    bring(index);
+  };
 
   /**
    * The rows, where these targets are laid out in rows at all.
@@ -412,7 +464,9 @@ export function SeatPicker({
   const step = (index: number, along: number, across: number) => {
     const from = targets[index];
     if (!grid || !from) return move(index + along + across);
-    setActiveId(neighbourOf(grid, from, along, across)?.id ?? from.id);
+    const next = neighbourOf(grid, from, along, across) ?? from;
+    setActiveId(next.id);
+    bring(targets.findIndex((target) => target.id === next.id));
   };
 
   /**

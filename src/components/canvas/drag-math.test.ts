@@ -7,6 +7,7 @@ import {
   hitRadius,
   minSpacing,
   MIN_TARGET_PX,
+  nearestTarget,
   race,
   slopFor,
   travelled,
@@ -553,5 +554,67 @@ describe("the mark a free lead offers on a breadboard", () => {
     expect(hitRadius(1, lifted(15))).toBeCloseTo(2.25, 6);
     expect(zoomToAim(1, lifted(15))).toBeCloseTo(4.8, 6);
     expect(zoomToAim(1, lifted(15))!).toBeGreaterThan(zoom.max);
+  });
+});
+
+/**
+ * Where the keyboard walk starts once a lead is in hand.
+ *
+ * The picker opened on index 0 whenever the lead was attached to nothing, and
+ * index 0 is the board's top-left hole — `bb.f1` on chapter two, eighteen
+ * columns from a leg standing over `F8`. It opens beside the leg now, and
+ * "beside the leg" is the hole under the leg's own node: the diagonal lift
+ * that `grabPoint` gives a free lead's mark pushes the mark nearer the next
+ * column, so asking from the mark would start the walk one hole to the right
+ * of where the leg is.
+ */
+describe("where the walk starts", () => {
+  const seated = (() => {
+    const r = tryAttach(lightPlacement, lightEmpty, "led.red.cathode", "bb.f7");
+    return r.kind === "attached" ? r.placement : lightEmpty;
+  })();
+  const scene = lightSceneFrom(seated);
+  const anode = scene.nodes["led.red.anode"]!;
+  /** The list as `live-workbench.tsx` hands it over: sorted by mark. */
+  const offered: AimTarget[] = candidatesFor(
+    lightPlacement,
+    seated,
+    "led.red.anode",
+  )
+    .map((id) => scene.nodes[id])
+    .filter((n) => n !== undefined)
+    .map((n) => ({ id: n.id, at: lightGrabPoint(n) }))
+    .sort((a, b) => a.at.x - b.at.x || a.at.y - b.at.y);
+
+  it("is the hole the free leg stands over, not the top-left corner", () => {
+    expect(offered[0].id).toBe("bb.f1");
+    expect(nearestTarget({ x: anode.x, y: anode.y }, offered)).toBe("bb.f8");
+  });
+
+  it("and not the hole nearest the lifted mark, which is one column over", () => {
+    expect(nearestTarget(lightGrabPoint(anode), offered)).toBe("bb.f9");
+  });
+
+  it("on chapter one it is the hole index 0 already was, so the flat walk is unchanged", () => {
+    const r = tryAttach(lampPlacement, lampEmpty, "led.cathode", "board.GND");
+    const placement = r.kind === "attached" ? r.placement : lampEmpty;
+    const lamp = lampSceneFrom(placement);
+    const node = lamp.nodes["led.anode"]!;
+    const targets: AimTarget[] = candidatesFor(lampPlacement, placement, "led.anode")
+      .map((id) => lamp.nodes[id])
+      .filter((n) => n !== undefined)
+      .map((n) => ({ id: n.id, at: lampGrabPoint(n) }))
+      .sort((a, b) => a.at.x - b.at.x || a.at.y - b.at.y);
+    expect(nearestTarget({ x: node.x, y: node.y }, targets)).toBe("board.D13");
+    expect(targets[0].id).toBe("board.D13");
+  });
+
+  it("answers nothing for an empty list, and the earlier of two equals", () => {
+    expect(nearestTarget({ x: 0, y: 0 }, [])).toBeUndefined();
+    const tied: AimTarget[] = [
+      { id: "left", at: { x: -5, y: 0 } },
+      { id: "right", at: { x: 5, y: 0 } },
+    ];
+    expect(nearestTarget({ x: 0, y: 0 }, tied)).toBe("left");
   });
 });

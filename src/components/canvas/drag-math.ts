@@ -250,6 +250,35 @@ export function race(
 }
 
 /**
+ * The candidate nearest a point — no radius, no verdict, just the closest one.
+ *
+ * Where a keyboard walk starts once a lead is picked up. The picker used to
+ * open on index 0 whenever the lead in hand was attached to nothing — the
+ * board's top-left hole — and then bring the view to it, which on a zoomed
+ * chapter two is 600 CSS px away from the lead under the cursor. `race` is not
+ * the right question here: it answers *whether* a release counts, and a walk
+ * has to start somewhere however far the nearest hole is.
+ *
+ * Asked of the lead's own node rather than of its lifted mark. On a breadboard
+ * the mark sits half a pitch up and half a pitch right of the leg, which puts
+ * it nearer the NEXT column's hole than the one the leg is standing over —
+ * `bb.f20` for a leg over `bb.f19`. The node is where the leg is.
+ *
+ * Ties go to the earlier candidate in the list, which is reading order.
+ */
+export function nearestTarget(
+  at: Point,
+  targets: readonly AimTarget[],
+): NodeId | undefined {
+  let best: { id: NodeId; d: number } | undefined;
+  for (const target of targets) {
+    const d = Math.hypot(target.at.x - at.x, target.at.y - at.y);
+    if (!best || d < best.d) best = { id: target.id, d };
+  }
+  return best?.id;
+}
+
+/**
  * Where the lead being committed is, given where the pointer has travelled.
  *
  * The one function that keeps the drawing and the drop in step: the ghost is

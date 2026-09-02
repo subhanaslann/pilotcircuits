@@ -799,6 +799,13 @@ export function BreadboardBenchView<Live = void>({
   const inert = (part: PartId) =>
     asking || (Boolean(picking && onSeat) && heldPart !== part);
 
+  /* Where the lead in hand stands: its own node, which the scene carries
+     exactly when its part is on the bench. A lead still in the kit stands
+     nowhere, and the picker then opens on its first candidate as it always
+     did. See `SeatPicker.near` for what opening there cost with a bench lead
+     in hand. */
+  const pickedNode = picking ? maybeNode(scene, picking.lead) : undefined;
+
   return (
     <>
       <DeskSurface />
@@ -1068,9 +1075,14 @@ export function BreadboardBenchView<Live = void>({
           fact that you could put something there. */}
       {picking && onSeat ? (
         <SeatPicker
+          /* One mount per lead in hand: the picker decides where its caret
+             opens once, from `attached` and `near`, and a lead picked while
+             another was already in hand has to get that decision too. */
+          key={picking.lead}
           targets={targets ?? NO_TARGETS}
           blocked={picking.blocked}
           attached={picking.attached}
+          near={pickedNode ? { x: pickedNode.x, y: pickedNode.y } : undefined}
           hover={picking.hover}
           carried={Boolean(held?.moved)}
           aimAt={picking.aimAt}
