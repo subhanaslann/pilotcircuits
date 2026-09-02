@@ -58,7 +58,18 @@ export const MARK_GROUND = "#10161C";
  */
 type KeepCaretInView = (caret: DOMRect, at: { x: number; y: number }) => void;
 
-const CaretView = createContext<KeepCaretInView | null>(null);
+/**
+ * What the camera's owner lends the picker: the pan for a keyboard walk, and
+ * the middle of the visible well — where the walk starts for a lead that stands
+ * nowhere yet, a kit part picked off the shelf by keyboard, instead of at the
+ * board's top-left hole.
+ */
+interface CaretViewValue {
+  keepInView: KeepCaretInView;
+  centre?: () => Point | undefined;
+}
+
+const CaretView = createContext<CaretViewValue | null>(null);
 
 /**
  * Supplied by whatever owns the camera. See `KeepCaretInView`.
@@ -70,12 +81,14 @@ const CaretView = createContext<KeepCaretInView | null>(null);
  */
 export function CaretViewport({
   keepInView,
+  centre,
   children,
 }: {
   keepInView: KeepCaretInView;
+  centre?: () => Point | undefined;
   children: ReactNode;
 }) {
-  return <CaretView value={keepInView}>{children}</CaretView>;
+  return <CaretView value={{ keepInView, centre }}>{children}</CaretView>;
 }
 
 /**
@@ -385,16 +398,20 @@ export function SeatPicker({
    * lead. Decided once, on mount: the bench keys this overlay by the lead in
    * hand, so a different lead is a different mount.
    */
-  const [activeId, setActiveId] = useState<NodeId | undefined>(
-    () =>
-      attached ??
-      (near
-        ? nearestTarget(
-            near,
-            targets.map((target) => ({ id: target.id, at: aimAt(target) })),
-          )
-        : undefined),
-  );
+  const view = useContext(CaretView);
+  const [activeId, setActiveId] = useState<NodeId | undefined>(() => {
+    if (attached) return attached;
+    /* A lead on the bench opens beside itself; one that stands nowhere yet —
+       a kit part taken by keyboard — opens at the middle of what is on screen,
+       which is where the person was looking. */
+    const from = near ?? view?.centre?.();
+    return from
+      ? nearestTarget(
+          from,
+          targets.map((target) => ({ id: target.id, at: aimAt(target) })),
+        )
+      : undefined;
+  });
   const at = targets.findIndex((target) => target.id === activeId);
   const home = targets.findIndex((target) => target.id === attached);
   const active = at !== -1 ? at : home !== -1 ? home : 0;
@@ -417,8 +434,6 @@ export function SeatPicker({
     refs.current[active]?.focus();
   }, [active]);
 
-  const keepInView = useContext(CaretView);
-
   /**
    * Bring the view to the candidate the walk is about to land on.
    *
@@ -432,8 +447,8 @@ export function SeatPicker({
   const bring = (index: number) => {
     const node = refs.current[index];
     const target = targets[index];
-    if (!node || !target || !keepInView) return;
-    keepInView(node.getBoundingClientRect(), aimAt(target));
+    if (!node || !target || !view) return;
+    view.keepInView(node.getBoundingClientRect(), aimAt(target));
   };
 
   const move = (to: number) => {

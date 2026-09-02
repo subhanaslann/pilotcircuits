@@ -176,6 +176,19 @@ export function CanvasWorkspace({
     );
   };
 
+  /**
+   * The middle of the part of the well anybody can see, in scene units — where
+   * a keyboard walk starts for a lead that stands nowhere yet. Same inset as
+   * `keepCaretInView`: under the kit shelf, not behind it.
+   */
+  const centreOfWell = () => {
+    const view = canvas.current;
+    const box = well.current?.getBoundingClientRect();
+    if (!view || !box) return undefined;
+    const top = box.top + (kit ? KIT_STRIP_HEIGHT : 0);
+    return view.toScene((box.left + box.right) / 2, (top + box.bottom) / 2);
+  };
+
   return (
     <section
       aria-label={copy.workbench.region.workspace}
@@ -365,7 +378,9 @@ export function CanvasWorkspace({
           onScaleChange={onScaleChange}
           className="h-full"
         >
-          <CaretViewport keepInView={keepCaretInView}>{children}</CaretViewport>
+          <CaretViewport keepInView={keepCaretInView} centre={centreOfWell}>
+            {children}
+          </CaretViewport>
         </CanvasViewport>
       </div>
 
