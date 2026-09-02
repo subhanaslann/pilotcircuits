@@ -2167,7 +2167,8 @@ export const tr: Copy = {
       idle: "Henüz test çalışmadı",
       idleDetail: "Tam test, bitmiş yapımı baştan sona çalıştırır.",
       running: "Fonksiyonel test çalışıyor",
-      passed: (n: number) => `${n} kontrolün hepsi geçti`,
+      passed: (n: number) =>
+        n === 1 ? "Tek kontrol geçti" : `${n} kontrolün hepsi geçti`,
       passedDetail: "Yapımın her kontrolü beklendiği gibi cevap verdi.",
       failed: (n: number) => `${n} kontrol başarısız`,
       failedDetail:
