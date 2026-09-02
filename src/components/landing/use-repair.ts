@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useWebMcpTools } from "@/components/agent/use-webmcp";
 import { useLandingSession } from "@/components/landing/landing-session";
-import { CYCLE, fix, getMode, reset } from "@/components/landing/scene/repair-demo";
+import {
+  CYCLE,
+  fix,
+  getMode,
+  getPhase,
+  reset,
+} from "@/components/landing/scene/repair-demo";
 import type { FindingId } from "@/lib/agent/findings";
 
 /**
@@ -88,6 +94,30 @@ export function useRepair() {
     if (later.current) window.clearTimeout(later.current);
   }, []);
 
+  /**
+   * The fault, back on the bench.
+   *
+   * Through `inject` rather than by rewinding: the workbench already has a
+   * control that puts one of this build's two faults back, it commits
+   * through the same reducer, and it lands in the timeline as a person
+   * moving a wire. A demo that resets by quietly editing its own history
+   * would be the one thing this screen is arguing against. Only when the
+   * graph was actually repaired — putting a fault back that never left
+   * would log a wire move nobody made. The film's reset goes under it.
+   *
+   * The timer below calls this when the rest is over; the plate calls it
+   * early when somebody asks to watch again while the working build stands.
+   */
+  const putBack = () => {
+    if (later.current) window.clearTimeout(later.current);
+    later.current = null;
+    if (repaired.current) {
+      repaired.current = false;
+      live.current.act({ kind: "inject", fault: "echo" });
+    }
+    reset(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  };
+
   const running = session.state.running;
 
   useEffect(() => {
@@ -137,29 +167,15 @@ export function useRepair() {
     if (getMode() === "done") reset(reduced);
     fix(reduced);
 
-    /**
-     * And then the fault goes back, so it can be watched again.
-     *
-     * Through `inject` rather than by rewinding: the workbench already has a
-     * control that puts one of this build's two faults back, it commits
-     * through the same reducer, and it lands in the timeline as a person
-     * moving a wire. A demo that resets by quietly editing its own history
-     * would be the one thing this screen is arguing against. Only when the
-     * graph was actually repaired — putting a fault back that never left
-     * would log a wire move nobody made.
-     *
-     * Timed from the film's start: `CYCLE` is the run plus the rest its end
-     * frame stands for, then the fault fades back in with the film's reset.
-     */
+    /* And then the fault goes back, so it can be watched again — `putBack`,
+       timed from the film's start: `CYCLE` is the run plus the rest its end
+       frame stands for, then the fault fades back in with the film's reset. */
     if (later.current) window.clearTimeout(later.current);
-    later.current = window.setTimeout(() => {
-      later.current = null;
-      if (repaired.current) {
-        repaired.current = false;
-        live.current.act({ kind: "inject", fault: "echo" });
-      }
-      reset(reduced);
-    }, CYCLE);
+    later.current = window.setTimeout(putBack, CYCLE);
+    /* `putBack` is a plain function of refs and imports (React Compiler), so
+       listing it would run this on every render; the effect is keyed on the
+       call it is about. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
 
   /**
@@ -176,6 +192,10 @@ export function useRepair() {
     if (busy) return;
     setBusy(true);
     try {
+      /* Asked during the rest — the working bench standing there — the run
+         starts over now rather than when the timer says: the fault goes back
+         first, so the two calls below have something to find. */
+      if (getPhase() === "rest") putBack();
       const looked = await session.run("inspect_build", { scope: "wiring" });
       const id = firstFinding(looked.result);
       if (!id) return;

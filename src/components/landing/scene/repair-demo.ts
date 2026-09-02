@@ -383,6 +383,20 @@ export function getMode(): Mode {
   return mode;
 }
 
+/**
+ * Where the film is, for the one control that has to know.
+ *
+ * The plate's button says "working" only while the ring is at work, and during
+ * the rest that follows — the working bench standing there — it offers the run
+ * again instead. `mode` alone cannot say which half of `fixing` this is.
+ */
+export type Phase = "stuck" | "run" | "rest" | "done";
+
+export function getPhase(): Phase {
+  if (mode !== "fixing") return mode;
+  return now < TOTAL ? "run" : "rest";
+}
+
 export function getLine(): number {
   return getFrame().line;
 }

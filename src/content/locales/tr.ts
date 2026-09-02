@@ -169,6 +169,7 @@ export const tr: Copy = {
     helpTools: "Burada kayıtlı:",
     helpAction: "Kabloyu düzelt",
     helpBusy: "Ajan çalışıyor",
+    helpAgain: "Yeniden izle",
     helpHost: "Bir ajan bunları çağırabilir",
     helpNoHost: "Bu tarayıcıda WebMCP yok",
     helpAfter:

@@ -314,6 +314,9 @@ export const en = {
     helpTools: "Registered here:",
     helpAction: "Fix the wire",
     helpBusy: "Agent working",
+    /* The rest after a run: the fixed build stands for a moment. The button
+       offers to start over now rather than pretending the agent is busy. */
+    helpAgain: "Watch it again",
     helpHost: "An agent can call these",
     helpNoHost: "No WebMCP in this browser",
     helpAfter:

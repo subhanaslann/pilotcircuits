@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { MonoValue } from "@/components/ui/text";
 import { useLandingSession } from "@/components/landing/landing-session";
 import { useRepair } from "@/components/landing/use-repair";
-import { getMode, subscribe } from "@/components/landing/scene/repair-demo";
+import { getPhase, subscribe } from "@/components/landing/scene/repair-demo";
 import { useCopy } from "@/content/copy-provider";
 import { icon } from "@/lib/design/tokens";
 import { cn } from "@/lib/utils/cn";
@@ -40,11 +40,14 @@ import { cn } from "@/lib/utils/cn";
 export function RepairAsk({ className }: { className?: string }) {
   const copy = useCopy();
   const { state } = useLandingSession();
-  const mode = useSyncExternalStore(subscribe, getMode, () => "stuck" as const);
+  const phase = useSyncExternalStore(subscribe, getPhase, () => "stuck" as const);
   const { busy, repair } = useRepair();
 
   const live = state.webMcpAvailable;
-  const working = busy || mode === "fixing";
+  const working = busy || phase === "run";
+  /* The rest: the fixed build stands for a moment before the fault goes back.
+     The button offers to start over now rather than pretending to be busy. */
+  const again = !working && phase === "rest";
 
   return (
     <div className={cn("flex min-w-0 flex-col gap-4", className)}>
@@ -107,7 +110,11 @@ export function RepairAsk({ className }: { className?: string }) {
         iconLeft={<Wrench size={icon.sm} aria-hidden="true" />}
         onClick={repair}
       >
-        {working ? copy.landing.helpBusy : copy.landing.helpAction}
+        {working
+          ? copy.landing.helpBusy
+          : again
+            ? copy.landing.helpAgain
+            : copy.landing.helpAction}
       </Button>
 
       <p className="text-caption text-ink-tertiary">
