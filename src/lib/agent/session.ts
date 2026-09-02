@@ -80,7 +80,8 @@ export interface AgentSessionState {
   /**
    * How many findings the person put right. Counted here rather than derived,
    * because `verify_current_step` drops the step's findings on its way out —
-   * by the time the build is finished there is nothing left to count.
+   * by the time the build is finished there is nothing left to count. Not
+   * taken back by undo either — see `history`.
    */
   repairs: number;
   /**
@@ -159,26 +160,34 @@ export interface AgentSessionState {
    * live re-read of the graph (`isResolved`), so undoing a repair re-opens it
    * on its own; storing a copy would be the second opinion this codebase does
    * not keep anywhere else.
+   *
+   * **Neither are `repairs` and `repaired`.** A repair, once counted, stays
+   * counted — the same rule `assistedEdits` follows, for the same reason:
+   * taking a gesture back does not unmake the fact that the mistake was put
+   * right, and the build cannot finish until it is put right again, at which
+   * point the same finding is credited once (`repaired` is what stops it
+   * being billed twice). Restoring them was what zeroed `Issues fixed` after
+   * one Ctrl+Z past a verified step: verify had already dropped the step's
+   * findings — by patch, which no undo reaches — so the re-made fix had
+   * nothing left to be credited against, and the completion screen reported
+   * no issues fixed for a mistake the person made and put right. Measured
+   * on chapters one and two (`.audit/hackathon/a2/undo-verify.result.txt`).
    */
   history: { past: BenchSnapshot[]; future: BenchSnapshot[] };
 }
 
 /**
- * Exactly what `commit` writes, and nothing else.
+ * Exactly what `commit` writes and undo may take back, and nothing else.
  *
  * Kept in step with `agent/placement.ts`'s `commit` by construction: if that
  * function learns to write a new field, this type is where it has to be added
- * or an undo will restore a bench that half-remembers.
+ * — or, as with `repairs` and `repaired`, where the reason it is left out has
+ * to be written down (see `history`) — or an undo will restore a bench that
+ * half-remembers.
  */
 export type BenchSnapshot = Pick<
   AgentSessionState,
-  | "placement"
-  | "scene"
-  | "completedSteps"
-  | "completedAt"
-  | "activeStepId"
-  | "repairs"
-  | "repaired"
+  "placement" | "scene" | "completedSteps" | "completedAt" | "activeStepId"
 >;
 
 /** A ten-minute build does not need an unbounded history. */
@@ -190,8 +199,6 @@ export const snapshotOf = (state: AgentSessionState): BenchSnapshot => ({
   completedSteps: state.completedSteps,
   completedAt: state.completedAt,
   activeStepId: state.activeStepId,
-  repairs: state.repairs,
-  repaired: state.repaired,
 });
 
 export function initialSession(build: BuildDef = defaultBuild): AgentSessionState {

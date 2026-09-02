@@ -127,15 +127,13 @@ describe("undo", () => {
     expect(s.completedSteps).toEqual(ticked.completedSteps);
   });
 
-  it("does not remember findings — they are re-asked off the graph", () => {
+  it("does not remember findings, nor the credit for putting them right", () => {
     const snap = snapshotOf(open());
     expect(Object.keys(snap).sort()).toEqual([
       "activeStepId",
       "completedAt",
       "completedSteps",
       "placement",
-      "repaired",
-      "repairs",
       "scene",
     ]);
   });
@@ -154,8 +152,64 @@ describe("undo", () => {
       ...Object.keys(snapshotOf(state)),
       /* Deliberately outside the snapshot — see the reducer's `undo`. */
       "highlightedFindingId",
+      /* Deliberately outside too — see `history`: a repair, once counted,
+         stays counted, and `repaired` is what keeps it from counting twice. */
+      "repairs",
+      "repaired",
     ]);
     for (const key of Object.keys(patch)) expect(covered).toContain(key);
+  });
+
+  /**
+   * The credit survives the undo, and is never paid twice.
+   *
+   * With `repairs` and `repaired` in the snapshot, one Ctrl+Z after a verified
+   * step zeroed `Issues fixed` for good: verify had dropped the step's findings
+   * by patch, undo restored the count from before the fix, and the re-made fix
+   * found no finding left to be credited against. Measured on chapters one and
+   * two (`.audit/hackathon/a2/undo-verify.result.txt`).
+   */
+  it("keeps the credit for a repair that undo takes back, and bills it once", async () => {
+    let s: AgentSessionState = { ...open(), activeStepId: "lampSeat" };
+    s = (await call(s, "inspect_build", { scope: "current_step" })).next;
+    expect(s.findings.map((f) => f.id)).toEqual(["kit-led"]);
+
+    s = gesture(s, "led.cathode", "board.GND");
+    expect(s.repairs).toBe(1);
+    expect(s.repaired).toEqual(["kit-led"]);
+
+    s = sessionReducer(s, { type: "undo" });
+    expect(s.placement["led.cathode"]).toBeNull();
+    expect(s.repairs).toBe(1);
+    expect(s.repaired).toEqual(["kit-led"]);
+
+    s = gesture(s, "led.cathode", "board.GND");
+    expect(s.repairs).toBe(1);
+  });
+
+  it("keeps it past a verified step, so the re-made fix still counts on /complete", async () => {
+    let s: AgentSessionState = { ...open(), activeStepId: "lampSeat" };
+    s = (await call(s, "inspect_build", { scope: "current_step" })).next;
+    s = gesture(s, "led.cathode", "board.GND");
+    s = (await call(s, "verify_current_step", {})).next;
+    expect(s.completedSteps).toContain("lampSeat");
+    expect(s.findings).toEqual([]);
+    expect(s.repairs).toBe(1);
+
+    s = sessionReducer(s, { type: "undo" });
+    expect(s.completedSteps).not.toContain("lampSeat");
+    expect(s.activeStepId).toBe("lampSeat");
+    expect(s.repairs).toBe(1);
+
+    s = gesture(s, "led.cathode", "board.GND");
+    s = (await call(s, "verify_current_step", {})).next;
+    expect(s.completedSteps).toContain("lampSeat");
+    expect(s.repairs).toBe(1);
+
+    /* And forward again: redo restores the bench, not a second credit. */
+    s = sessionReducer(s, { type: "undo" });
+    s = sessionReducer(s, { type: "redo" });
+    expect(s.repairs).toBe(1);
   });
 });
 
