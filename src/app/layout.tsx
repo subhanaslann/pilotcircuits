@@ -54,6 +54,43 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s · ${brand.name}`,
     },
     description: copy.brand.description,
+    /* The card a link becomes somewhere else.
+     *
+     * `public/og.png` is drawn by `ui/og-card.ts` and rasterised by
+     * `scripts/make-icons.mjs`, so the share card is built from the same lamp
+     * the tab icon is. Relative here and absolute in the output, because
+     * `metadataBase` above is what a crawler needs and never had.
+     *
+     * No `title` or `description` of their own: Next fills both from the two
+     * fields above, which means a chapter page that sets its own title gets a
+     * card headed with *that* title rather than the site's. Writing them out
+     * here would freeze every share on the home page's sentence.
+     *
+     * The image is one card in one language while the text beside it follows
+     * the reader's — see the note in `ui/og-card.ts`.
+     *
+     * No `url` either, and for the same reason. A root layout's is inherited
+     * by every route under it, so `url: "/"` published `og:url` as the home
+     * page on all twenty — which is not a missing field, it is a wrong one:
+     * it tells a crawler the chapter it is reading canonicalises to the entry
+     * screen. Omitted, the crawler uses the address it asked for, which is the
+     * true one. */
+    openGraph: {
+      type: "website",
+      siteName: brand.name,
+      images: [
+        {
+          url: "/og.png",
+          width: 1200,
+          height: 630,
+          alt: `${brand.name} — ${copy.brand.tagline}`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      images: ["/og.png"],
+    },
   };
 }
 
