@@ -62,7 +62,7 @@ import type { KitId } from "@/lib/projects/catalog";
  * clipped to another part's lead — and its BODY stands at `nightSensorAt`,
  * which is a fact about the desk rather than about the placement.
  *
- * That is the split `docs/bench-parts.md` §12 asks for, in its cheapest form:
+ * That is the split §12 asks for, in its cheapest form:
  * `flexible` already meant "each end is positioned from its own seat and
  * nothing clips to it", which is exactly true of a module on leads. What it did
  * not have was a body, and a body that never moves needs no model at all — the

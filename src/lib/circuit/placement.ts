@@ -268,7 +268,7 @@ export interface PartShort {
 }
 
 /**
- * Parts with both ends in one net — the rule `bench-parts.md` §12 asks for.
+ * Parts with both ends in one net — the rule §12 asks for.
  *
  * ## Why this is not `extras()`' job
  *
@@ -578,7 +578,7 @@ export function candidatesFor(
   /* Cables are out of this on both sides, matching `tryAttach`'s `wireEnd`
      refusal: a flexible part's end has nowhere to go but a hole, and it is
      never a place for somebody else's lead to go. Offering either would draw a
-     target the write refuses — the one thing §8 of `docs/bench-parts.md` says a
+     target the write refuses — the one thing §8 says a
      picker must never do. */
   const leads = isFlexible(t, part)
     ? []

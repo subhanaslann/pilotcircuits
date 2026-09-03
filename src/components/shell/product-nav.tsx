@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils/cn";
  *
  * ## Why there is one link and not three
  *
- * `frontend-plan.md` §5 asks for `Projects` · `My builds` · `Components`. §18
+ * §5 asks for `Projects` · `My builds` · `Components`. §18
  * asks that no main control be dead. In this release only the first of the
  * three has anywhere to go: `My builds` needs a build history the product does
  * not keep (§2 rules out a database), and `Components` needs a parts catalogue
@@ -34,8 +34,8 @@ import { cn } from "@/lib/utils/cn";
  * destination it cannot reach is a worse first impression than a nav with one
  * item — and because the alternative on the table, greying two of the three
  * out, decorates the bar with the product's unfinished parts. They come back
- * the day their routes do. (`design-language.md`: a rule broken on purpose gets
- * its reason written at the top of the file. This is that.)
+ * the day their routes do. (A rule broken on purpose gets its reason written
+ * at the top of the file. This is that.)
  *
  * **The same rule decides what the one link is called.** The reference the
  * screen was rebuilt against reads `WORKSHOP LOG` here. There is no workshop

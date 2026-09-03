@@ -9,8 +9,7 @@ import { LedArtwork } from "@/components/canvas/parts/wokwi/led-artwork";
  * Wokwi's 5 mm through-hole LED (MIT). Polarity is drawn rather than
  * colour-coded — the anode leg is the long one on the right and the cathode is
  * the short one on the left, exactly as on the real part — so a learner who
- * cannot tell red from green still gets the leg right (design-language.md,
- * rule 7).
+ * cannot tell red from green still gets the leg right (rule 7).
  *
  * `lit` drives the drawing's own glow instead of the halo we used to pulse
  * behind it. The glow is two blurred ellipses inside the dome, so a lit LED

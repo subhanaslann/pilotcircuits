@@ -326,7 +326,7 @@ describe("effectsOf", () => {
 });
 
 /**
- * `docs/bench-parts.md` §12's open item, written as a rule.
+ * §12's open item, written as a rule.
  *
  * Put both ends of a resistor on the `−` rail and every question the model
  * already asks answers "fine": `diff` finds no mismatch, because the rail is one

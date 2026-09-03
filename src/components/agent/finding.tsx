@@ -249,7 +249,7 @@ export function FindingRow({
       ) : null}
 
       {/* 16px on both axes: each button paints a 6px plate all round, so a
-          tighter gap makes two plates overlap (design-language.md, rule 2). */}
+          tighter gap makes two plates overlap (rule 2). */}
       <div className="mt-3 flex flex-wrap gap-4">
         {onShow ? (
           <Button

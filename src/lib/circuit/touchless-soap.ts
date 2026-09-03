@@ -67,7 +67,7 @@ import type { KitId } from "@/lib/projects/catalog";
  * column, which is one node and a dead short. A servo goes on the end of its
  * own cable and stands where it stands, which is what this draws.
  *
- * That is `docs/bench-parts.md` §12's first open item — "separating the body
+ * That is §12's first open item — "separating the body
  * from the lead positions, needed for parts with flying leads (the servo)" —
  * and this is the chapter it was written for.
  *

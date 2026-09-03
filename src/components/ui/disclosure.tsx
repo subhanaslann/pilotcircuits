@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils/cn";
  * Uncontrolled by default. Pass `open` to drive it from outside — the agent
  * raising the coaching level has to be able to open the teaching ladder itself,
  * and a disclosure that only the user can open would silently swallow that
- * (design-language.md, rule 6: a change that isn't seen didn't happen).
+ * (rule 6: a change that isn't seen didn't happen).
  */
 export function Disclosure({
   summary,

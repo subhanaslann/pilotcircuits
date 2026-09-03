@@ -199,8 +199,8 @@ function PadBody({ mood }: { mood: CoachMood }) {
 }
 
 /**
- * A 5 mm LED, the way `led-artwork.tsx` draws one and `design-language.md`'s
- * illustration appendix argues for it: taller than it is wide, a dome on a
+ * A 5 mm LED, the way `led-artwork.tsx` draws one and the illustration
+ * appendix argues for it: taller than it is wide, a dome on a
  * straight-sided body, a flange, and one leg longer than the other — that is
  * how a real LED says which way round it goes, and the figure keeps the joke.
  */

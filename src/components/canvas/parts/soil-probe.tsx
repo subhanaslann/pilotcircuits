@@ -17,9 +17,8 @@ import { bench, material as m } from "@/components/illustration/spec";
  * the only way the part is ever used: the blade goes into the pot and the three
  * pins have to stay out of the wet.
  *
- * No component-register number yet — `docs/design-system-inventory.md` has no
- * row for it, and inventing one here would be a second opinion about a fact
- * that lives in the register.
+ * No component-register number yet — the register has no row for it, and
+ * inventing one here would be a second opinion about a fact that lives there.
  */
 
 /**

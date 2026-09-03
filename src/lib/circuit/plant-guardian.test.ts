@@ -1456,7 +1456,7 @@ describe("nothing clips to a cable end or to a probe lead", () => {
   });
 
   /* And the picker never draws a target the write refuses — a mark you can aim
-     at and cannot hit is the one thing §8 of `docs/bench-parts.md` forbids. */
+     at and cannot hit is the one thing §8 forbids. */
   it("offers a flexible lead nothing but holes, and offers no lead one of them", () => {
     const p = seat(seat(bench, "wire.lamp.pin", "board.D9"), "soil.vcc", "bb.pos26");
 

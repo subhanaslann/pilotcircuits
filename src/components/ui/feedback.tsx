@@ -281,7 +281,7 @@ export function ActivityPulse({
  * A generic timeline draws a filled dot. This product has better vocabulary of
  * its own: the spine is a copper trace and each entry is a **plated
  * through-hole pad** — an annulus with a hole, not a dot. That is the same
- * motif as the pulse lattice and the canvas grid (design-language.md, rule 8),
+ * motif as the pulse lattice and the canvas grid (rule 8),
  * and it carries a real distinction for free:
  *
  *   hollow pad  the agent only looked — nothing on the bench changed

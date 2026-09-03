@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils/cn";
  * matters for this product — `focusOn`, which the agent calls when it points at
  * something. That move is animated: a highlight that simply appears somewhere
  * else is a change the user can miss, and the agent's whole job here is to be
- * legible (design-language.md, rule 6).
+ * legible (rule 6).
  *
  * The transform lives in a ref and is written straight to the DOM. React state
  * would re-render the entire circuit on every pointer move.

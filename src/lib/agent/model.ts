@@ -485,7 +485,7 @@ export function isCoachingLevel(value: unknown): value is CoachingLevel {
  * argument of `show_correction`. One union, because the panel's selector and the
  * agent's argument must never be able to disagree: when the agent raises the
  * level, the selector's thumb slides, and that movement is how the user sees
- * that the agent did something (design-language.md, rule 6).
+ * that the agent did something (rule 6).
  */
 export const coachingOrder = ["hint", "explain", "exact"] as const;
 

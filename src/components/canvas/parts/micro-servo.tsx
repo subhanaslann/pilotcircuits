@@ -17,7 +17,7 @@ import { ServoArtwork } from "@/components/canvas/parts/wokwi/servo-artwork";
  * the one the rest of the code keeps speaking.
  *
  * The rotation transition is what makes "preview correct angle" legible
- * (design-language.md, rule 6).
+ * (rule 6).
  */
 export function MicroServo({
   pins,

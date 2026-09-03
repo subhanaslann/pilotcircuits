@@ -145,7 +145,7 @@ export type BenchBody<Live> =
     }
   /**
    * A module whose case stands still and whose leads do not: a PIR on jumpers,
-   * a soil probe on a cable, a servo. `docs/bench-parts.md` §12's first open
+   * a soil probe on a cable, a servo. §12's first open
    * item, closed the cheap way — the case is a constant the build declares, so
    * there is nothing about it for the placement model to hold.
    *

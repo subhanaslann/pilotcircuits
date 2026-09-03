@@ -24,9 +24,8 @@ import { toolAct } from "@/lib/agent/model";
  * That is the honest answer to "show the agent thinking". The page cannot see
  * the model think: between two calls there is no signal at all, and a face
  * that pretended otherwise would be claiming what it has not measured (the
- * screen appendix in `design-language.md`: a badge that measures nothing is
- * not a badge). Inside a call the phases *are* measured, so the face follows
- * them.
+ * screen appendix is clear: a badge that measures nothing is not a badge).
+ * Inside a call the phases *are* measured, so the face follows them.
  *
  * Pure, and without React: the hook that owns the timer for reactions is
  * `components/agent/use-coach-mood.ts`. Everything here is a function of the

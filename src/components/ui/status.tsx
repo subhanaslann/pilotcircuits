@@ -304,7 +304,7 @@ export function useToasts() {
  *
  * The lattice is exported on its own too: the agent panel's empty findings and
  * empty timeline both want it, and it is the same motif as the activity pulse
- * and the canvas grid (design-language.md, rule 8).
+ * and the canvas grid (rule 8).
  */
 export function EmptyLattice({ className }: { className?: string }) {
   return (

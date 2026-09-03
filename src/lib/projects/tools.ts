@@ -26,7 +26,7 @@ import {
 /**
  * Batch 8 · §9 · The four tools that belong to the library, not the bench.
  *
- * `frontend-plan.md` §9 splits the product's tools by the screen that can act
+ * §9 splits the product's tools by the screen that can act
  * on them — "tools are registered only on the pages where they can be used" —
  * and these four are the half that was never built. They live in their own file
  * for the same reason the workbench six live in `agent/services.ts`: one

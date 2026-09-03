@@ -130,7 +130,7 @@ export function countedAs(id: KitId): ComponentId | null {
 }
 
 /** What a build teaches. Cards show the first two or three; the detail page
- *  shows them all (`frontend-plan.md` §4, §5). */
+ *  shows them all (§4, §5). */
 export type ConceptId =
   | "digitalPins"
   | "analogReading"
@@ -275,7 +275,7 @@ export const projects: ProjectDef[] = [
        reads this row, the preview below it reads the steps — added to 35. The
        other five rows carry that sum in their own comment and all five agree;
        this was the only one with no such line and the only one that differed.
-       `docs/frontend-plan.md` specifies 35 for this build. */
+       The plan specifies 35 for this build. */
     minutes: 35,
     difficulty: "intermediate",
     status: "ready",

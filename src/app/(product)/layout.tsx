@@ -5,7 +5,7 @@ import { BuildProvider } from "@/components/build/build-provider";
  * Batch 8 · Everything the product does, over one build.
  *
  * A route group rather than a folder, so `/`, `/projects`, `/workbench/…` and
- * `/complete/…` keep the URLs `frontend-plan.md` §5 promises while sharing the
+ * `/complete/…` keep the URLs §5 promises while sharing the
  * one thing they have to share.
  *
  * This layout adds no markup at all. The shell — the top bar and the content

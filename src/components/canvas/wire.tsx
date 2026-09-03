@@ -19,8 +19,8 @@ import { connector, wireNeutral, wireRoles } from "@/lib/design/tokens";
  * Nothing here is dashed. A dash on a cable that is physically present reads
  * as damage, and at canvas zoom it broke into coarse capsules.
  *
- * How a mismatch is told, now that the dash is gone (design-language.md,
- * rule 7 — never colour alone):
+ * How a mismatch is told, now that the dash is gone (rule 7 — never colour
+ * alone):
  *
  *   1. every other cable drains to neutral grey, so one wire keeps its hue
  *   2. the callout above the header names the move, `D6 → D7`

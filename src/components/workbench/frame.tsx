@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils/cn";
  * squeezed by a change the user never asked for.
  *
  * **The canvas does not exist below the fold width.** Not hidden: not rendered.
- * `frontend-plan` §16 says the circuit is never shrunk to the point of
+ * §16 says the circuit is never shrunk to the point of
  * meaninglessness, and a `CanvasViewport` mounted inside a 380px column would
  * fit itself to that width once and keep the result. Below `workbenchMin` the
  * steps, the findings and the agent are all still reachable — which is the

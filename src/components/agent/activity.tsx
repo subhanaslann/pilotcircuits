@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils/cn";
  * something more literal: a **copper trace with plated pads on it**. The agent
  * is routing a trace through the build, one point at a time — that is not a
  * metaphor borrowed for decoration, it is what is actually happening to the
- * graph (design-language.md, rule 8).
+ * graph (rule 8).
  *
  * The distinctions the shapes carry, before a word is read:
  *

@@ -1,8 +1,8 @@
 /**
  * Design-lab manifest.
  *
- * Mirrors `docs/design-system-inventory.md`. The lab route reads this so the
- * inventory, the navigation and the review checklist can never drift apart.
+ * Mirrors the component register. The lab route reads this so the register,
+ * the navigation and the review checklist can never drift apart.
  *
  * Structure only: ids, order, counts, statuses, routes. What each batch is
  * *called* lives in `copy.lab.shell.batches`, keyed by the same id — a batch

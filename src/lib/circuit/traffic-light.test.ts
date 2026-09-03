@@ -707,7 +707,7 @@ describe("a cable end refuses a lead", () => {
   });
 
   /* And the picker never draws a target the write refuses — a mark you can aim
-     at and cannot hit is the one thing §8 of `docs/bench-parts.md` forbids. The
+     at and cannot hit is the one thing §8 forbids. The
      cable is ON the bench here and its free end is a lead of a different part,
      which is exactly what would qualify without the flexible filter. */
   it("offers a cable end nothing but holes, and offers no lead a cable", () => {

@@ -10,7 +10,7 @@ import {
 /**
  * Batch 6 · P-04 · The filters, as functions.
  *
- * `frontend-plan.md` §5 asks for filters that genuinely work rather than a
+ * §5 asks for filters that genuinely work rather than a
  * toolbar that looks like it filters, so the narrowing lives here as pure
  * functions the toolbar calls. No React, no state — the same shape as
  * `steps.ts` and `catalog.ts`, and for the same reason: in Batch 7 a WebMCP
