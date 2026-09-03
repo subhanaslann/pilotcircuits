@@ -485,22 +485,98 @@ export function SeatPicker({
   };
 
   /**
-   * Where the press started, so a press that travelled cannot also commit.
+   * Where the press started, so a press that travelled cannot also commit —
+   * and where its release is heard, which is not on the mark.
    *
    * These marks tile the header edge to edge while a lead is in hand, and the
-   * press on one of them reaches the viewport underneath, which pans on any
-   * press that reaches it. Pointer capture then keeps the mark as the target of
-   * the release, so the bench panned *and* the lead was seated — in a hole
-   * however far away the pointer happened to be let go, which the person never
-   * chose. The press is still allowed through, because a header with no
-   * pannable pixel in it is the other half of the same trap: what is withheld
-   * is the commit.
+   * press on one of them is let through to the viewport underneath on purpose:
+   * the viewport pans on any press that reaches it, and a header with no
+   * pannable pixel in it is a trap. What is withheld is the commit, which a
+   * press that travelled more than `PRESS_SLOP` never gets.
+   *
+   * The viewport answers every press it receives with `setPointerCapture`, and
+   * a captured pointer's release — **and the `click` that follows it** — is
+   * dispatched to the capturing element, not to whatever is under the pointer.
+   * So the mark's `onClick` never fired for a pointer at all. Measured on
+   * Chrome 152: `pointerdown` on the mark's catcher, `pointerup` on the
+   * viewport's svg, `click` on the viewport's svg. What the person saw was
+   * that pressing a hole moved the caret onto it — mousedown moves focus, and
+   * `onFocus` moves the caret — and seated nothing until they pressed Enter, a
+   * key nobody with a mouse in their hand had been told about. The comment
+   * that stood here said the opposite: that capture kept the mark as the
+   * target of the release. It does not; it takes the release away.
+   *
+   * So the release is listened for on `window` in the capture phase, the one
+   * place a captured pointer's `pointerup` still passes — exactly as
+   * `use-part-drag.ts` hears the end of a drag, and for the same reason. The
+   * commit is made from the release: same pointer, within the slop of the
+   * press. `onClick` stays for an activation that had no pointer — a screen
+   * reader's own click — and is told when a release has already answered, so
+   * a browser that does not retarget the click cannot seat the lead twice.
    */
-  const press = useRef<{ id: NodeId; x: number; y: number } | null>(null);
+  const press = useRef<{
+    id: NodeId;
+    pointerId: number;
+    x: number;
+    y: number;
+    /** The release has already committed; the click that follows it is spent. */
+    answered: boolean;
+  } | null>(null);
+
+  /* Read by a window listener attached at the press and outliving the render
+     that attached it — the same shape as `use-part-drag.ts`'s `live`. */
+  const latest = useRef(onSeat);
+  useEffect(() => {
+    latest.current = onSeat;
+  });
+
+  const detach = useRef<(() => void) | null>(null);
+
+  const listen = () => {
+    detach.current?.();
+    const opts = { capture: true } as const;
+    const up = (event: globalThis.PointerEvent) => {
+      const from = press.current;
+      if (!from || from.pointerId !== event.pointerId) return;
+      release();
+      if (
+        Math.hypot(event.clientX - from.x, event.clientY - from.y) > PRESS_SLOP
+      ) {
+        press.current = null;
+        return;
+      }
+      from.answered = true;
+      /* The click, where one comes, is dispatched in the same turn as the
+         release; a record still standing after that would refuse the next
+         pointerless activation. */
+      setTimeout(() => {
+        if (press.current === from) press.current = null;
+      }, 0);
+      latest.current(from.id);
+    };
+    const cancel = (event: globalThis.PointerEvent) => {
+      const from = press.current;
+      if (!from || from.pointerId !== event.pointerId) return;
+      release();
+      press.current = null;
+    };
+    const release = () => {
+      window.removeEventListener("pointerup", up, opts);
+      window.removeEventListener("pointercancel", cancel, opts);
+      detach.current = null;
+    };
+    window.addEventListener("pointerup", up, opts);
+    window.addEventListener("pointercancel", cancel, opts);
+    detach.current = release;
+  };
+
+  /* A press interrupted by an unmount takes its listeners with it. */
+  useEffect(() => () => detach.current?.(), []);
 
   const commit = (target: NodeId, event: React.MouseEvent) => {
     const from = press.current;
     press.current = null;
+    if (from?.answered) return;
     /* No press at all is an activation from the accessibility tree — a screen
        reader's own click, which has nothing to travel. */
     if (
@@ -598,11 +674,19 @@ export function SeatPicker({
             }
             className="group cursor-pointer outline-none"
             onPointerDown={(event) => {
+              /* The release commits now — see `press` — so a button that is
+                 not the primary one must not start a press at all: a right
+                 click used to reach nothing because `click` never follows it,
+                 and its `pointerup` would. */
+              if (event.button !== 0 || !event.isPrimary) return;
               press.current = {
                 id: target.id,
+                pointerId: event.pointerId,
                 x: event.clientX,
                 y: event.clientY,
+                answered: false,
               };
+              listen();
             }}
             onClick={(event) => commit(target.id, event)}
             onFocus={() => setActiveId(target.id)}
