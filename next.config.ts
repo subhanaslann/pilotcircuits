@@ -1,4 +1,15 @@
 import type { NextConfig } from "next";
+import { brand } from "./src/content/brand";
+
+/**
+ * The two names the site answers to, and which of them is the site.
+ *
+ * `brand.origin` is already the one place that says where the product lives —
+ * `metadataBase`, the sitemap and `robots.txt` all read it — so the host to
+ * redirect *to* is read from there rather than typed again, and the `www.`
+ * form is derived from it. Rename the origin and both ends move together.
+ */
+const canonicalHost = new URL(brand.origin).host;
 
 const nextConfig: NextConfig = {
   /**
@@ -75,6 +86,35 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: [{ key: "Origin-Agent-Cluster", value: "?1" }],
+      },
+    ];
+  },
+
+  /**
+   * One address for one site.
+   *
+   * Both `pilotcircuits.com` and `www.pilotcircuits.com` are attached to the
+   * deployment, and without this both would *serve* it: two hosts for one
+   * product, two entries for every page in a crawler's index, and a share card
+   * whose `og:image` resolves against whichever one the link happened to use.
+   *
+   * Here rather than in the host's dashboard because the answer to *which host
+   * is the site* is already written down in `content/brand.ts`, and a setting
+   * held somewhere else is a second answer that can disagree with it. This one
+   * cannot: both halves come from `brand.origin`.
+   *
+   * Permanent — a `308`, which keeps the method and body — because the apex is
+   * not a temporary preference. Nothing matches on a deployment's own
+   * `*.vercel.app` name or on `localhost`, so the redirect is inert everywhere
+   * except the one host it is about.
+   */
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: `www.${canonicalHost}` }],
+        destination: `${brand.origin}/:path*`,
+        permanent: true,
       },
     ];
   },
