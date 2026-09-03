@@ -13,7 +13,7 @@ step, runs the functional test and, on request, attaches a lead itself. Tools ar
 registered per route with `navigator.modelContext`, so the agent only ever sees
 what the page in front of it can actually do.
 
-**Live demo:** https://pilotcircuits.com _(domain registered; goes live on deploy)_
+**Live demo:** https://pilotcircuits.com
 **Video:** _(YouTube link — fill in)_
 
 ## For judges
@@ -69,12 +69,16 @@ npm run build    # production build
 ```
 
 The brand assets are written from one drawing (`src/components/ui/lamp-mark.ts`):
-`node scripts/make-icons.mjs` regenerates `public/logo.svg`, the tab icon and the
-app icons, and `npm test` fails if the committed SVG and that drawing disagree.
+`node scripts/make-icons.mjs` regenerates `public/logo.svg`, the tab icon, the
+app icons and the share card `public/og.png` (laid out by
+`src/components/ui/og-card.ts`), and `npm test` fails if the committed SVG and
+that drawing disagree, or if the card stops saying what `copy.brand` says.
 
 Chrome needs the flag above for `navigator.modelContext` to exist on
 `localhost` too. The app deploys as a standard Next.js 16 application (a default
-Vercel import works); every response carries `Origin-Agent-Cluster: ?1`.
+Vercel import works); every response carries `Origin-Agent-Cluster: ?1`, and
+`www.pilotcircuits.com` answers `308` to the apex, which is the one host
+`content/brand.ts` names.
 
 ## Design gallery
 
